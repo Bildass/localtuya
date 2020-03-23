@@ -3,7 +3,7 @@ Simple platform to control LOCALLY Tuya cover devices.
 
 Sample config yaml
 
-switch:
+cover:
   - platform: localtuya
     host: 192.168.0.123
     local_key: 1234567891234567
@@ -11,8 +11,8 @@ switch:
     name: Cover guests
     protocol_version: 3.3
     id: 1
-
 """
+
 import logging
 import requests
 
