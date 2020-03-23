@@ -1,11 +1,12 @@
 
 # localtuya-homeassistant
 
-Local handling for Tuya Devices under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt)
+Local handling for Tuya Switches under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt)
+Also introduced handling for Tuya Covers and Lights.
 
 # How it works:
 
-   1. Copy switch.py and the other 2 integration/platform files, and pytuya handler folder, to /custom_components/localtuya/ folder, inside /config folder (via Samba for HASSIO).
+   1. Copy the localtuya folder content, and pytuya handler folder, to /custom_components/localtuya/ folder, inside /config folder (via Samba for HASSIO).
    
    2. Identify on your Home-Assistant logs (putting your logging into debug mode), the different attributes you want to handle by HA.
 
@@ -65,12 +66,26 @@ Local handling for Tuya Devices under Home-Assistant and Hassio, getting paramet
    
    NOTE2: tuya-sw01, TUYA-SW01, is the name (friendly name), so you can name it as you want, regarding to change this word every where it appears. Really you can name the sensors not using the name of the original switch. But the recomendation is to do it, so you can know what sensor it is (to be more traceable).
 
+   7. If you are using a cover device, this is the configuration to be used (as explained in cover.py):
+```   
+cover:
+  - platform: localtuya
+    host: 192.168.0.123
+    local_key: 1234567891234567
+    device_id: 123456789123456789abcd
+    name: Cover guests
+    protocol_version: 3.3
+    id: 1
+```   
+    
 # To-do list:
 
    Create a (good and precise) sensor (counter) for Energy (kWh) -not just Power, but based on it-. 
       Ideas: Use: https://www.home-assistant.io/components/integration/ and https://www.home-assistant.io/components/utility_meter/
    
    RGB integration (for devices integrating both plug switch, power meter, and led light) 
+   
+   Create a switch for cover backlight (dps 101): pytuya library already supports it
 
 # Thanks to:
 
