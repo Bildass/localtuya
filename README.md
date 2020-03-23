@@ -2,7 +2,9 @@
 # localtuya-homeassistant
 
 Local handling for Tuya Switches under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt).
+
 Also introduced handling for Tuya Covers and Lights, introducing pytuya library 7.0.7.
+
 Developed substantially by merging the codes of NameLessJedi, mileperhour and TradeFace (see Thanks paragraph).
 
 # How it works:
