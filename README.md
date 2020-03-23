@@ -1,8 +1,9 @@
 
 # localtuya-homeassistant
 
-Local handling for Tuya Switches under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt)
-Also introduced handling for Tuya Covers and Lights.
+Local handling for Tuya Switches under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt).
+Also introduced handling for Tuya Covers and Lights, introducing pytuya library 7.0.7.
+Developed substantially by merging the codes of NameLessJedi, mileperhour and TradeFace (see Thanks paragraph).
 
 # How it works:
 
@@ -89,7 +90,9 @@ cover:
 
 # Thanks to:
 
-NameLessJedi, for the work tweaking my code to allow using same integration files/folder for different DPS assignment switches. Visit the https://github.com/NameLessJedi/localtuya-homeassistant repository if you can't find a updated (pytuya version) of my code or do need the tweak.
+NameLessJedi https://github.com/NameLessJedi/localtuya-homeassistant and mileperhour https://github.com/mileperhour/localtuya-homeassistant being the major sources of inspiration, and whose code for switches is substantially unchanged.
+
+TradeFace, for being the only one to provide the correct code for communication with the cover (in particular, the 0x0d command for the status instead of the 0x0a, and related needs such as double reply to be received): https://github.com/TradeFace/tuya/
 
 sean6541, for the working (standard) Python Handler for Tuya devices.
 
