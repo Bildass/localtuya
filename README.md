@@ -97,7 +97,3 @@ NameLessJedi https://github.com/NameLessJedi/localtuya-homeassistant and mileper
 TradeFace, for being the only one to provide the correct code for communication with the cover (in particular, the 0x0d command for the status instead of the 0x0a, and related needs such as double reply to be received): https://github.com/TradeFace/tuya/
 
 sean6541, for the working (standard) Python Handler for Tuya devices.
-
-some-other-user, i really can't find now, (i will credit/thank him here), who published a partialy Python script that inspired this solution
-   
-rdelcorro, for last fixes of pytuya module break from HASSIO last updates: no module named 'pytuya' .
