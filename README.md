@@ -1,7 +1,7 @@
 
 # localtuya-homeassistant
 
-Local handling for Tuya Switches under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt).
+Local handling for Tuya Switches under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt). Supports 3 types of switches: one-gang switches, two-gang switches and wifi plug (with additional USB plugs).
 
 Also introduced handling for Tuya Covers and Lights, introducing pytuya library 7.0.7.
 
@@ -30,20 +30,43 @@ Developed substantially by merging the codes of NameLessJedi, mileperhour and Tr
 
    4. Use this declaration on your configuration.yaml file (you need to get the 'device_id' and 'local_key' parameters for your device, as it can be obtained on other tutorials on the web:
 ```
-       switch:
-         - platform: localtuya
-           host: 192.168.1.251
-           local_key: 1234567890abcdef
-           device_id: abcdef1234567890abcdef
-           switches:
-             switch1:
-             friendly_name: TUYA_LED
-             id: 1
-           switch2:
-             friendly_name: TUYA_SW01
-             id: 101
+##### FOR ONE-GANG SWITCHES #####
+switch:
+  - platform: localtuya
+    host: 192.168.0.1
+    local_key: 1234567891234567
+    device_id: 12345678912345671234
+    name: tuya_01
+    friendly_name: tuya_01
+    protocol_version: 3.3
+    current: 18
+    current_consumption: 19
+    voltage: 20
+
+##### FOR TWO-GANG SWITCHES / PLUGS #####
+  - platform: localtuya
+    host: 192.168.0.1
+    local_key: 1234567891234567
+    device_id: 12345678912345671234
+    name: tuya_01
+    friendly_name: tuya_01
+    protocol_version: 3.3
+    switches:
+      sw01:
+        name: main_plug
+        friendly_name: Main Plug
+        id: 1
+        current: 18
+        current_consumption: 19
+        voltage: 20
+      sw02:
+        name: usb_plug
+        friendly_name: USB Plug
+        id: 7  
 ```
-   NOTE: (as many switch declared as the device has, take note that: If your device is composed (ex. one switch with a independent led light in it), this led can be declared as a 'switch'. ¡This Python script does not include RGB handling! (RGB Handling is independent and must be declared as a 'light' custom device, you can search web for examples, but i have not test this).
+   NOTE: (as many switch declared as the device has, take note that: If your device is composed (ex. one switch with a independent led light in it), this led can be declared as a 'switch'. ¡This Python script does not include RGB handling! (RGB Handling is independent and must be declared as a 'light' custom device, you can search web for examples, but i have not test this). 
+   
+   NOTE2: for each switch/subswitch both name and friendly_name must be specified: name will be used as the entity ID, while friendly_name will be used as the name in the frontend.
       
    5. Use this declaration on your configuration.yaml file, for stating sensors that handle its attributes:
 ```   
@@ -52,23 +75,21 @@ Developed substantially by merging the codes of NameLessJedi, mileperhour and Tr
            sensors:
              tuya-sw01_voltage:
                value_template: >-
-                 {{ states.switch.tuya-sw01.attributes.voltage }}
+                 {{ states.switch.sw01.attributes.voltage }}
                unit_of_measurement: 'V' 
              tuya-sw01_current:
                value_template: >-     
-                 {{ states.switch.tuya-sw01.attributes.current }}
+                 {{ states.switch.sw01.attributes.current }}
                unit_of_measurement: 'mA'      
              tuya-sw01_current_consumption:
                value_template: >-
-                 {{ states.switch.tuya-sw01.attributes.current_consumption }}
+                 {{ states.switch.sw01.attributes.current_consumption }}
                unit_of_measurement: 'W' 
 ```               
    6. If all gone OK (your device's parameters local_key and device_id are correct), your switch is working, so the sensors are working too.
    
    NOTE: You can do as changes as you want in scripts ant/or yaml files. But: You can't declare your "custom_component" as "tuya", tuya is a forbidden word from 0.88 version or so. So if you declare a switch.tuya, the embedded (cloud based) Tuya component will be load instead custom_component one.
    
-   NOTE2: tuya-sw01, TUYA-SW01, is the name (friendly name), so you can name it as you want, regarding to change this word every where it appears. Really you can name the sensors not using the name of the original switch. But the recomendation is to do it, so you can know what sensor it is (to be more traceable).
-
    7. If you are using a cover device, this is the configuration to be used (as explained in cover.py):
 ```   
 cover:
@@ -76,7 +97,8 @@ cover:
     host: 192.168.0.123
     local_key: 1234567891234567
     device_id: 123456789123456789abcd
-    name: Cover guests
+    name: cover_guests
+    friendly_name: Cover guests
     protocol_version: 3.3
     id: 1
 ```   
