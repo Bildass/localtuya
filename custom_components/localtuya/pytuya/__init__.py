@@ -1,9 +1,10 @@
-# Python module to interface locally with Tuya WiFi smart devices (switches, lights and covers)
+# Python module to interface with Shenzhen Xenon ESP8266MOD WiFi smart devices
+# E.g. https://wikidevi.com/wiki/Xenon_SM-PW701U
+#   SKYROKU SM-PW701U Wi-Fi Plug Smart Plug
+#   Wuudi SM-S0301-US - WIFI Smart Power Socket Multi Plug with 4 AC Outlets and 4 USB Charging Works with Alexa
 #
-# Developed by merging the code from:
+# This would not exist without the protocol reverse engineering from
 # https://github.com/codetheweb/tuyapi by codetheweb and blackrozes
-# https://github.com/mileperhour/localtuya-homeassistant 
-# https://github.com/NameLessJedi/localtuya-homeassistant
 #
 # Tested with Python 2.7 and Python 3.6.1 only
 
@@ -119,8 +120,9 @@ def hex2bin(x):
         return bytes.fromhex(x)
 
 # This is intended to match requests.json payload at https://github.com/codetheweb/tuyapi
+# device20 or device22 are to be used depending on the length of dev_id (20 or 22 chars)
 payload_dict = {
-  "device": {
+  "device20": {
     "status": {
       "hexByte": "0a",
       "command": {"gwId": "", "devId": ""}
@@ -132,7 +134,7 @@ payload_dict = {
     "prefix": "000055aa00000000000000",    # Next byte is command byte ("hexByte") some zero padding, then length of remaining payload, i.e. command + suffix (unclear if multiple bytes used for length, zero padding implies could be more than one byte)
     "suffix": "000000000000aa55"
   },
-  "cover": {
+  "device22": {
     "status": {
       "hexByte": "0d",
       "command": {"devId": "", "uid": "", "t": ""}
@@ -175,7 +177,7 @@ class XenonDevice(object):
     def __repr__(self):
         return '%r' % ((self.id, self.address),)  # FIXME can do better than this
 
-    def _send_receive(self, payload, times=1):
+    def _send_receive(self, payload):
         """
         Send single buffer `payload` and receive a single buffer.
         
@@ -188,11 +190,12 @@ class XenonDevice(object):
         s.connect((self.address, self.port))
         s.send(payload)
         data = s.recv(1024)
-        #print("FIRST:  Received %d bytes" % len(data) )
-        if times > 1:
+#        print("FIRST:  Received %d bytes" % len(data) )
+        # sometimes the first packet does not contain data (typically 28 bytes): need to read again
+        if len(data) < 40:
             time.sleep(0.1)
             data = s.recv(1024)
-            #print("SECOND: Received %d bytes" % len(data) )
+#            print("SECOND: Received %d bytes" % len(data) )
         s.close()
         return data
 
@@ -224,7 +227,7 @@ class XenonDevice(object):
         if data is not None:
             json_data['dps'] = data
         if command_hb == '0d':
-            json_data['dps'] = {"1": None}
+            json_data['dps'] = {"1": None,"101": None,"102": None}
 
         # Create byte buffer from hex data
         json_payload = json.dumps(json_data)
@@ -294,19 +297,15 @@ class Device(XenonDevice):
         super(Device, self).__init__(dev_id, address, local_key, dev_type)
     
     def status(self):
-        if self.dev_type == 'cover':
-            recv_times = 2
-        else:
-            recv_times = 1
-        log.debug('status() entry (dev_type is %s, recv_times = %d)', self.dev_type, recv_times)
+        log.debug('status() entry (dev_type is %s)', self.dev_type)
         # open device, send request, then close connection
         payload = self.generate_payload('status')
 
-        data = self._send_receive(payload, recv_times)
+        data = self._send_receive(payload)
         log.debug('status received data=%r', data)
 
         result = data[20:-8]  # hard coded offsets
-        if self.dev_type == 'cover':
+        if self.dev_type != 'device20':
             result = result[15:]
 
         log.debug('result=%r', result)
@@ -414,7 +413,10 @@ class Device(XenonDevice):
 
 class OutletDevice(Device):
     def __init__(self, dev_id, address, local_key=None):
-        dev_type = 'device'
+        if len(dev_id) == 22:
+            dev_type = 'device22'
+        else:
+            dev_type = 'device20'
         super(OutletDevice, self).__init__(dev_id, address, local_key, dev_type)
 
 
@@ -422,15 +424,13 @@ class CoverDevice(Device):
     DPS_INDEX_MOVE       = '1'
     DPS_INDEX_BL         = '101'
 
-    DPS             = 'dps'
-    
     DPS_2_STATE = {
                 '1':'movement',
                 '101':'backlight',
                 }
 
     def __init__(self, dev_id, address, local_key=None):
-        dev_type = 'cover'
+        dev_type = 'device22'
         print('%s version %s' % ( __name__, version))
         print('Python %s on %s' % (sys.version, sys.platform))
         if Crypto is None:
@@ -474,7 +474,7 @@ class BulbDevice(Device):
                 }
 
     def __init__(self, dev_id, address, local_key=None):
-        dev_type = 'device'
+        dev_type = 'device20'
         super(BulbDevice, self).__init__(dev_id, address, local_key, dev_type)
 
     @staticmethod

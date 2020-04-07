@@ -3,16 +3,17 @@ Simple platform to control LOCALLY Tuya cover devices.
 
 Sample config yaml
 
-cover:
+switch:
   - platform: localtuya
     host: 192.168.0.123
     local_key: 1234567891234567
     device_id: 123456789123456789abcd
-    name: Cover guests
+    name: cover_guests
+    friendly_name: Cover guests
     protocol_version: 3.3
     id: 1
-"""
 
+"""
 import logging
 import requests
 
@@ -27,7 +28,7 @@ from homeassistant.components.cover import (
 )
 
 """from . import DATA_TUYA, TuyaDevice"""
-"""from homeassistant.components.cover import CoverDevice, PLATFORM_SCHEMA"""
+from homeassistant.components.cover import ENTITY_ID_FORMAT, CoverDevice, PLATFORM_SCHEMA
 from homeassistant.const import (CONF_HOST, CONF_ID, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
 import homeassistant.helpers.config_validation as cv
 from time import time, sleep
@@ -52,6 +53,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_DEVICE_ID): cv.string,
     vol.Required(CONF_LOCAL_KEY): cv.string,
     vol.Required(CONF_NAME): cv.string,
+    vol.Required(CONF_FRIENDLY_NAME): cv.string,
     vol.Required(CONF_PROTOCOL_VERSION, default=DEFAULT_PROTOCOL_VERSION): vol.Coerce(float),
     vol.Optional(CONF_ID, default=DEFAULT_ID): cv.string,
 })
@@ -72,11 +74,12 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
             TuyaDevice(
                 cover_device,
                 config.get(CONF_NAME),
+                config.get(CONF_FRIENDLY_NAME),
                 config.get(CONF_ICON),
                 config.get(CONF_ID),
             )
 	)
-    print('Setup localtuya cover [{}] with device ID [{}] '.format(config.get(CONF_NAME), config.get(CONF_ID)))
+    print('Setup localtuya cover [{}] with device ID [{}] '.format(config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID)))
 
     add_entities(covers)
 
@@ -127,12 +130,13 @@ class TuyaCoverCache:
 class TuyaDevice(CoverDevice):
     """Tuya cover devices."""
 
-    def __init__(self, device, name, icon, switchid):
+    def __init__(self, device, name, friendly_name, icon, switchid):
         self._device = device
-        self._name = name
+        self.entity_id =  ENTITY_ID_FORMAT.format(name)
+        self._name = friendly_name
+        self._friendly_name = friendly_name
         self._icon = icon
         self._switch_id = switchid
-        #self.entity_id = ENTITY_ID_FORMAT.format(_device.object_id())
         self._status = self._device.status()
         self._state = self._status['dps'][self._switch_id]
         print('Initialized tuya cover [{}] with switch status [{}] and state [{}]'.format(self._name, self._status, self._state))
