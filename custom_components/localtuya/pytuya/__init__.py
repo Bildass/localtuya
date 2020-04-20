@@ -34,16 +34,16 @@ __author__ = 'rospogrigio'
 
 log = logging.getLogger(__name__)
 logging.basicConfig()  # TODO include function name/line numbers in log
-log.setLevel(level=logging.DEBUG)  # Debug hack!
+#log.setLevel(level=logging.DEBUG)  # Debug hack!
 
-log.info('%s version %s', __name__, version)
-log.info('Python %s on %s', sys.version, sys.platform)
+log.debug('%s version %s', __name__, version)
+log.debug('Python %s on %s', sys.version, sys.platform)
 if Crypto is None:
-    log.info('Using pyaes version %r', pyaes.VERSION)
-    log.info('Using pyaes from %r', pyaes.__file__)
+    log.debug('Using pyaes version %r', pyaes.VERSION)
+    log.debug('Using pyaes from %r', pyaes.__file__)
 else:
-    log.info('Using PyCrypto %r', Crypto.version_info)
-    log.info('Using PyCrypto from %r', Crypto.__file__)
+    log.debug('Using PyCrypto %r', Crypto.version_info)
+    log.debug('Using PyCrypto from %r', Crypto.__file__)
 
 SET = 'set'
 STATUS = 'status'
@@ -184,18 +184,34 @@ class XenonDevice(object):
         Args:
             payload(bytes): Data to send.
         """
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        s.settimeout(self.connection_timeout)
-        s.connect((self.address, self.port))
-        s.send(payload)
-        data = s.recv(1024)
-#        print("FIRST:  Received %d bytes" % len(data) )
-        # sometimes the first packet does not contain data (typically 28 bytes): need to read again
-        if len(data) < 40:
-            time.sleep(0.1)
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            s.settimeout(self.connection_timeout)
+            s.connect((self.address, self.port))
+        except Exception as e:
+            print('Failed to connect to %s. Raising Exception.' % (self.address)) 
+            raise e   
+        try:
+            s.send(payload)
+        except Exception as e:
+            print('Failed to send payload to %s. Raising Exception.' % (self.address)) 
+            #s.close()
+            raise e   
+
+        try:
             data = s.recv(1024)
-#            print("SECOND: Received %d bytes" % len(data) )
+#            print("FIRST:  Received %d bytes" % len(data) )
+        # sometimes the first packet does not contain data (typically 28 bytes): need to read again
+            if len(data) < 40:
+                time.sleep(0.1)
+                data = s.recv(1024)
+#                print("SECOND: Received %d bytes" % len(data) )
+        except Exception as e:
+            print('Failed to receive data from %s. Raising Exception.' % (self.address)) 
+            #s.close()
+            raise e   
+
         s.close()
         return data
 

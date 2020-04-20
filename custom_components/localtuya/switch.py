@@ -24,12 +24,16 @@ switch:
         friendly_name: USB Plug
         id: 7  
 """
+import logging
 import voluptuous as vol
+
 from homeassistant.components.switch import ENTITY_ID_FORMAT, SwitchDevice, PLATFORM_SCHEMA
 from homeassistant.const import (CONF_HOST, CONF_ID, CONF_SWITCHES, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
 import homeassistant.helpers.config_validation as cv
 from time import time, sleep
 from threading import Lock
+
+_LOGGER = logging.getLogger(__name__)
 
 REQUIREMENTS = ['pytuya==7.0.7']
 
@@ -99,6 +103,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                     )
             )
             print('Setup localtuya subswitch [{}] with device ID [{}] '.format(device_config.get(CONF_FRIENDLY_NAME, object_id), device_config.get(CONF_ID)))
+            _LOGGER.info("Setup localtuya subswitch %s with device ID %s ", device_config.get(CONF_FRIENDLY_NAME, object_id), config.get(CONF_ID) )
     else:
         outlet_device = TuyaCache(pytuyadevice)
         switches.append(
@@ -114,6 +119,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                 )
         )
         print('Setup localtuya switch [{}] with device ID [{}] '.format(config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID)))
+        _LOGGER.info("Setup localtuya switch %s with device ID %s ", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID) )
 
     add_devices(switches)
 
@@ -128,24 +134,31 @@ class TuyaCache:
         self._lock = Lock()
 
     def __get_status(self):
-        for i in range(20):
+        for i in range(5):
             try:
                 status = self._device.status()
                 return status
-            except ConnectionError:
+            except Exception:
+                print('Failed to update status of device [{}]'.format(self._device.address))
+                sleep(1.0)
                 if i+1 == 3:
-                    raise ConnectionError("Failed to update status.")
+                    _LOGGER.error("Failed to update status of device %s", self._device.address )
+#                    return None
+                    raise ConnectionError("Failed to update status .")
 
     def set_status(self, state, switchid):
         """Change the Tuya switch status and clear the cache."""
         self._cached_status = ''
         self._cached_status_time = 0
-        for i in range(20):
+        for i in range(5):
             try:
                 return self._device.set_status(state, switchid)
-            except ConnectionError:
-                if i+1 == 5:
-                    raise ConnectionError("Failed to set status.")
+            except Exception:
+                print('Failed to set status of device [{}]'.format(self._device.address))
+                if i+1 == 3:
+                    _LOGGER.error("Failed to set status of device %s", self._device.address )
+                    return
+#                    raise ConnectionError("Failed to set status.")
 
     def status(self):
         """Get state of Tuya switch and cache the results."""
