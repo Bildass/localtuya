@@ -20,7 +20,7 @@ import requests
 import voluptuous as vol
 
 from homeassistant.components.cover import (
-    CoverDevice,
+    CoverEntity,
     PLATFORM_SCHEMA,
     SUPPORT_CLOSE,
     SUPPORT_OPEN,
@@ -28,7 +28,7 @@ from homeassistant.components.cover import (
 )
 
 """from . import DATA_TUYA, TuyaDevice"""
-from homeassistant.components.cover import ENTITY_ID_FORMAT, CoverDevice, PLATFORM_SCHEMA
+from homeassistant.components.cover import ENTITY_ID_FORMAT, CoverEntity, PLATFORM_SCHEMA
 from homeassistant.const import (CONF_HOST, CONF_ID, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
 import homeassistant.helpers.config_validation as cv
 from time import time, sleep
@@ -66,7 +66,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     from . import pytuya
 
     covers = []
-    localtuyadevice = pytuya.CoverDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    localtuyadevice = pytuya.CoverEntity(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
     localtuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
 
     cover_device = TuyaCoverCache(localtuyadevice)
@@ -86,7 +86,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
 
 class TuyaCoverCache:
-    """Cache wrapper for pytuya.CoverDevice"""
+    """Cache wrapper for pytuya.CoverEntity"""
 
     def __init__(self, device):
         """Initialize the cache."""
@@ -135,7 +135,7 @@ class TuyaCoverCache:
         finally:
             self._lock.release()
 
-class TuyaDevice(CoverDevice):
+class TuyaDevice(CoverEntity):
     """Tuya cover devices."""
 
     def __init__(self, device, name, friendly_name, icon, switchid):

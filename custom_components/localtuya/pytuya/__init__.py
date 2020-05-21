@@ -436,7 +436,7 @@ class OutletDevice(Device):
         super(OutletDevice, self).__init__(dev_id, address, local_key, dev_type)
 
 
-class CoverDevice(Device):
+class CoverEntity(Device):
     DPS_INDEX_MOVE       = '1'
     DPS_INDEX_BL         = '101'
 
@@ -455,7 +455,7 @@ class CoverDevice(Device):
         else:
             print('Using PyCrypto ', Crypto.version_info)
             print('Using PyCrypto from ', Crypto.__file__)
-        super(CoverDevice, self).__init__(dev_id, address, local_key, dev_type)
+        super(CoverEntity, self).__init__(dev_id, address, local_key, dev_type)
     
     def open_cover(self, switch=1):
         """Turn the device on"""

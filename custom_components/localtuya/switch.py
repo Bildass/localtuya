@@ -27,7 +27,7 @@ switch:
 import logging
 import voluptuous as vol
 
-from homeassistant.components.switch import ENTITY_ID_FORMAT, SwitchDevice, PLATFORM_SCHEMA
+from homeassistant.components.switch import ENTITY_ID_FORMAT, SwitchEntity, PLATFORM_SCHEMA
 from homeassistant.const import (CONF_HOST, CONF_ID, CONF_SWITCHES, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
 import homeassistant.helpers.config_validation as cv
 from time import time, sleep
@@ -173,7 +173,7 @@ class TuyaCache:
         finally:
             self._lock.release()
 
-class TuyaDevice(SwitchDevice):
+class TuyaDevice(SwitchEntity):
     """Representation of a Tuya switch."""
 
     def __init__(self, device, name, friendly_name, icon, switchid, attr_current, attr_consumption, attr_voltage):
