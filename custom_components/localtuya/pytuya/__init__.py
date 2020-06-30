@@ -367,6 +367,7 @@ class Device(XenonDevice):
             on(bool):  True for 'on', False for 'off'.
             switch(int): The switch to set
         """
+        log.debug("set_status: %s", on)
         # open device, send request, then close connection
         if isinstance(switch, int):
             switch = str(switch)  # index and payload is a string
@@ -386,6 +387,7 @@ class Device(XenonDevice):
             index(int): index to set
             value(int): new value for the index
         """
+        log.debug("set_value: index=%s value=%s", index, value)
         # open device, send request, then close connection
         if isinstance(index, int):
             index = str(index)  # index and payload is a string
@@ -435,7 +437,16 @@ class OutletDevice(Device):
             dev_type = 'device20'
         super(OutletDevice, self).__init__(dev_id, address, local_key, dev_type)
 
+class FanDevice(Device):
+    DPS_INDEX_SPEED = '2'
 
+    def __init__(self, dev_id, address, local_key=None):
+        if len(dev_id) == 22:
+            dev_type = 'device22'
+        else:
+            dev_type = 'device20'
+        super(FanDevice, self).__init__(dev_id, address, local_key, dev_type)
+    
 class CoverEntity(Device):
     DPS_INDEX_MOVE       = '1'
     DPS_INDEX_BL         = '101'
