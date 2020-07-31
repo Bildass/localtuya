@@ -25,6 +25,7 @@ from homeassistant.components.cover import (
     SUPPORT_CLOSE,
     SUPPORT_OPEN,
     SUPPORT_STOP,
+    SUPPORT_SET_POSITION,
 )
 
 """from . import DATA_TUYA, TuyaDevice"""
@@ -147,6 +148,7 @@ class TuyaDevice(CoverEntity):
         self._switch_id = switchid
         self._status = self._device.status()
         self._state = self._status['dps'][self._switch_id]
+        self._position = 50
         print('Initialized tuya cover [{}] with switch status [{}] and state [{}]'.format(self._name, self._status, self._state))
 
     @property
@@ -157,13 +159,21 @@ class TuyaDevice(CoverEntity):
     @property
     def supported_features(self):
         """Flag supported features."""
-        supported_features = SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP
+        supported_features = SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP | SUPPORT_SET_POSITION
         return supported_features
 
     @property
     def icon(self):
         """Return the icon."""
         return self._icon
+
+    @property
+    def current_cover_position(self):
+        #self.update()
+        #state = self._state
+#        _LOGGER.info("curr_pos() : %i", self._position)
+        #print('curr_pos() : state [{}]'.format(state))
+        return self._position
 
     @property
     def is_opening(self):
@@ -194,6 +204,28 @@ class TuyaDevice(CoverEntity):
         if state == 'on':
             return True
         return None
+
+    def set_cover_position(self, **kwargs):
+        """Move the cover to a specific position."""
+
+        newpos = float(kwargs["position"])
+#        _LOGGER.info("Set new pos: %f", newpos)
+
+        currpos = self.current_cover_position
+        posdiff = abs(newpos - currpos)
+#       25 sec corrisponde alla chiusura/apertura completa
+        mydelay = posdiff / 2.0
+        if newpos > currpos:
+#            _LOGGER.info("Opening to %f: delay %f", newpos, mydelay )
+            self.open_cover()
+        else:
+#            _LOGGER.info("Closing to %f: delay %f", newpos, mydelay )
+            self.close_cover()
+        sleep( mydelay )
+        self.stop_cover()
+        self._position = 50  # newpos
+#        self._state = 'on'
+#        self._device._device.open_cover()
 
     def open_cover(self, **kwargs):
         """Open the cover."""
