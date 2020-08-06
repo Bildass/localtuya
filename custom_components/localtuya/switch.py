@@ -35,7 +35,7 @@ from threading import Lock
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pytuya==7.0.7']
+REQUIREMENTS = ['pytuya==7.0.8']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
@@ -89,6 +89,16 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     if len(devices) > 0:
         for object_id, device_config in devices.items():
+            dps = {}
+            dps[device_config.get(CONF_ID)]=None
+            if device_config.get(CONF_CURRENT) != '-1':
+                dps[device_config.get(CONF_CURRENT)]=None
+            if device_config.get(CONF_CURRENT_CONSUMPTION) != '-1':
+                dps[device_config.get(CONF_CURRENT_CONSUMPTION)]=None
+            if device_config.get(CONF_VOLTAGE) != '-1':
+                dps[device_config.get(CONF_VOLTAGE)]=None
+            pytuyadevice.set_dpsUsed(dps)
+
             outlet_device = TuyaCache(pytuyadevice)
             switches.append(
                     TuyaDevice(
@@ -102,9 +112,19 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                         device_config.get(CONF_VOLTAGE)
                     )
             )
+
             print('Setup localtuya subswitch [{}] with device ID [{}] '.format(device_config.get(CONF_FRIENDLY_NAME, object_id), device_config.get(CONF_ID)))
-            _LOGGER.info("Setup localtuya subswitch %s with device ID %s ", device_config.get(CONF_FRIENDLY_NAME, object_id), config.get(CONF_ID) )
+            _LOGGER.info("Setup localtuya subswitch %s with device ID %s ", device_config.get(CONF_FRIENDLY_NAME, object_id), device_config.get(CONF_ID) )
     else:
+        dps = {}
+        dps[config.get(CONF_ID)]=None
+        if config.get(CONF_CURRENT) != '-1':
+            dps[config.get(CONF_CURRENT)]=None
+        if config.get(CONF_CURRENT_CONSUMPTION) != '-1':
+            dps[config.get(CONF_CURRENT_CONSUMPTION)]=None
+        if config.get(CONF_VOLTAGE) != '-1':
+            dps[config.get(CONF_VOLTAGE)]=None
+        pytuyadevice.set_dpsUsed(dps)
         outlet_device = TuyaCache(pytuyadevice)
         switches.append(
                 TuyaDevice(
@@ -118,6 +138,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                     config.get(CONF_VOLTAGE)
                 )
         )
+
         print('Setup localtuya switch [{}] with device ID [{}] '.format(config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID)))
         _LOGGER.info("Setup localtuya switch %s with device ID %s ", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID) )
 

@@ -39,7 +39,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = 'localtuyacover'
 
-REQUIREMENTS = ['pytuya==7.0.7']
+REQUIREMENTS = ['pytuya==7.0.8']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
@@ -67,10 +67,15 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     from . import pytuya
 
     covers = []
-    localtuyadevice = pytuya.CoverEntity(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
-    localtuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
+    pytuyadevice = pytuya.CoverEntity(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
+    dps = {}
+    dps[config.get(CONF_ID)]=None
+    dps["101"]=None
+    dps["102"]=None
+    pytuyadevice.set_dpsUsed(dps)
 
-    cover_device = TuyaCoverCache(localtuyadevice)
+    cover_device = TuyaCoverCache(pytuyadevice)
     covers.append(
             TuyaDevice(
                 cover_device,

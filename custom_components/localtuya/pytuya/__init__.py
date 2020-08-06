@@ -28,7 +28,7 @@ except ImportError:
     import pyaes  # https://github.com/ricmoo/pyaes
 
 
-version_tuple = (7, 0, 7)
+version_tuple = (7, 0, 8)
 version = version_string = __version__ = '%d.%d.%d' % version_tuple
 __author__ = 'rospogrigio'
 
@@ -218,6 +218,9 @@ class XenonDevice(object):
     def set_version(self, version):
         self.version = version
 
+    def set_dpsUsed(self, dpsUsed):
+        self.dpsUsed = dpsUsed
+
     def generate_payload(self, command, data=None):
         """
         Generate the payload to send.
@@ -243,7 +246,8 @@ class XenonDevice(object):
         if data is not None:
             json_data['dps'] = data
         if command_hb == '0d':
-            json_data['dps'] = {"1": None,"101": None,"102": None}
+            json_data['dps'] = self.dpsUsed
+#            log.info('******** COMMAND IS %r', self.dpsUsed)
 
         # Create byte buffer from hex data
         json_payload = json.dumps(json_data)
