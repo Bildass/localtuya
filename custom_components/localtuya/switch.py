@@ -27,7 +27,7 @@ switch:
 import logging
 import voluptuous as vol
 
-from homeassistant.components.switch import ENTITY_ID_FORMAT, SwitchEntity, PLATFORM_SCHEMA
+from homeassistant.components.switch import SwitchEntity, PLATFORM_SCHEMA
 from homeassistant.const import (CONF_HOST, CONF_ID, CONF_SWITCHES, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
 import homeassistant.helpers.config_validation as cv
 from time import time, sleep
@@ -142,7 +142,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         print('Setup localtuya switch [{}] with device ID [{}] '.format(config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID)))
         _LOGGER.info("Setup localtuya switch %s with device ID %s ", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID) )
 
-    add_devices(switches)
+    add_devices(switches, True)
 
 class TuyaCache:
     """Cache wrapper for pytuya.OutletDevice"""
@@ -153,6 +153,11 @@ class TuyaCache:
         self._cached_status_time = 0
         self._device = device
         self._lock = Lock()
+
+    @property
+    def unique_id(self):
+        """Return unique device identifier."""
+        return self._device.id
 
     def __get_status(self):
         for i in range(5):
@@ -200,8 +205,8 @@ class TuyaDevice(SwitchEntity):
     def __init__(self, device, name, friendly_name, icon, switchid, attr_current, attr_consumption, attr_voltage):
         """Initialize the Tuya switch."""
         self._device = device
-        self.entity_id =  ENTITY_ID_FORMAT.format(name)
         self._name = friendly_name
+        self._available = False
         self._icon = icon
         self._switch_id = switchid
         self._attr_current = attr_current
@@ -216,6 +221,15 @@ class TuyaDevice(SwitchEntity):
         """Get name of Tuya switch."""
         return self._name
 
+    @property
+    def unique_id(self):
+        """Return unique device identifier."""
+        return self._device.unique_id
+
+    @property
+    def available(self):
+        """Return if device is available or not."""
+        return self._available
 
     @property
     def is_on(self):
@@ -252,5 +266,10 @@ class TuyaDevice(SwitchEntity):
 
     def update(self):
         """Get state of Tuya switch."""
-        self._status = self._device.status()
-        self._state = self._status['dps'][self._switch_id]
+        try:
+            self._status = self._device.status()
+            self._state = self._status['dps'][self._switch_id]
+        except Exception:
+            self._available = False
+        else:
+            self._available = True

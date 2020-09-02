@@ -86,6 +86,11 @@ class TuyaCache:
         self._device = device
         self._lock = Lock()
 
+    @property
+    def unique_id(self):
+        """Return unique device identifier."""
+        return self._device.id
+
     def __get_status(self, switchid):
         for _ in range(UPDATE_RETRY_LIMIT):
             try:
@@ -193,6 +198,7 @@ class TuyaDevice(Light):
     def __init__(self, device, name, icon, bulbid):
         """Initialize the Tuya switch."""
         self._device = device
+        self._available = False
         self._name = name
         self._state = False
         self._brightness = 127
@@ -206,6 +212,16 @@ class TuyaDevice(Light):
         return self._name
 
     @property
+    def unique_id(self):
+        """Return unique device identifier."""
+        return self._device.unique_id
+
+    @property
+    def available(self):
+        """Return if device is available or not."""
+        return self._available
+
+    @property
     def is_on(self):
         """Check if Tuya switch is on."""
         return self._state
@@ -217,6 +233,14 @@ class TuyaDevice(Light):
 
     def update(self):
         """Get state of Tuya switch."""
+        try:
+            self._update_state()
+        except:
+            self._available = False
+        else:
+            self._available = True
+
+    def _update_state(self):
         status = self._device.status(self._bulb_id)
         self._state = status
         try:
