@@ -6,7 +6,7 @@
 # This would not exist without the protocol reverse engineering from
 # https://github.com/codetheweb/tuyapi by codetheweb and blackrozes
 #
-# Tested with Python 2.7 and Python 3.6.1 only
+# Tested with Python 2.7 and Python 3.6.1 only ()
 
 
 import base64
