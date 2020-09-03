@@ -224,7 +224,7 @@ class TuyaDevice(SwitchEntity):
     @property
     def unique_id(self):
         """Return unique device identifier."""
-        return f"local_{self._device.unique_id}"
+        return f"local_{self._device.unique_id}_{self._switch_id}"
 
     @property
     def available(self):
