@@ -35,7 +35,7 @@ from threading import Lock
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pytuya==7.0.8']
+REQUIREMENTS = ['pytuya==7.0.9']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'

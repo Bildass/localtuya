@@ -28,7 +28,7 @@ except ImportError:
     import pyaes  # https://github.com/ricmoo/pyaes
 
 
-version_tuple = (7, 0, 8)
+version_tuple = (7, 0, 9)
 version = version_string = __version__ = '%d.%d.%d' % version_tuple
 __author__ = 'rospogrigio'
 
@@ -149,7 +149,7 @@ payload_dict = {
 }
 
 class XenonDevice(object):
-    def __init__(self, dev_id, address, local_key=None, dev_type=None, connection_timeout=10):
+    def __init__(self, dev_id, address, local_key=None, connection_timeout=10):
         """
         Represents a Tuya device.
         
@@ -157,20 +157,21 @@ class XenonDevice(object):
             dev_id (str): The device id.
             address (str): The network address.
             local_key (str, optional): The encryption key. Defaults to None.
-            dev_type (str, optional): The device type.
-                It will be used as key for lookups in payload_dict.
-                Defaults to None.
             
         Attributes:
             port (int): The port to connect to.
         """
+
         self.id = dev_id
         self.address = address
         self.local_key = local_key
         self.local_key = local_key.encode('latin1')
-        self.dev_type = dev_type
         self.connection_timeout = connection_timeout
         self.version = 3.1
+        if len(dev_id) == 22:
+            self.dev_type = 'device22'
+        else:
+            self.dev_type = 'device20'
 
         self.port = 6668  # default - do not expect caller to pass in
 
@@ -433,11 +434,7 @@ class Device(XenonDevice):
 
 class OutletDevice(Device):
     def __init__(self, dev_id, address, local_key=None):
-        if len(dev_id) == 22:
-            dev_type = 'device22'
-        else:
-            dev_type = 'device20'
-        super(OutletDevice, self).__init__(dev_id, address, local_key, dev_type)
+        super(OutletDevice, self).__init__(dev_id, address, local_key)
 
 
 class CoverEntity(Device):
@@ -450,7 +447,6 @@ class CoverEntity(Device):
                 }
 
     def __init__(self, dev_id, address, local_key=None):
-        dev_type = 'device22'
         print('%s version %s' % ( __name__, version))
         print('Python %s on %s' % (sys.version, sys.platform))
         if Crypto is None:
@@ -459,7 +455,7 @@ class CoverEntity(Device):
         else:
             print('Using PyCrypto ', Crypto.version_info)
             print('Using PyCrypto from ', Crypto.__file__)
-        super(CoverEntity, self).__init__(dev_id, address, local_key, dev_type)
+        super(CoverEntity, self).__init__(dev_id, address, local_key)
     
     def open_cover(self, switch=1):
         """Turn the device on"""
@@ -494,8 +490,7 @@ class BulbDevice(Device):
                 }
 
     def __init__(self, dev_id, address, local_key=None):
-        dev_type = 'device20'
-        super(BulbDevice, self).__init__(dev_id, address, local_key, dev_type)
+        super(BulbDevice, self).__init__(dev_id, address, local_key)
 
     @staticmethod
     def _rgb_to_hexvalue(r, g, b):

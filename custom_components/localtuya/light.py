@@ -31,7 +31,7 @@ from homeassistant.components.light import (
 from homeassistant.util import color as colorutil
 import socket
 
-REQUIREMENTS = ['pytuya==7.0.8']
+REQUIREMENTS = ['pytuya==7.0.9']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
