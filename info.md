@@ -6,7 +6,7 @@
 
 Local handling for Tuya Switches under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt). Supports 3 types of switches: one-gang switches, two-gang switches and wifi plug (with additional USB plugs).
 
-Also introduced handling for Tuya Covers and Lights, introducing pytuya library 7.0.8.
+Also introduced handling for Tuya Covers and Lights, introducing pytuya library 7.0.9.
 
 Developed substantially by merging the codes of NameLessJedi, mileperhour and TradeFace (see Thanks paragraph).
 
