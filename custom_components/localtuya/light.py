@@ -214,7 +214,7 @@ class TuyaDevice(Light):
     @property
     def unique_id(self):
         """Return unique device identifier."""
-        return self._device.unique_id
+        return f"local_{self._device.unique_id}"
 
     @property
     def available(self):
