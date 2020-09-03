@@ -3,12 +3,13 @@ Simple platform to control LOCALLY Tuya switch devices.
 
 Sample config yaml
 
-switch:
+light:
   - platform: localtuya
     host: 192.168.0.1
     local_key: 1234567891234567
     device_id: 12345678912345671234
     name: tuya_01
+    friendly_name: This Light
     protocol_version: 3.3
 """
 import voluptuous as vol
@@ -21,17 +22,16 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP,
     ATTR_HS_COLOR,
-    ENTITY_ID_FORMAT,
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_COLOR_TEMP,
-    Light,
+    LightEntity,
     PLATFORM_SCHEMA
 )
 from homeassistant.util import color as colorutil
 import socket
 
-REQUIREMENTS = ['pytuya==7.0.4']
+REQUIREMENTS = ['pytuya==7.0.8']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
@@ -49,6 +49,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_DEVICE_ID): cv.string,
     vol.Required(CONF_LOCAL_KEY): cv.string,
     vol.Required(CONF_NAME): cv.string,
+    vol.Required(CONF_FRIENDLY_NAME): cv.string,
     vol.Required(CONF_PROTOCOL_VERSION, default=DEFAULT_PROTOCOL_VERSION): vol.Coerce(float),
     vol.Optional(CONF_ID, default=DEFAULT_ID): cv.string,
 })
@@ -69,6 +70,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             TuyaDevice(
                 bulb_device,
                 config.get(CONF_NAME),
+                config.get(CONF_FRIENDLY_NAME),
                 config.get(CONF_ICON), 
                 config.get(CONF_ID)
             )
@@ -145,6 +147,8 @@ class TuyaCache:
                 return self._device.brightness()
             except ConnectionError:
                 pass
+            except KeyError:
+                return "999"
             except socket.timeout:
                 pass
         log.warn(
@@ -156,6 +160,8 @@ class TuyaCache:
                 return self._device.colourtemp()
             except ConnectionError:
                 pass
+            except KeyError:
+                return "999"
             except socket.timeout:
                 pass
         log.warn(
@@ -167,6 +173,8 @@ class TuyaCache:
                 return self._device.set_brightness(brightness)
             except ConnectionError:
                 pass
+            except KeyError:
+                pass
             except socket.timeout:
                 pass
         log.warn(
@@ -177,6 +185,8 @@ class TuyaCache:
             try:
                 return self._device.set_colourtemp(color_temp)
             except ConnectionError:
+                pass
+            except KeyError:
                 pass
             except socket.timeout:
                 pass
@@ -192,14 +202,14 @@ class TuyaCache:
     def turn_off(self):
         self._device.turn_off();
 
-class TuyaDevice(Light):
+class TuyaDevice(LightEntity):
     """Representation of a Tuya switch."""
 
-    def __init__(self, device, name, icon, bulbid):
+    def __init__(self, device, name, friendly_name, icon, bulbid):
         """Initialize the Tuya switch."""
         self._device = device
         self._available = False
-        self._name = name
+        self._name = friendly_name
         self._state = False
         self._brightness = 127
         self._color_temp = 127
@@ -306,7 +316,7 @@ class TuyaDevice(Light):
     def supported_features(self):
         """Flag supported features."""
         supports = SUPPORT_BRIGHTNESS
-        #if self._device.support_color():
-        #    supports = supports | SUPPORT_COLOR
-        supports = supports | SUPPORT_COLOR_TEMP
+        if self._device.color_temp() != "999":
+            supports = supports | SUPPORT_COLOR
+        #supports = supports | SUPPORT_COLOR_TEMP
         return supports
