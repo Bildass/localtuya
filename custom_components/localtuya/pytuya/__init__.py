@@ -436,6 +436,11 @@ class OutletDevice(Device):
     def __init__(self, dev_id, address, local_key=None):
         super(OutletDevice, self).__init__(dev_id, address, local_key)
 
+class FanDevice(Device):
+    DPS_INDEX_SPEED = '2'
+
+    def __init__(self, dev_id, address, local_key=None):
+        super(FanDevice, self).__init__(dev_id, address, local_key)
 
 class CoverEntity(Device):
     DPS_INDEX_MOVE       = '1'
