@@ -9,6 +9,7 @@ The following Tuya device types are currently supported:
 * Wi-Fi plugs (including those with additional USB plugs)
 * Lights
 * Covers
+* Fans
 
 Energy monitoring (voltage, current, watts, etc.) is supported for compatible devices. 
 
@@ -80,6 +81,19 @@ Alternatively, you can install localtuya through HACS by adding this repository.
        open_cmd: open #OPTIONAL, default is 'on'
        close_cmd: close #OPTIONAL, default is 'off'
        stop_cmd: stop #OPTIONAL, default is 'stop'
+```
+
+```
+   #### FAN ####
+   fan:
+    - platform: localtuya
+      host: 192.168.0.123
+      local_key: 1234567891234567
+      device_id: 123456789123456789abcd
+      name: fan guests
+      friendly_name: fan guests
+      protocol_version: 3.3
+      id: 1
 ```
    
 2. Enable debug logging in your configuration.yaml file.
