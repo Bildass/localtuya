@@ -28,7 +28,7 @@ except ImportError:
     import pyaes  # https://github.com/ricmoo/pyaes
 
 
-version_tuple = (7, 0, 7)
+version_tuple = (7, 0, 9)
 version = version_string = __version__ = '%d.%d.%d' % version_tuple
 __author__ = 'rospogrigio'
 
@@ -149,7 +149,7 @@ payload_dict = {
 }
 
 class XenonDevice(object):
-    def __init__(self, dev_id, address, local_key=None, dev_type=None, connection_timeout=10):
+    def __init__(self, dev_id, address, local_key=None, connection_timeout=10):
         """
         Represents a Tuya device.
         
@@ -157,20 +157,21 @@ class XenonDevice(object):
             dev_id (str): The device id.
             address (str): The network address.
             local_key (str, optional): The encryption key. Defaults to None.
-            dev_type (str, optional): The device type.
-                It will be used as key for lookups in payload_dict.
-                Defaults to None.
             
         Attributes:
             port (int): The port to connect to.
         """
+
         self.id = dev_id
         self.address = address
         self.local_key = local_key
         self.local_key = local_key.encode('latin1')
-        self.dev_type = dev_type
         self.connection_timeout = connection_timeout
         self.version = 3.1
+        if len(dev_id) == 22:
+            self.dev_type = 'device22'
+        else:
+            self.dev_type = 'device20'
 
         self.port = 6668  # default - do not expect caller to pass in
 
@@ -218,6 +219,9 @@ class XenonDevice(object):
     def set_version(self, version):
         self.version = version
 
+    def set_dpsUsed(self, dpsUsed):
+        self.dpsUsed = dpsUsed
+
     def generate_payload(self, command, data=None):
         """
         Generate the payload to send.
@@ -243,7 +247,8 @@ class XenonDevice(object):
         if data is not None:
             json_data['dps'] = data
         if command_hb == '0d':
-            json_data['dps'] = {"1": None,"101": None,"102": None}
+            json_data['dps'] = self.dpsUsed
+#            log.info('******** COMMAND IS %r', self.dpsUsed)
 
         # Create byte buffer from hex data
         json_payload = json.dumps(json_data)
@@ -367,7 +372,6 @@ class Device(XenonDevice):
             on(bool):  True for 'on', False for 'off'.
             switch(int): The switch to set
         """
-        log.debug("set_status: %s", on)
         # open device, send request, then close connection
         if isinstance(switch, int):
             switch = str(switch)  # index and payload is a string
@@ -387,7 +391,6 @@ class Device(XenonDevice):
             index(int): index to set
             value(int): new value for the index
         """
-        log.debug("set_value: index=%s value=%s", index, value)
         # open device, send request, then close connection
         if isinstance(index, int):
             index = str(index)  # index and payload is a string
@@ -431,22 +434,15 @@ class Device(XenonDevice):
 
 class OutletDevice(Device):
     def __init__(self, dev_id, address, local_key=None):
-        if len(dev_id) == 22:
-            dev_type = 'device22'
-        else:
-            dev_type = 'device20'
-        super(OutletDevice, self).__init__(dev_id, address, local_key, dev_type)
+        super(OutletDevice, self).__init__(dev_id, address, local_key)
+
 
 class FanDevice(Device):
     DPS_INDEX_SPEED = '2'
 
     def __init__(self, dev_id, address, local_key=None):
-        if len(dev_id) == 22:
-            dev_type = 'device22'
-        else:
-            dev_type = 'device20'
-        super(FanDevice, self).__init__(dev_id, address, local_key, dev_type)
-    
+        super(FanDevice, self).__init__(dev_id, address, local_key)
+
 class CoverEntity(Device):
     DPS_INDEX_MOVE       = '1'
     DPS_INDEX_BL         = '101'
@@ -457,7 +453,6 @@ class CoverEntity(Device):
                 }
 
     def __init__(self, dev_id, address, local_key=None):
-        dev_type = 'device22'
         print('%s version %s' % ( __name__, version))
         print('Python %s on %s' % (sys.version, sys.platform))
         if Crypto is None:
@@ -466,7 +461,7 @@ class CoverEntity(Device):
         else:
             print('Using PyCrypto ', Crypto.version_info)
             print('Using PyCrypto from ', Crypto.__file__)
-        super(CoverEntity, self).__init__(dev_id, address, local_key, dev_type)
+        super(CoverEntity, self).__init__(dev_id, address, local_key)
     
     def open_cover(self, switch=1):
         """Turn the device on"""
@@ -501,8 +496,7 @@ class BulbDevice(Device):
                 }
 
     def __init__(self, dev_id, address, local_key=None):
-        dev_type = 'device20'
-        super(BulbDevice, self).__init__(dev_id, address, local_key, dev_type)
+        super(BulbDevice, self).__init__(dev_id, address, local_key)
 
     @staticmethod
     def _rgb_to_hexvalue(r, g, b):
