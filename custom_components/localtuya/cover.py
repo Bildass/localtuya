@@ -3,7 +3,7 @@ Simple platform to locally control Tuya-based cover devices.
 
 Sample config yaml:
 
-switch:
+cover:
   - platform: localtuya #REQUIRED
     host: 192.168.0.123 #REQUIRED
     local_key: 1234567891234567 #REQUIRED
@@ -78,7 +78,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up Tuya cover devices."""
     from . import pytuya
 
-    _LOGGER.info("running def setup_platform from cover.py")
+    #_LOGGER.info("running def setup_platform from cover.py")
     #_LOGGER.info("conf_open_cmd is %s", config.get(CONF_OPEN_CMD))
     #_LOGGER.info("conf_close_cmd is %s", config.get(CONF_CLOSE_CMD))
     #_LOGGER.info("conf_STOP_cmd is %s", config.get(CONF_STOP_CMD))
