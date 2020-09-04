@@ -147,7 +147,7 @@ class TuyaCoverCache:
         self._cached_status_time = 0
         for i in range(5):
             try:
-                _LOGGER.info("Running a try from def set_status from cover where state=%s and switchid=%s", state, switchid)
+                #_LOGGER.info("Running a try from def set_status from cover where state=%s and switchid=%s", state, switchid)
                 return self._device.set_status(state, switchid)
             except Exception:
                 print('Failed to set status of device [{}]'.format(self._device.address))
