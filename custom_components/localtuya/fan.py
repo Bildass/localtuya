@@ -19,7 +19,7 @@ import requests
 
 import voluptuous as vol
 
-from homeassistant.components.fan import (ENTITY_ID_FORMAT, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH,
+from homeassistant.components.fan import (SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH,
                                           FanEntity, SUPPORT_SET_SPEED,
                                           SUPPORT_OSCILLATE, SUPPORT_DIRECTION, PLATFORM_SCHEMA)
 
@@ -32,7 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = 'localtuyafan'
 
-REQUIREMENTS = ['pytuya==7.0.7']
+REQUIREMENTS = ['pytuya==7.0.9']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
@@ -60,6 +60,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     fans = []
     localtuyadevice = pytuya.FanDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
     localtuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
+    _LOGGER.debug("localtuya fan: setup_platform: %s", localtuyadevice)
 
     fan_device = localtuyadevice
     fans.append(
@@ -71,9 +72,9 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
                 config.get(CONF_ID),
             )
 	)
-    _LOGGER.info("Setup localtuya fan %s with device ID %s ", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID) )
+    _LOGGER.info("Setup localtuya fan %s with device ID %s ", config.get(CONF_FRIENDLY_NAME), config.get(CONF_DEVICE_ID) )
 
-    add_entities(fans)
+    add_entities(fans, True)
 
 class TuyaDevice(FanEntity):
     """A demonstration fan component."""
@@ -82,8 +83,8 @@ class TuyaDevice(FanEntity):
     def __init__(self, device, name, friendly_name, icon, switchid):
         """Initialize the entity."""
         self._device = device
-        self.entity_id =  ENTITY_ID_FORMAT.format(name)
         self._name = friendly_name
+        self._available = False
         self._friendly_name = friendly_name
         self._icon = icon
         self._switch_id = switchid
@@ -173,6 +174,17 @@ class TuyaDevice(FanEntity):
     #    return self.direction
 
     @property
+    def unique_id(self):
+        """Return unique device identifier."""
+        _LOGGER.debug("localtuya fan unique_id = %s", self._device)
+        return self._device.id
+
+    @property
+    def available(self):
+        """Return if device is available or not."""
+        return self._available
+
+    @property
     def supported_features(self) -> int:
         """Flag supported features."""
         return self._supported_features
@@ -201,3 +213,4 @@ class TuyaDevice(FanEntity):
                     if i+1 == 3:
                         success = False
                         raise ConnectionError("Failed to update status.")
+        self._available = success
