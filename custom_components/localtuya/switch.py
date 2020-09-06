@@ -28,21 +28,17 @@ import logging
 import voluptuous as vol
 
 from homeassistant.components.switch import SwitchEntity, PLATFORM_SCHEMA
-from homeassistant.const import (CONF_HOST, CONF_ID, CONF_SWITCHES, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
+from homeassistant.const import (CONF_HOST, CONF_ID, CONF_SWITCHES, CONF_DEVICE_ID, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
 import homeassistant.helpers.config_validation as cv
 from time import time, sleep
 from threading import Lock
 
+from . import pytuya
+from .const import CONF_LOCAL_KEY, CONF_PROTOCOL_VERSION, CONF_CURRENT, CONF_CURRENT_CONSUMPTION, CONF_VOLTAGE
+
 _LOGGER = logging.getLogger(__name__)
 
 REQUIREMENTS = ['pytuya==7.0.9']
-
-CONF_DEVICE_ID = 'device_id'
-CONF_LOCAL_KEY = 'local_key'
-CONF_PROTOCOL_VERSION = 'protocol_version'
-CONF_CURRENT = 'current'
-CONF_CURRENT_CONSUMPTION = 'current_consumption'
-CONF_VOLTAGE = 'voltage'
 
 DEFAULT_ID = '1'
 DEFAULT_PROTOCOL_VERSION = 3.3
@@ -75,6 +71,43 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_SWITCHES, default={}):
         vol.Schema({cv.slug: SWITCH_SCHEMA}),
 })
+
+
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Setup a Tuya switch based on a config entry."""
+    switches = []
+    pytuyadevice = pytuya.OutletDevice(
+        config_entry.data[CONF_DEVICE_ID],
+        config_entry.data[CONF_HOST],
+        config_entry.data[CONF_LOCAL_KEY])
+    pytuyadevice.set_version(float(config_entry.data[CONF_PROTOCOL_VERSION]))
+    dps = {}
+
+    for device_config in config_entry.data[CONF_SWITCHES]:
+        dps[str(device_config[CONF_ID])] = None
+        if device_config[CONF_CURRENT] != 0:
+            dps[str(device_config[CONF_CURRENT])] = None
+        if device_config[CONF_CURRENT_CONSUMPTION] != 0:
+            dps[str(device_config[CONF_CURRENT_CONSUMPTION])] = None
+        if device_config[CONF_VOLTAGE] != 0:
+            dps[str(device_config[CONF_VOLTAGE])] = None
+
+        switches.append(
+                TuyaDevice(
+                    TuyaCache(pytuyadevice),
+                    device_config[CONF_NAME],
+                    device_config[CONF_FRIENDLY_NAME],
+                    None,  # Icon
+                    str(device_config[CONF_ID]),
+                    str(device_config[CONF_CURRENT]),
+                    str(device_config[CONF_CURRENT_CONSUMPTION]),
+                    str(device_config[CONF_VOLTAGE])
+                )
+        )
+
+    pytuyadevice.set_dpsUsed(dps)
+
+    async_add_entities(switches, True)
 
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -199,6 +232,7 @@ class TuyaCache:
         finally:
             self._lock.release()
 
+
 class TuyaDevice(SwitchEntity):
     """Representation of a Tuya switch."""
 
@@ -212,8 +246,8 @@ class TuyaDevice(SwitchEntity):
         self._attr_current = attr_current
         self._attr_consumption = attr_consumption
         self._attr_voltage = attr_voltage
-        self._status = self._device.status()
-        self._state = self._status['dps'][self._switch_id]
+        self._status = None
+        self._state = None
         print('Initialized tuya switch [{}] with switch status [{}] and state [{}]'.format(self._name, self._status, self._state))
 
     @property
