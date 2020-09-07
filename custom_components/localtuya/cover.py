@@ -106,7 +106,8 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
             )
 	)
     print('Setup localtuya cover [{}] with device ID [{}] '.format(config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID)))
-    _LOGGER.info("Setup localtuya cover %s with device ID=%s open_cmd=%s close_cmd=%s stop_cmd=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID), config.get(CONF_OPEN_CMD), config.get(CONF_CLOSE_CMD), config.get(CONF_STOP_CMD) )
+    _LOGGER.info("Setup localtuya cover %s with device ID=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID) )
+    _LOGGER.debug("Cover %s uses open_cmd=%s close_cmd=%s stop_cmd=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_OPEN_CMD), config.get(CONF_CLOSE_CMD), config.get(CONF_STOP_CMD) )
 
     add_entities(covers, True)
 
@@ -186,7 +187,7 @@ class TuyaDevice(CoverEntity):
         self._open_cmd = open_cmd
         self._close_cmd = close_cmd
         self._stop_cmd = stop_cmd
-        _LOGGER.info("running def __init__ of TuyaDevice(CoverEntity) from cover.py with self=%s device=%s name=%s friendly_name=%s icon=%s switchid=%s open_cmd=%s close_cmd=%s stop_cmd=%s", self, device, name, friendly_name, icon, switchid, open_cmd, close_cmd, stop_cmd)
+        #_LOGGER.info("running def __init__ of TuyaDevice(CoverEntity) from cover.py with self=%s device=%s name=%s friendly_name=%s icon=%s switchid=%s open_cmd=%s close_cmd=%s stop_cmd=%s", self, device, name, friendly_name, icon, switchid, open_cmd, close_cmd, stop_cmd)
         print('Initialized tuya cover [{}] with switch status [{}] and state [{}]'.format(self._name, self._status, self._state))
 
     @property
