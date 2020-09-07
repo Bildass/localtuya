@@ -88,8 +88,6 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
     dps = {}
     dps[config.get(CONF_ID)]=None
-    dps["101"]=None
-    dps["102"]=None
     pytuyadevice.set_dpsUsed(dps)
 
     cover_device = TuyaCoverCache(pytuyadevice)
@@ -163,7 +161,7 @@ class TuyaCoverCache:
         self._lock.acquire()
         try:
             now = time()
-            if not self._cached_status or now - self._cached_status_time > 30:
+            if not self._cached_status or now - self._cached_status_time > 15:
                 sleep(0.5)
                 self._cached_status = self.__get_status()
                 self._cached_status_time = time()

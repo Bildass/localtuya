@@ -124,7 +124,7 @@ class TuyaCache:
         self._lock.acquire()
         try:
             now = time()
-            if not self._cached_status or now - self._cached_status_time > 30:
+            if not self._cached_status or now - self._cached_status_time > 15:
                 sleep(0.5)
                 self._cached_status = self.__get_status(switchid)
                 self._cached_status_time = time()
