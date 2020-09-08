@@ -1,6 +1,9 @@
 """Constants for localtuya integration."""
 
-CONF_DEVICE_TYPE = "device_type"
+ATTR_CURRENT = 'current'
+ATTR_CURRENT_CONSUMPTION = 'current_consumption'
+ATTR_VOLTAGE = 'voltage'
+
 CONF_LOCAL_KEY = "local_key"
 CONF_PROTOCOL_VERSION = "protocol_version"
 CONF_CURRENT = "current"
@@ -9,4 +12,5 @@ CONF_VOLTAGE = "voltage"
 
 DOMAIN = "localtuya"
 
-DEVICE_TYPE_POWER_OUTLET = "Power Outlet"
+# Platforms in this list must support config flows
+PLATFORMS = ["switch"]

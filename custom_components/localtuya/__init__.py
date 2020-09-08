@@ -5,8 +5,9 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_PLATFORM
 
-from .const import CONF_DEVICE_TYPE, DOMAIN, DEVICE_TYPE_POWER_OUTLET
+from .const import DOMAIN, PLATFORMS
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -16,11 +17,10 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up LocalTuya integration from a config entry."""
-    if entry.data[CONF_DEVICE_TYPE] == DEVICE_TYPE_POWER_OUTLET:
+    for component in PLATFORMS:
         hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, "switch")
+            hass.config_entries.async_forward_entry_setup(entry, component)
         )
-
     return True
 
 
