@@ -31,10 +31,10 @@ NO_ADDITIONAL_PLATFORMS = "no_additional_platforms"
 
 USER_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_NAME, default="bla"): str,
-        vol.Required(CONF_HOST, default="10.0.10.110"): str,
-        vol.Required(CONF_DEVICE_ID, default="307001182462ab4de00b"): str,
-        vol.Required(CONF_LOCAL_KEY, default="28ac0651f2d187df"): str,
+        vol.Required(CONF_NAME): str,
+        vol.Required(CONF_HOST): str,
+        vol.Required(CONF_DEVICE_ID): str,
+        vol.Required(CONF_LOCAL_KEY): str,
         vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(["3.1", "3.3"]),
     }
 )
@@ -192,10 +192,9 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(title=config[CONF_NAME], data=config)
 
     def _set_platform(self, platform):
+        integration_module = ".".join(__name__.split(".")[:-1])
         self.platform = platform
-        self.platform_dps_fields = import_module(
-            f"homeassistant.components.localtuya.{platform}"
-        ).DPS_FIELDS
+        self.platform_dps_fields = import_module("." + platform, integration_module).DPS_FIELDS
 
 
 class CannotConnect(exceptions.HomeAssistantError):
