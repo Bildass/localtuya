@@ -174,7 +174,7 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(user_input[CONF_DEVICE_ID])
         self._set_platform(user_input[CONF_PLATFORM])
 
-        if len(user_input[CONF_SWITCHES]) > 0:
+        if len(user_input.get(CONF_SWITCHES, [])) > 0:
             for switch_conf in user_input[CONF_SWITCHES].values():
                 self.entities.append(_convert_entity(switch_conf))
         else:
@@ -194,7 +194,9 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _set_platform(self, platform):
         integration_module = ".".join(__name__.split(".")[:-1])
         self.platform = platform
-        self.platform_dps_fields = import_module("." + platform, integration_module).DPS_FIELDS
+        self.platform_dps_fields = import_module(
+            "." + platform, integration_module
+        ).DPS_FIELDS
 
 
 class CannotConnect(exceptions.HomeAssistantError):
