@@ -53,7 +53,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_ID = "1"
 
-# TODO: This will eventully merge with DPS_FIELDS
+# TODO: This will eventully merge with flow_schema
 SWITCH_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_ID, default=DEFAULT_ID): cv.string,
@@ -75,11 +75,13 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(BASE_PLATFORM_SCHEMA).extend(
 )
 
 
-DPS_FIELDS = [
-    vol.Optional(CONF_CURRENT),
-    vol.Optional(CONF_CURRENT_CONSUMPTION),
-    vol.Optional(CONF_VOLTAGE),
-]
+def flow_schema(dps):
+    """Return schema used in config flow."""
+    return {
+        vol.Optional(CONF_CURRENT): vol.In(dps),
+        vol.Optional(CONF_CURRENT_CONSUMPTION): vol.In(dps),
+        vol.Optional(CONF_VOLTAGE): vol.In(dps),
+    }
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):

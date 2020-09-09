@@ -43,7 +43,10 @@ UPDATE_RETRY_LIMIT = 3
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(BASE_PLATFORM_SCHEMA)
 
-DPS_FIELDS = []
+
+def flow_schema(dps):
+    """Return schema used in config flow."""
+    return {}
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
