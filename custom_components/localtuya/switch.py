@@ -94,10 +94,11 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     }
 )
 
+
 DPS_FIELDS = [
-    vol.Required(CONF_CURRENT),
-    vol.Required(CONF_CURRENT_CONSUMPTION),
-    vol.Required(CONF_VOLTAGE),
+    vol.Optional(CONF_CURRENT),
+    vol.Optional(CONF_CURRENT_CONSUMPTION),
+    vol.Optional(CONF_VOLTAGE),
 ]
 
 
@@ -126,9 +127,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 TuyaCache(pytuyadevice),
                 device_config[CONF_FRIENDLY_NAME],
                 device_config[CONF_ID],
-                device_config[CONF_CURRENT],
-                device_config[CONF_CURRENT_CONSUMPTION],
-                device_config[CONF_VOLTAGE],
+                device_config.get(CONF_CURRENT),
+                device_config.get(CONF_CURRENT_CONSUMPTION),
+                device_config.get(CONF_VOLTAGE),
             )
         )
 
@@ -265,20 +266,14 @@ class TuyaDevice(SwitchEntity):
     @property
     def device_state_attributes(self):
         attrs = {}
-        try:
-            attrs[ATTR_CURRENT] = "{}".format(self._status["dps"][self._attr_current])
-            attrs[ATTR_CURRENT_CONSUMPTION] = "{}".format(
+        if self._attr_current:
+            attrs[ATTR_CURRENT] = self._status["dps"][self._attr_current]
+        if self._attr_consumption:
+            attrs[ATTR_CURRENT_CONSUMPTION] = (
                 self._status["dps"][self._attr_consumption] / 10
             )
-            attrs[ATTR_VOLTAGE] = "{}".format(
-                self._status["dps"][self._attr_voltage] / 10
-            )
-        #            print('attrs[ATTR_CURRENT]: [{}]'.format(attrs[ATTR_CURRENT]))
-        #            print('attrs[ATTR_CURRENT_CONSUMPTION]: [{}]'.format(attrs[ATTR_CURRENT_CONSUMPTION]))
-        #            print('attrs[ATTR_VOLTAGE]: [{}]'.format(attrs[ATTR_VOLTAGE]))
-
-        except KeyError:
-            pass
+        if self._attr_voltage:
+            attrs[ATTR_VOLTAGE] = self._status["dps"][self._attr_voltage] / 10
         return attrs
 
     def turn_on(self, **kwargs):
