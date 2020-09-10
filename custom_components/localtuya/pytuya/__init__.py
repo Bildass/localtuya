@@ -73,7 +73,7 @@ except ImportError:
     import pyaes  # https://github.com/ricmoo/pyaes
 
 
-version_tuple = (7, 0, 9)
+version_tuple = (7, 1, 0)
 version = version_string = __version__ = '%d.%d.%d' % version_tuple
 __author__ = 'rospogrigio'
 
@@ -162,10 +162,11 @@ def hex2bin(x):
     else:
         return bytes.fromhex(x)
 
-# This is intended to match requests.json payload at https://github.com/codetheweb/tuyapi
-# device20 or device22 are to be used depending on the length of dev_id (20 or 22 chars)
+# This is intended to match requests.json payload at https://github.com/codetheweb/tuyapi :
+# type_0a devices require the 0a command as the status request
+# type_0d devices require the 0d command as the status request, and the list of dps used set to null in the request payload (see generate_payload method)
 payload_dict = {
-  "device20": {
+  "type_0a": {
     "status": {
       "hexByte": "0a",
       "command": {"gwId": "", "devId": ""}
@@ -177,7 +178,7 @@ payload_dict = {
     "prefix": "000055aa00000000000000",    # Next byte is command byte ("hexByte") some zero padding, then length of remaining payload, i.e. command + suffix (unclear if multiple bytes used for length, zero padding implies could be more than one byte)
     "suffix": "000000000000aa55"
   },
-  "device22": {
+  "type_0d": {
     "status": {
       "hexByte": "0d",
       "command": {"devId": "", "uid": "", "t": ""}
@@ -211,10 +212,7 @@ class XenonDevice(object):
         self.local_key = local_key.encode('latin1')
         self.connection_timeout = connection_timeout
         self.version = 3.1
-        if len(dev_id) == 22:
-            self.dev_type = 'device22'
-        else:
-            self.dev_type = 'device20'
+        self.dev_type = 'type_0a'
 
         self.port = 6668  # default - do not expect caller to pass in
 
@@ -348,7 +346,7 @@ class Device(XenonDevice):
         log.debug('status received data=%r', data)
 
         result = data[20:-8]  # hard coded offsets
-        if self.dev_type != 'device20':
+        if self.dev_type != 'type_0a':
             result = result[15:]
 
         log.debug('result=%r', result)
@@ -375,6 +373,10 @@ class Device(XenonDevice):
             cipher = AESCipher(self.local_key)
             result = cipher.decrypt(result, False)
             log.debug('decrypted result=%r', result)
+            if "data unvalid" in result:
+                self.dev_type = 'type_0d'
+                log.debug("'data unvalid' error detected: switching to dev_type %r", self.dev_type)
+                return self.status()
             if not isinstance(result, str):
                 result = result.decode()
             result = json.loads(result)

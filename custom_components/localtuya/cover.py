@@ -43,7 +43,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = 'localtuyacover'
 
-REQUIREMENTS = ['pytuya==7.0.9']
+REQUIREMENTS = ['pytuya>=7.1.0']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
