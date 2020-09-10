@@ -111,23 +111,8 @@ Alternatively, you can install localtuya through HACS by adding this repository.
 ```
 2020-09-04 02:08:26 DEBUG (SyncWorker_26) [custom_components.localtuya.pytuya] decrypted result='{"devId":"REDACTED","dps":{"1":"stop","2":100,"3":40,"5":false,"7":"closing","8":"cancel","9":0,"10":0}}'
 ```   
-   
-5. Make any necessary edits to the python file(s) for your device(s). For example, if you are using a switch device, you may want to edit switch.py to account for the IDs/DPs that are applciable to your specific device.
-```
-          #### switch.py snippet
-          @property
-          def device_state_attributes(self):
-            attrs = {}
-            try:
-                attrs[ATTR_CURRENT] = "{}".format(self._status['dps']['104']) # Modify to match your device's DPs
-                attrs[ATTR_CURRENT_CONSUMPTION] = "{}".format(self._status['dps']['105']/10) # Modify to match your device's DPs
-                attrs[ATTR_VOLTAGE] = "{}".format(self._status['dps']['106']/10) # Modify to match your device's DPs
-            except KeyError:
-                pass
-            return attrs
-```
 
-6. Add any applicable sensors, using the below configuration.yaml entry as a guide:
+5. Add any applicable sensors, using the below configuration.yaml entry as a guide:
 ```   
        sensor:
          - platform: template
