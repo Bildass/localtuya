@@ -16,22 +16,7 @@ Developed substantially by merging the codes of NameLessJedi, mileperhour and Tr
    
    2. Identify on your Home-Assistant logs (putting your logging into debug mode), the different attributes you want to handle by HA.
 
-   3. Find in the switch.py file that part, and edit it for ID/DPS that is correct for your device.
-```
-          @property
-          def device_state_attributes(self):
-            attrs = {}
-            try:
-                attrs[ATTR_CURRENT] = "{}".format(self._status['dps']['104'])
-                attrs[ATTR_CURRENT_CONSUMPTION] = "{}".format(self._status['dps']['105']/10)
-                attrs[ATTR_VOLTAGE] = "{}".format(self._status['dps']['106']/10)
-            except KeyError:
-                pass
-            return attrs
-```
-   NOTE: Original data from the device for Voltage and Watt, includes the first decimal. So if the value is 2203, the correct value is 220,3V. By this reason, this values are divided by 10 ('/10' in the script). While Current is sent in mA (int number, no decimals), so it don't need any conversion factor to be added on the declaration.
-
-   4. Use this declaration on your configuration.yaml file (you need to get the 'device_id' and 'local_key' parameters for your device, as it can be obtained on other tutorials on the web:
+   3. Use this declaration on your configuration.yaml file (you need to get the 'device_id' and 'local_key' parameters for your device, as it can be obtained on other tutorials on the web:
 ```
 ##### FOR ONE-GANG SWITCHES #####
 switch:
@@ -71,7 +56,7 @@ switch:
    
    NOTE2: for each switch/subswitch both name and friendly_name must be specified: name will be used as the entity ID, while friendly_name will be used as the name in the frontend.
       
-   5. Use this declaration on your configuration.yaml file, for stating sensors that handle its attributes:
+   4. Use this declaration on your configuration.yaml file, for stating sensors that handle its attributes:
 ```   
        sensor:
          - platform: template
@@ -89,11 +74,11 @@ switch:
                  {{ states.switch.sw01.attributes.current_consumption }}
                unit_of_measurement: 'W' 
 ```               
-   6. If all gone OK (your device's parameters local_key and device_id are correct), your switch is working, so the sensors are working too.
+   5. If all gone OK (your device's parameters local_key and device_id are correct), your switch is working, so the sensors are working too.
    
    NOTE: You can do as changes as you want in scripts ant/or yaml files. But: You can't declare your "custom_component" as "tuya", tuya is a forbidden word from 0.88 version or so. So if you declare a switch.tuya, the embedded (cloud based) Tuya component will be load instead custom_component one.
    
-   7. If you are using a cover device, this is the configuration to be used (as explained in cover.py):
+   6. If you are using a cover device, this is the configuration to be used (as explained in cover.py):
 ```   
 cover:
   - platform: localtuya
