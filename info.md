@@ -6,7 +6,7 @@
 
 Local handling for Tuya Switches under Home-Assistant and Hassio, getting parameters from them (as Power Meters: Voltage, Current, Watt). Supports 3 types of switches: one-gang switches, two-gang switches and wifi plug (with additional USB plugs).
 
-Also introduced handling for Tuya Covers and Lights, introducing pytuya library 7.0.9.
+Also introduced handling for Tuya Covers and Lights, introducing pytuya library 7.1.0 that finally handles the 'json obj data unvalid' error correctly.
 
 Developed substantially by merging the codes of NameLessJedi, mileperhour and TradeFace (see Thanks paragraph).
 
@@ -114,6 +114,9 @@ cover:
    RGB integration (for devices integrating both plug switch, power meter, and led light) 
    
    Create a switch for cover backlight (dps 101): pytuya library already supports it
+   
+   climate (thermostats) devices handling
+   
 
 # Thanks to:
 
