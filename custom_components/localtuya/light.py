@@ -34,6 +34,7 @@ from homeassistant.components.light import (
 from homeassistant.util import color as colorutil
 
 from . import BASE_PLATFORM_SCHEMA, import_from_yaml, prepare_setup_entities
+from .pytuya import BulbDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +52,9 @@ def flow_schema(dps):
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Setup a Tuya switch based on a config entry."""
-    device, entities_to_setup = prepare_setup_entities(config_entry, "light")
+    device, entities_to_setup = prepare_setup_entities(
+        config_entry, "light", BulbDevice
+    )
     if not entities_to_setup:
         return
 

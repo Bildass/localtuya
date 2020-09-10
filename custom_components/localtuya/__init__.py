@@ -36,7 +36,7 @@ BASE_PLATFORM_SCHEMA = {
 }
 
 
-def prepare_setup_entities(config_entry, platform):
+def prepare_setup_entities(config_entry, platform, device_class):
     """Prepare ro setup entities for a platform."""
     entities_to_setup = [
         entity
@@ -46,7 +46,7 @@ def prepare_setup_entities(config_entry, platform):
     if not entities_to_setup:
         return None, None
 
-    device = pytuya.BulbDevice(
+    device = device_class(
         config_entry.data[CONF_DEVICE_ID],
         config_entry.data[CONF_HOST],
         config_entry.data[CONF_LOCAL_KEY],
