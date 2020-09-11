@@ -103,6 +103,10 @@ DPS_FIELDS = [
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Setup a Tuya switch based on a config entry."""
+
+    print('config_entry: [{}] '.format(config_entry.data))
+
+
     switches_to_setup = [
         entity
         for entity in config_entry.data[CONF_ENTITIES]
@@ -120,9 +124,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     pytuyadevice.set_version(float(config_entry.data[CONF_PROTOCOL_VERSION]))
     pytuyadevice.set_dpsUsed({})
 
+    print('switches_to_setup: [{}] '.format(switches_to_setup))
+
     for device_config in switches_to_setup:
         switches.append(
-            TuyaDevice(
+            LocaltuyaSwitch(
                 TuyaCache(pytuyadevice),
                 device_config[CONF_FRIENDLY_NAME],
                 device_config[CONF_ID],
@@ -213,6 +219,7 @@ class TuyaCache:
         finally:
             self._lock.release()
 
+
 class LocaltuyaSwitch(SwitchEntity):
     """Representation of a Tuya switch."""
 
@@ -240,6 +247,20 @@ class LocaltuyaSwitch(SwitchEntity):
                 self._name, self._status, self._state
             )
         )
+
+    @property
+    def device_info(self):
+        print("ZIO KEN DEVINFO  [{}]".format(self._device) )
+        return {
+            "identifiers": {
+                # Serial numbers are unique identifiers within a specific domain
+                ("LocalTuya", self.unique_id)
+            },
+            "name": "MyName",
+            "manufacturer": "Tuya generic",
+            "model": "SmartSwitch",
+            "sw_version": "3.3",
+        }
 
     @property
     def name(self):

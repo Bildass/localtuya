@@ -180,8 +180,9 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         else:
             self.entities.append(_convert_entity(user_input))
 
+        print('ENTITIES: [{}] '.format(self.entities))
         config = {
-            CONF_NAME: f"{user_input[CONF_DEVICE_ID]} (import from configuration.yaml)",
+            CONF_NAME: f"{user_input[CONF_FRIENDLY_NAME]} (YAML)",
             CONF_HOST: user_input[CONF_HOST],
             CONF_DEVICE_ID: user_input[CONF_DEVICE_ID],
             CONF_LOCAL_KEY: user_input[CONF_LOCAL_KEY],
