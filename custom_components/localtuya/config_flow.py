@@ -32,6 +32,7 @@ NO_ADDITIONAL_PLATFORMS = "no_additional_platforms"
 USER_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_NAME): str,
+        vol.Required(CONF_FRIENDLY_NAME): str,
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_DEVICE_ID): str,
         vol.Required(CONF_LOCAL_KEY): str,
@@ -64,8 +65,8 @@ def strip_dps_values(user_input, fields):
 
 async def validate_input(hass: core.HomeAssistant, data):
     """Validate the user input allows us to connect."""
-    pytuyadevice = pytuya.OutletDevice(
-        data[CONF_DEVICE_ID], data[CONF_HOST], data[CONF_LOCAL_KEY]
+    pytuyadevice = pytuya.PytuyaDevice(
+        data[CONF_DEVICE_ID], data[CONF_HOST], data[CONF_LOCAL_KEY], data[CONF_NAME]
     )
     pytuyadevice.set_version(float(data[CONF_PROTOCOL_VERSION]))
     pytuyadevice.set_dpsUsed({})
@@ -180,9 +181,10 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         else:
             self.entities.append(_convert_entity(user_input))
 
-        print('ENTITIES: [{}] '.format(self.entities))
+        #print('ENTITIES: [{}] '.format(self.entities))
         config = {
-            CONF_NAME: f"{user_input[CONF_FRIENDLY_NAME]} (YAML)",
+            CONF_NAME:  f"{user_input[CONF_FRIENDLY_NAME]} (YAML)",
+            CONF_FRIENDLY_NAME: f"{user_input[CONF_FRIENDLY_NAME]} (YAML)",
             CONF_HOST: user_input[CONF_HOST],
             CONF_DEVICE_ID: user_input[CONF_DEVICE_ID],
             CONF_LOCAL_KEY: user_input[CONF_LOCAL_KEY],

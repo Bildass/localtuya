@@ -62,7 +62,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     from . import pytuya
 
     lights = []
-    pytuyadevice = pytuya.PytuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice = pytuya.PytuyaDevice(
+        config_entry.data[CONF_DEVICE_ID],
+        config_entry.data[CONF_HOST],
+        config_entry.data[CONF_LOCAL_KEY],
+        config_entry.data[CONF_FRIENDLY_NAME],
+        config_entry.data[CONF_NAME],
+    )
     pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
 
     bulb_device = TuyaCache(pytuyadevice)

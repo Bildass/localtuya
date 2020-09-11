@@ -58,7 +58,13 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up of the Tuya switch."""
     from . import pytuya
     fans = []
-    pytuyadevice = pytuya.PytuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice = pytuya.PytuyaDevice(
+        config_entry.data[CONF_DEVICE_ID],
+        config_entry.data[CONF_HOST],
+        config_entry.data[CONF_LOCAL_KEY],
+        config_entry.data[CONF_FRIENDLY_NAME],
+        config_entry.data[CONF_NAME],
+    )
     pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
     _LOGGER.debug("localtuya fan: setup_platform: %s", pytuyadevice)
 

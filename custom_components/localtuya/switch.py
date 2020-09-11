@@ -120,6 +120,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         config_entry.data[CONF_DEVICE_ID],
         config_entry.data[CONF_HOST],
         config_entry.data[CONF_LOCAL_KEY],
+        config_entry.data[CONF_FRIENDLY_NAME],
+        config_entry.data[CONF_NAME],
     )
     pytuyadevice.set_version(float(config_entry.data[CONF_PROTOCOL_VERSION]))
     pytuyadevice.set_dpsUsed({})
@@ -250,13 +252,12 @@ class LocaltuyaSwitch(SwitchEntity):
 
     @property
     def device_info(self):
-        print("ZIO KEN DEVINFO  [{}]".format(self._device) )
         return {
             "identifiers": {
                 # Serial numbers are unique identifiers within a specific domain
-                ("LocalTuya", self.unique_id)
+                ("LocalTuya", f"local_{self._device.unique_id}")
             },
-            "name": "MyName",
+            "name": self._device._device.friendly_name,
             "manufacturer": "Tuya generic",
             "model": "SmartSwitch",
             "sw_version": "3.3",
