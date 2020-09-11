@@ -58,8 +58,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-REQUIREMENTS = ["pytuya==7.0.9"]
+REQUIREMENTS = ['pytuya>=8.0.0']
 
 DEFAULT_ID = "1"
 DEFAULT_PROTOCOL_VERSION = 3.3
@@ -113,7 +112,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         return
 
     switches = []
-    pytuyadevice = pytuya.OutletDevice(
+    pytuyadevice = pytuya.PytuyaDevice(
         config_entry.data[CONF_DEVICE_ID],
         config_entry.data[CONF_HOST],
         config_entry.data[CONF_LOCAL_KEY],
@@ -149,7 +148,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
 
 class TuyaCache:
-    """Cache wrapper for pytuya.OutletDevice"""
+    """Cache wrapper for pytuya.PytuyaDevice"""
 
     def __init__(self, device):
         """Initialize the cache."""
@@ -182,13 +181,13 @@ class TuyaCache:
                     #                    return None
                     raise ConnectionError("Failed to update status .")
 
-    def set_status(self, state, switchid):
+    def set_dps(self, state, switchid):
         """Change the Tuya switch status and clear the cache."""
         self._cached_status = ""
         self._cached_status_time = 0
         for i in range(5):
             try:
-                return self._device.set_status(state, switchid)
+                return self._device.set_dps(state, switchid)
             except Exception:
                 print(
                     "Failed to set status of device [{}]".format(self._device.address)
@@ -214,8 +213,7 @@ class TuyaCache:
         finally:
             self._lock.release()
 
-
-class TuyaDevice(SwitchEntity):
+class LocaltuyaSwitch(SwitchEntity):
     """Representation of a Tuya switch."""
 
     def __init__(
@@ -278,11 +276,11 @@ class TuyaDevice(SwitchEntity):
 
     def turn_on(self, **kwargs):
         """Turn Tuya switch on."""
-        self._device.set_status(True, self._switch_id)
+        self._device.set_dps(True, self._switch_id)
 
     def turn_off(self, **kwargs):
         """Turn Tuya switch off."""
-        self._device.set_status(False, self._switch_id)
+        self._device.set_dps(False, self._switch_id)
 
     def update(self):
         """Get state of Tuya switch."""

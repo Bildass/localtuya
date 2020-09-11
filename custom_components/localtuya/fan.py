@@ -32,7 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = 'localtuyafan'
 
-REQUIREMENTS = ['pytuya>=7.1.0']
+REQUIREMENTS = ['pytuya>=8.0.0']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
@@ -58,13 +58,13 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up of the Tuya switch."""
     from . import pytuya
     fans = []
-    localtuyadevice = pytuya.FanDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
-    localtuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
-    _LOGGER.debug("localtuya fan: setup_platform: %s", localtuyadevice)
+    pytuyadevice = pytuya.PytuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
+    _LOGGER.debug("localtuya fan: setup_platform: %s", pytuyadevice)
 
-    fan_device = localtuyadevice
+    fan_device = pytuyadevice
     fans.append(
-            TuyaDevice(
+            LocaltuyaFan(
                 fan_device,
                 config.get(CONF_NAME),
                 config.get(CONF_FRIENDLY_NAME),
@@ -76,8 +76,8 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     add_entities(fans, True)
 
-class TuyaDevice(FanEntity):
-    """A demonstration fan component."""
+class LocaltuyaFan(FanEntity):
+    """Representation of a Tuya fan."""
 
     # def __init__(self, hass, name: str, supported_features: int) -> None:
     def __init__(self, device, name, friendly_name, icon, switchid):
@@ -137,7 +137,7 @@ class TuyaDevice(FanEntity):
     def turn_off(self, **kwargs) -> None:
         """Turn off the entity."""
         _LOGGER.debug("localtuya fan: turn_off")
-        self._device.set_status(False, '1')
+        self._device.set_dps(False, '1')
         self._state = False
         self.schedule_update_ha_state()
 
@@ -147,14 +147,14 @@ class TuyaDevice(FanEntity):
         self._speed = speed
         # self.schedule_update_ha_state()
         if speed == STATE_OFF:
-            self._device.set_status(False, '1')
+            self._device.set_dps(False, '1')
             self._state = False
         elif speed == SPEED_LOW:
-            self._device.set_value('2', '1')
+            self._device.set_dps('1', '2')
         elif speed == SPEED_MEDIUM:
-            self._device.set_value('2', '2')
+            self._device.set_dps('2', '2')
         elif speed == SPEED_HIGH:
-            self._device.set_value('2', '3')
+            self._device.set_dps('3', '2')
         self.schedule_update_ha_state()
 
     # def set_direction(self, direction: str) -> None:
