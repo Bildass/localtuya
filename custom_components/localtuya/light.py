@@ -31,7 +31,7 @@ from homeassistant.components.light import (
 from homeassistant.util import color as colorutil
 import socket
 
-REQUIREMENTS = ['pytuya>=7.1.0']
+REQUIREMENTS = ['pytuya>=8.0.0']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
@@ -62,12 +62,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     from . import pytuya
 
     lights = []
-    pytuyadevice = pytuya.BulbDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice = pytuya.PytuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
     pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
 
     bulb_device = TuyaCache(pytuyadevice)
     lights.append(
-            TuyaDevice(
+            LocaltuyaLight(
                 bulb_device,
                 config.get(CONF_NAME),
                 config.get(CONF_FRIENDLY_NAME),
@@ -79,7 +79,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     add_devices(lights)
 
 class TuyaCache:
-    """Cache wrapper for pytuya.BulbDevice"""
+    """Cache wrapper for pytuya.PytuyaDevices"""
 
     def __init__(self, device):
         """Initialize the cache."""
@@ -105,13 +105,13 @@ class TuyaCache:
         log.warn(
             "Failed to get status after {} tries".format(UPDATE_RETRY_LIMIT))
 
-    def set_status(self, state, switchid):
+    def set_dps(self, state, switchid):
         """Change the Tuya switch status and clear the cache."""
         self._cached_status = ''
         self._cached_status_time = 0
         for _ in range(UPDATE_RETRY_LIMIT):
             try:
-                return self._device.set_status(state, switchid)
+                return self._device.set_dps(state, switchid)
             except ConnectionError:
                 pass
             except socket.timeout:
@@ -202,7 +202,7 @@ class TuyaCache:
     def turn_off(self):
         self._device.turn_off();
 
-class TuyaDevice(LightEntity):
+class LocaltuyaLight(LightEntity):
     """Representation of a Tuya switch."""
 
     def __init__(self, device, name, friendly_name, icon, bulbid):
@@ -296,7 +296,7 @@ class TuyaDevice(LightEntity):
         """Turn on or control the light."""
         log.debug("Turning on, state: " + str(self._device.cached_status()))
         if  not self._device.cached_status():
-            self._device.set_status(True, self._bulb_id)
+            self._device.set_dps(True, self._bulb_id)
         if ATTR_BRIGHTNESS in kwargs:
             converted_brightness = int(kwargs[ATTR_BRIGHTNESS])
             if converted_brightness <= 25:
@@ -310,7 +310,7 @@ class TuyaDevice(LightEntity):
 
     def turn_off(self, **kwargs):
         """Turn Tuya switch off."""
-        self._device.set_status(False, self._bulb_id)
+        self._device.set_dps(False, self._bulb_id)
 
     @property
     def supported_features(self):

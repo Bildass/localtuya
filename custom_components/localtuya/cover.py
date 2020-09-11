@@ -43,7 +43,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = 'localtuyacover'
 
-REQUIREMENTS = ['pytuya>=7.1.0']
+REQUIREMENTS = ['pytuya>=8.0.0']
 
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
@@ -84,15 +84,15 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     #_LOGGER.info("conf_STOP_cmd is %s", config.get(CONF_STOP_CMD))
 
     covers = []
-    pytuyadevice = pytuya.CoverEntity(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice = pytuya.PytuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
     pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
     dps = {}
     dps[config.get(CONF_ID)]=None
     pytuyadevice.set_dpsUsed(dps)
 
-    cover_device = TuyaCoverCache(pytuyadevice)
+    cover_device = TuyaCache(pytuyadevice)
     covers.append(
-            TuyaDevice(
+            LocaltuyaCover(
                 cover_device,
                 config.get(CONF_NAME),
                 config.get(CONF_FRIENDLY_NAME),
@@ -110,8 +110,8 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     add_entities(covers, True)
 
 
-class TuyaCoverCache:
-    """Cache wrapper for pytuya.CoverEntity"""
+class TuyaCache:
+    """Cache wrapper for pytuya.PytuyaDevice"""
 
     def __init__(self, device):
         """Initialize the cache."""
@@ -139,15 +139,15 @@ class TuyaCoverCache:
 #                    return None
                     raise ConnectionError("Failed to update status .")
 
-    def set_status(self, state, switchid):
-        #_LOGGER.info("running def set_status from cover")
+    def set_dps(self, state, switchid):
+        #_LOGGER.info("running def set_dps from cover")
         """Change the Tuya switch status and clear the cache."""
         self._cached_status = ''
         self._cached_status_time = 0
         for i in range(5):
             try:
-                #_LOGGER.info("Running a try from def set_status from cover where state=%s and switchid=%s", state, switchid)
-                return self._device.set_status(state, switchid)
+                #_LOGGER.info("Running a try from def set_dps from cover where state=%s and switchid=%s", state, switchid)
+                return self._device.set_dps(state, switchid)
             except Exception:
                 print('Failed to set status of device [{}]'.format(self._device.address))
                 if i+1 == 3:
@@ -169,7 +169,7 @@ class TuyaCoverCache:
         finally:
             self._lock.release()
 
-class TuyaDevice(CoverEntity):
+class LocaltuyaCover(CoverEntity):
     """Tuya cover devices."""
 
     def __init__(self, device, name, friendly_name, icon, switchid, open_cmd, close_cmd, stop_cmd):
@@ -185,7 +185,7 @@ class TuyaDevice(CoverEntity):
         self._open_cmd = open_cmd
         self._close_cmd = close_cmd
         self._stop_cmd = stop_cmd
-        #_LOGGER.info("running def __init__ of TuyaDevice(CoverEntity) from cover.py with self=%s device=%s name=%s friendly_name=%s icon=%s switchid=%s open_cmd=%s close_cmd=%s stop_cmd=%s", self, device, name, friendly_name, icon, switchid, open_cmd, close_cmd, stop_cmd)
+        #_LOGGER.info("running def __init__ of TuyaDevice(PytuyaDevice) from cover.py with self=%s device=%s name=%s friendly_name=%s icon=%s switchid=%s open_cmd=%s close_cmd=%s stop_cmd=%s", self, device, name, friendly_name, icon, switchid, open_cmd, close_cmd, stop_cmd)
         print('Initialized tuya cover [{}] with switch status [{}] and state [{}]'.format(self._name, self._status, self._state))
 
     @property
@@ -294,22 +294,22 @@ class TuyaDevice(CoverEntity):
     def open_cover(self, **kwargs):
         """Open the cover."""
         #_LOGGER.info("running open_cover from cover")
-        self._device.set_status(self._open_cmd, self._switch_id)
+        self._device.set_dps(self._open_cmd, self._switch_id)
 #        self._state = 'on'
 #        self._device._device.open_cover()
 
     def close_cover(self, **kwargs):
         #_LOGGER.info("running close_cover from cover")
         """Close cover."""
-        #_LOGGER.info('about to set_status from cover of off, %s', self._switch_id)
-        self._device.set_status(self._close_cmd, self._switch_id)
+        #_LOGGER.info('about to set_dps from cover of off, %s', self._switch_id)
+        self._device.set_dps(self._close_cmd, self._switch_id)
 #        self._state = 'off'
 #        self._device._device.close_cover()
 
     def stop_cover(self, **kwargs):
         #_LOGGER.info("running stop_cover from cover")
         """Stop the cover."""
-        self._device.set_status(self._stop_cmd, self._switch_id)
+        self._device.set_dps(self._stop_cmd, self._switch_id)
 #        self._state = 'stop'
 #        self._device._device.stop_cover()
 
