@@ -1,0 +1,46 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device has already been configured."
+        },
+        "error": {
+            "cannot_connect": "Cannot connect to device. Verify that address is correct and try again.",
+            "invalid_auth": "Failed to authenticate with device. Verify that device id and local key are correct.",
+            "unknown": "An unknown error occurred. See log for details.",
+            "entity_already_configured": "Entity with this ID has already been configured."
+        },
+        "step": {
+            "user": {
+                "title": "Add Tuya device",
+                "description": "Fill in the basic details and pick device type. The name entered here will be used to identify the integration itself (as seen in the `Integrations` page). You will add entities and give them names in the following steps.",
+                "data": {
+                    "name": "Name",
+                    "host": "Host",
+                    "device_id": "Device ID",
+                    "local_key": "Local key",
+                    "protocol_version": "Protocol Version"
+                }
+            },
+            "pick_entity_type": {
+                "title": "Entity type selection",
+                "description": "Please pick the type of entity you want to add.",
+                "data": {
+                    "platform_to_add": "Platform",
+                    "no_additional_platforms": "Do not add any more entities"
+                }
+            },
+            "add_entity": {
+                "title": "Add new entity",
+                "description": "Please fill out the details for an entity with type `{platform}`.",
+                "data": {
+                    "id": "ID",
+                    "friendly_name": "Friendly name",
+                    "current": "Current",
+                    "current_consumption": "Current Consumption",
+                    "voltage": "Voltage"
+                }
+            }
+        }
+    },
+    "title": "LocalTuya"
+}
