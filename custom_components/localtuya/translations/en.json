@@ -31,7 +31,7 @@
             },
             "add_entity": {
                 "title": "Add new entity",
-                "description": "Please fill out the details for an entity with type `{platform}`.",
+                "description": "Please fill out the details for an entity with type `{platform}`. All settings except for `ID` can be changed from the Options page later.",
                 "data": {
                     "id": "ID",
                     "friendly_name": "Friendly name",
@@ -42,6 +42,38 @@
                     "close_cmd": "Close Command",
                     "stop_cmd": "Stop Command"
                 }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Configure Tuya Device",
+                "description": "Basic configuration for device id `{device_id}`.",
+                "data": {
+                    "friendly_name": "Friendly Name",
+                    "host": "Host",
+                    "local_key": "Local key",
+                    "protocol_version": "Protocol Version"
+                }
+            },
+            "entity": {
+                "title": "Entity Configuration",
+                "description": "Editing entity with DPS `{id}` and platform `{platform}`.",
+                "data": {
+                    "id": "ID",
+                    "friendly_name": "Friendly name",
+                    "current": "Current",
+                    "current_consumption": "Current Consumption",
+                    "voltage": "Voltage",
+                    "open_cmd": "Open Command",
+                    "close_cmd": "Close Command",
+                    "stop_cmd": "Stop Command"
+                }
+            },
+            "yaml_import": {
+                "title": "Not Supported",
+                "description": "Options cannot be edited when configured via YAML."
             }
         }
     },

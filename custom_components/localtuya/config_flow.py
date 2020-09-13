@@ -6,7 +6,9 @@ from itertools import chain
 import voluptuous as vol
 
 from homeassistant import config_entries, core, exceptions
+from homeassistant.core import callback
 from homeassistant.const import (
+    CONF_NAME,
     CONF_ENTITIES,
     CONF_ID,
     CONF_HOST,
@@ -20,6 +22,8 @@ from . import pytuya
 from .const import (  # pylint: disable=unused-import
     CONF_LOCAL_KEY,
     CONF_PROTOCOL_VERSION,
+    CONF_DPS_STRINGS,
+    CONF_YAML_IMPORT,
     DOMAIN,
     PLATFORMS,
 )
@@ -39,9 +43,39 @@ USER_SCHEMA = vol.Schema(
     }
 )
 
+OPTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_FRIENDLY_NAME): str,
+        vol.Required(CONF_HOST): str,
+        vol.Required(CONF_LOCAL_KEY): str,
+        vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(["3.1", "3.3"]),
+    }
+)
+
 PICK_ENTITY_SCHEMA = vol.Schema(
     {vol.Required(PLATFORM_TO_ADD, default=PLATFORMS[0]): vol.In(PLATFORMS)}
 )
+
+
+def schema_defaults(schema, dps_list=None, **defaults):
+    """Create a new schema with default values filled in."""
+    copy = schema.extend({})
+    for field, field_type in copy.schema.items():
+        if isinstance(field_type, vol.In):
+            value = None
+            for dps in dps_list or []:
+                if dps.startswith(f"{defaults.get(field)} "):
+                    value = dps
+                    break
+
+            if value in field_type.container:
+                field.default = vol.default_factory(value)
+                continue
+
+        if field.schema in defaults:
+            field.default = vol.default_factory(defaults[field])
+
+    return copy
 
 
 def dps_string_list(dps_data):
@@ -49,14 +83,24 @@ def dps_string_list(dps_data):
     return [f"{id} (value: {value})" for id, value in dps_data.items()]
 
 
-def platform_schema(dps_strings, schema):
+def gen_dps_strings():
+    """Generate list of DPS values."""
+    return [f"{dp} (value: ?)" for dp in range(1, 256)]
+
+
+def platform_schema(platform, dps_strings, allow_id=True):
     """Generate input validation schema for a platform."""
-    return vol.Schema(
-        {
-            vol.Required(CONF_ID): vol.In(dps_strings),
-            vol.Required(CONF_FRIENDLY_NAME): str,
-        }
-    ).extend(schema)
+    schema = {}
+    if allow_id:
+        schema[vol.Required(CONF_ID)] = vol.In(dps_strings)
+    schema[vol.Required(CONF_FRIENDLY_NAME)] = str
+    return vol.Schema(schema).extend(flow_schema(platform, dps_strings))
+
+
+def flow_schema(platform, dps_strings):
+    """Return flow schema for a specific platform."""
+    integration_module = ".".join(__name__.split(".")[:-1])
+    return import_module("." + platform, integration_module).flow_schema(dps_strings)
 
 
 def strip_dps_values(user_input, dps_strings):
@@ -96,12 +140,17 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get options flow for this handler."""
+        return LocalTuyaOptionsFlowHandler(config_entry)
+
     def __init__(self):
         """Initialize a new LocaltuyaConfigFlow."""
         self.basic_info = None
         self.dps_strings = []
         self.platform = None
-        self.platform_schema = None
         self.entities = []
 
     async def async_step_user(self, user_input=None):
@@ -131,10 +180,14 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle asking if user wants to add another entity."""
         if user_input is not None:
             if user_input.get(NO_ADDITIONAL_PLATFORMS):
-                config = {**self.basic_info, CONF_ENTITIES: self.entities}
+                config = {
+                    **self.basic_info,
+                    CONF_DPS_STRINGS: self.dps_strings,
+                    CONF_ENTITIES: self.entities,
+                }
                 return self.async_create_entry(title=config[CONF_FRIENDLY_NAME], data=config)
 
-            self._set_platform(user_input[PLATFORM_TO_ADD])
+            self.platform = user_input[PLATFORM_TO_ADD]
             return await self.async_step_add_entity()
 
         # Add a checkbox that allows bailing out from config flow iff at least one
@@ -163,7 +216,7 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="add_entity",
-            data_schema=platform_schema(self.dps_strings, self.platform_schema),
+            data_schema=platform_schema(self.platform, self.dps_strings),
             errors=errors,
             description_placeholders={"platform": self.platform},
         )
@@ -177,12 +230,12 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_FRIENDLY_NAME: conf[CONF_FRIENDLY_NAME],
                 CONF_PLATFORM: self.platform,
             }
-            for field in self.platform_schema.keys():
+            for field in flow_schema(self.platform, self.dps_strings).keys():
                 converted[str(field)] = conf[field]
             return converted
 
         await self.async_set_unique_id(user_input[CONF_DEVICE_ID])
-        self._set_platform(user_input[CONF_PLATFORM])
+        self.platform = user_input[CONF_PLATFORM]
 
         if len(user_input.get(CONF_SWITCHES, [])) > 0:
             for switch_conf in user_input[CONF_SWITCHES].values():
@@ -197,17 +250,85 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_DEVICE_ID: user_input[CONF_DEVICE_ID],
             CONF_LOCAL_KEY: user_input[CONF_LOCAL_KEY],
             CONF_PROTOCOL_VERSION: user_input[CONF_PROTOCOL_VERSION],
+            CONF_YAML_IMPORT: True,
             CONF_ENTITIES: self.entities,
         }
         self._abort_if_unique_id_configured(updates=config)
         return self.async_create_entry(title=f"{config[CONF_FRIENDLY_NAME]} (YAML)", data=config)
 
-    def _set_platform(self, platform):
-        integration_module = ".".join(__name__.split(".")[:-1])
-        self.platform = platform
-        self.platform_schema = import_module(
-            "." + platform, integration_module
-        ).flow_schema(self.dps_strings)
+
+class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for LocalTuya integration."""
+
+    def __init__(self, config_entry):
+        """Initialize localtuya options flow."""
+        self.config_entry = config_entry
+        self.dps_strings = config_entry.data.get(CONF_DPS_STRINGS, gen_dps_strings())
+        self.entities = config_entry.data[CONF_ENTITIES]
+        self.data = None
+
+    async def async_step_init(self, user_input=None):
+        """Manage basic options."""
+        device_id = self.config_entry.data[CONF_DEVICE_ID]
+        if user_input is not None:
+            self.data = {
+                CONF_DEVICE_ID: device_id,
+                CONF_DPS_STRINGS: self.dps_strings,
+                CONF_ENTITIES: [],
+            }
+            self.data.update(user_input)
+            return await self.async_step_entity()
+
+        # Not supported for YAML imports
+        if self.config_entry.data.get(CONF_YAML_IMPORT):
+            return await self.async_step_yaml_import()
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=schema_defaults(OPTIONS_SCHEMA, **self.config_entry.data),
+            description_placeholders={"device_id": device_id},
+        )
+
+    async def async_step_entity(self, user_input=None):
+        """Manage entity settings."""
+        errors = {}
+        if user_input is not None:
+            entity = strip_dps_values(user_input, self.dps_strings)
+            entity[CONF_ID] = self.current_entity[CONF_ID]
+            entity[CONF_PLATFORM] = self.current_entity[CONF_PLATFORM]
+            self.data[CONF_ENTITIES].append(entity)
+
+            if len(self.entities) == len(self.data[CONF_ENTITIES]):
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, title=self.data[CONF_FRIENDLY_NAME], data=self.data
+                )
+                return self.async_create_entry(title="", data={})
+
+        schema = platform_schema(
+            self.current_entity[CONF_PLATFORM], self.dps_strings, allow_id=False
+        )
+        return self.async_show_form(
+            step_id="entity",
+            errors=errors,
+            data_schema=schema_defaults(
+                schema, self.dps_strings, **self.current_entity
+            ),
+            description_placeholders={
+                "id": self.current_entity[CONF_ID],
+                "platform": self.current_entity[CONF_PLATFORM],
+            },
+        )
+
+    async def async_step_yaml_import(self, user_input=None):
+        """Manage YAML imports."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data={})
+        return self.async_show_form(step_id="yaml_import")
+
+    @property
+    def current_entity(self):
+        """Existing configuration for entity currently being edited."""
+        return self.entities[len(self.data[CONF_ENTITIES])]
 
 
 class CannotConnect(exceptions.HomeAssistantError):
