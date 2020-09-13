@@ -48,6 +48,7 @@ from .const import (
     CONF_CURRENT_CONSUMPTION,
     CONF_VOLTAGE,
 )
+from .pytuya import OutletDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,7 +87,9 @@ def flow_schema(dps):
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Setup a Tuya switch based on a config entry."""
-    device, entities_to_setup = prepare_setup_entities(config_entry, "switch")
+    device, entities_to_setup = prepare_setup_entities(
+        config_entry, "switch", OutletDevice
+    )
     if not entities_to_setup:
         return
 

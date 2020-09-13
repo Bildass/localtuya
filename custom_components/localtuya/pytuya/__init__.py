@@ -463,7 +463,7 @@ class FanDevice(Device):
     def __init__(self, dev_id, address, local_key=None):
         super(FanDevice, self).__init__(dev_id, address, local_key)
 
-class CoverEntity(Device):
+class CoverDevice(Device):
     DPS_INDEX_MOVE       = '1'
     DPS_INDEX_BL         = '101'
 
@@ -481,7 +481,7 @@ class CoverEntity(Device):
         else:
             print('Using PyCrypto ', Crypto.version_info)
             print('Using PyCrypto from ', Crypto.__file__)
-        super(CoverEntity, self).__init__(dev_id, address, local_key)
+        super(CoverDevice, self).__init__(dev_id, address, local_key)
     
     def open_cover(self, switch=1):
         """Turn the device on"""

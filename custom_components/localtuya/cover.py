@@ -19,7 +19,8 @@ cover:
 
 """
 import logging
-import requests
+from time import time, sleep
+from threading import Lock
 
 import voluptuous as vol
 
@@ -31,83 +32,86 @@ from homeassistant.components.cover import (
     SUPPORT_STOP,
     SUPPORT_SET_POSITION,
 )
-
-"""from . import DATA_TUYA, TuyaDevice"""
-from homeassistant.components.cover import CoverEntity, PLATFORM_SCHEMA
-from homeassistant.const import (CONF_HOST, CONF_ID, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
+from homeassistant.const import (
+    CONF_ID,
+    CONF_FRIENDLY_NAME,
+)
 import homeassistant.helpers.config_validation as cv
-from time import time, sleep
-from threading import Lock
+
+from . import BASE_PLATFORM_SCHEMA, prepare_setup_entities, import_from_yaml
+from .const import CONF_OPEN_CMD, CONF_CLOSE_CMD, CONF_STOP_CMD
+from .pytuya import CoverDevice
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_NAME = 'localtuyacover'
+DEFAULT_OPEN_CMD = "on"
+DEFAULT_CLOSE_CMD = "off"
+DEFAULT_STOP_CMD = "stop"
 
-REQUIREMENTS = ['pytuya>=7.1.0']
-
-CONF_DEVICE_ID = 'device_id'
-CONF_LOCAL_KEY = 'local_key'
-CONF_PROTOCOL_VERSION = 'protocol_version'
-
-CONF_OPEN_CMD = 'open_cmd'
-CONF_CLOSE_CMD = 'close_cmd'
-CONF_STOP_CMD = 'stop_cmd'
-
-DEFAULT_ID = '1'
-DEFAULT_PROTOCOL_VERSION = 3.3
-DEFAULT_OPEN_CMD = 'on'
-DEFAULT_CLOSE_CMD = 'off'
-DEFAULT_STOP_CMD = 'stop'
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_ICON): cv.icon,
-    vol.Required(CONF_HOST): cv.string,
-    vol.Required(CONF_DEVICE_ID): cv.string,
-    vol.Required(CONF_LOCAL_KEY): cv.string,
-    vol.Required(CONF_NAME): cv.string,
-    vol.Required(CONF_FRIENDLY_NAME): cv.string,
-    vol.Required(CONF_PROTOCOL_VERSION, default=DEFAULT_PROTOCOL_VERSION): vol.Coerce(float),
-    vol.Optional(CONF_ID, default=DEFAULT_ID): cv.string,
-    vol.Optional(CONF_OPEN_CMD, default=DEFAULT_OPEN_CMD): cv.string,
-    vol.Optional(CONF_CLOSE_CMD, default=DEFAULT_CLOSE_CMD): cv.string,
-    vol.Optional(CONF_STOP_CMD, default=DEFAULT_STOP_CMD): cv.string,
-})
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(BASE_PLATFORM_SCHEMA).extend(
+    {
+        vol.Optional(CONF_OPEN_CMD, default=DEFAULT_OPEN_CMD): cv.string,
+        vol.Optional(CONF_CLOSE_CMD, default=DEFAULT_CLOSE_CMD): cv.string,
+        vol.Optional(CONF_STOP_CMD, default=DEFAULT_STOP_CMD): cv.string,
+    }
+)
 
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Set up Tuya cover devices."""
-    from . import pytuya
+def flow_schema(dps):
+    """Return schema used in config flow."""
+    return {
+        vol.Optional(CONF_OPEN_CMD, default=DEFAULT_OPEN_CMD): str,
+        vol.Optional(CONF_CLOSE_CMD, default=DEFAULT_CLOSE_CMD): str,
+        vol.Optional(CONF_STOP_CMD, default=DEFAULT_STOP_CMD): str,
+    }
 
-    #_LOGGER.info("running def setup_platform from cover.py")
-    #_LOGGER.info("conf_open_cmd is %s", config.get(CONF_OPEN_CMD))
-    #_LOGGER.info("conf_close_cmd is %s", config.get(CONF_CLOSE_CMD))
-    #_LOGGER.info("conf_STOP_cmd is %s", config.get(CONF_STOP_CMD))
 
-    covers = []
-    pytuyadevice = pytuya.CoverEntity(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
-    pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Setup a Tuya cover based on a config entry."""
+    device, entities_to_setup = prepare_setup_entities(
+        config_entry, "cover", CoverDevice
+    )
+    if not entities_to_setup:
+        return
+
+    # TODO: keeping for now but should be removed
     dps = {}
+<<<<<<< HEAD
     dps[config.get(CONF_ID)]=None
     pytuyadevice.set_dpsUsed(dps)
+=======
+    dps["101"] = None
+    dps["102"] = None
+>>>>>>> edc9debf839a6553cc2ad26d754006454314e63a
 
-    cover_device = TuyaCoverCache(pytuyadevice)
-    covers.append(
+    covers = []
+    for device_config in entities_to_setup:
+        dps[device_config[CONF_ID]] = None
+        covers.append(
             TuyaDevice(
-                cover_device,
-                config.get(CONF_NAME),
-                config.get(CONF_FRIENDLY_NAME),
-                config.get(CONF_ICON),
-                config.get(CONF_ID),
-                config.get(CONF_OPEN_CMD),
-                config.get(CONF_CLOSE_CMD),
-                config.get(CONF_STOP_CMD),
+                TuyaCoverCache(device),
+                device_config[CONF_FRIENDLY_NAME],
+                device_config[CONF_ID],
+                device_config.get(CONF_OPEN_CMD),
+                device_config.get(CONF_CLOSE_CMD),
+                device_config.get(CONF_STOP_CMD),
             )
+<<<<<<< HEAD
 	)
     print('Setup localtuya cover [{}] with device ID [{}] '.format(config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID)))
     _LOGGER.info("Setup localtuya cover %s with device ID=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID) )
     _LOGGER.debug("Cover %s uses open_cmd=%s close_cmd=%s stop_cmd=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_OPEN_CMD), config.get(CONF_CLOSE_CMD), config.get(CONF_STOP_CMD) )
+=======
+        )
 
-    add_entities(covers, True)
+    device.set_dpsUsed(dps)
+    async_add_entities(covers, True)
+
+>>>>>>> edc9debf839a6553cc2ad26d754006454314e63a
+
+def setup_platform(hass, config, add_devices, discovery_info=None):
+    """Set up of the Tuya cover."""
+    return import_from_yaml(hass, config, "cover")
 
 
 class TuyaCoverCache:
@@ -115,7 +119,7 @@ class TuyaCoverCache:
 
     def __init__(self, device):
         """Initialize the cache."""
-        self._cached_status = ''
+        self._cached_status = ""
         self._cached_status_time = 0
         self._device = device
         self._lock = Lock()
@@ -126,38 +130,49 @@ class TuyaCoverCache:
         return self._device.id
 
     def __get_status(self):
-        #_LOGGER.info("running def __get_status from cover")
+        # _LOGGER.info("running def __get_status from cover")
         for i in range(5):
             try:
                 status = self._device.status()
                 return status
             except Exception:
-                print('Failed to update status of device [{}]'.format(self._device.address))
+                print(
+                    "Failed to update status of device [{}]".format(
+                        self._device.address
+                    )
+                )
                 sleep(1.0)
-                if i+1 == 3:
-                    _LOGGER.error("Failed to update status of device %s", self._device.address )
-#                    return None
+                if i + 1 == 3:
+                    _LOGGER.error(
+                        "Failed to update status of device %s", self._device.address
+                    )
+                    #                    return None
                     raise ConnectionError("Failed to update status .")
 
     def set_status(self, state, switchid):
-        #_LOGGER.info("running def set_status from cover")
+        # _LOGGER.info("running def set_status from cover")
         """Change the Tuya switch status and clear the cache."""
-        self._cached_status = ''
+        self._cached_status = ""
         self._cached_status_time = 0
         for i in range(5):
             try:
-                #_LOGGER.info("Running a try from def set_status from cover where state=%s and switchid=%s", state, switchid)
+                # _LOGGER.info("Running a try from def set_status from cover where state=%s and switchid=%s", state, switchid)
                 return self._device.set_status(state, switchid)
             except Exception:
-                print('Failed to set status of device [{}]'.format(self._device.address))
-                if i+1 == 3:
-                    _LOGGER.error("Failed to set status of device %s", self._device.address )
+                print(
+                    "Failed to set status of device [{}]".format(self._device.address)
+                )
+                if i + 1 == 3:
+                    _LOGGER.error(
+                        "Failed to set status of device %s", self._device.address
+                    )
                     return
-#                    raise ConnectionError("Failed to set status.")
+
+    #                    raise ConnectionError("Failed to set status.")
 
     def status(self):
         """Get state of Tuya switch and cache the results."""
-        #_LOGGER.info("running def status(self) from cover")
+        # _LOGGER.info("running def status(self) from cover")
         self._lock.acquire()
         try:
             now = time()
@@ -169,24 +184,31 @@ class TuyaCoverCache:
         finally:
             self._lock.release()
 
+
 class TuyaDevice(CoverEntity):
     """Tuya cover devices."""
 
-    def __init__(self, device, name, friendly_name, icon, switchid, open_cmd, close_cmd, stop_cmd):
+    def __init__(self, device, friendly_name, switchid, open_cmd, close_cmd, stop_cmd):
         self._device = device
         self._available = False
         self._name = friendly_name
-        self._friendly_name = friendly_name
-        self._icon = icon
         self._switch_id = switchid
-        self._status = self._device.status()
-        self._state = self._status['dps'][self._switch_id]
+        self._status = None
+        self._state = None
         self._position = 50
         self._open_cmd = open_cmd
         self._close_cmd = close_cmd
         self._stop_cmd = stop_cmd
+<<<<<<< HEAD
         #_LOGGER.info("running def __init__ of TuyaDevice(CoverEntity) from cover.py with self=%s device=%s name=%s friendly_name=%s icon=%s switchid=%s open_cmd=%s close_cmd=%s stop_cmd=%s", self, device, name, friendly_name, icon, switchid, open_cmd, close_cmd, stop_cmd)
         print('Initialized tuya cover [{}] with switch status [{}] and state [{}]'.format(self._name, self._status, self._state))
+=======
+        print(
+            "Initialized tuya cover [{}] with switch status [{}] and state [{}]".format(
+                self._name, self._status, self._state
+            )
+        )
+>>>>>>> edc9debf839a6553cc2ad26d754006454314e63a
 
     @property
     def name(self):
@@ -221,105 +243,106 @@ class TuyaDevice(CoverEntity):
     @property
     def supported_features(self):
         """Flag supported features."""
-        supported_features = SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP | SUPPORT_SET_POSITION
+        supported_features = (
+            SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP | SUPPORT_SET_POSITION
+        )
         return supported_features
 
     @property
-    def icon(self):
-        """Return the icon."""
-        return self._icon
-
-    @property
     def current_cover_position(self):
-        #self.update()
-        #state = self._state
-#        _LOGGER.info("curr_pos() : %i", self._position)
-        #print('curr_pos() : state [{}]'.format(state))
+        # self.update()
+        # state = self._state
+        #        _LOGGER.info("curr_pos() : %i", self._position)
+        # print('curr_pos() : state [{}]'.format(state))
         return self._position
 
     @property
     def is_opening(self):
-        #self.update()
+        # self.update()
         state = self._state
-        #print('is_opening() : state [{}]'.format(state))
-        if state == 'on':
+        # print('is_opening() : state [{}]'.format(state))
+        if state == "on":
             return True
         return False
 
     @property
     def is_closing(self):
-        #self.update()
+        # self.update()
         state = self._state
-        #print('is_closing() : state [{}]'.format(state))
-        if state == 'off':
+        # print('is_closing() : state [{}]'.format(state))
+        if state == "off":
             return True
         return False
 
     @property
     def is_closed(self):
         """Return if the cover is closed or not."""
-        #_LOGGER.info("running is_closed from cover")
-        #self.update()
+        # _LOGGER.info("running is_closed from cover")
+        # self.update()
         state = self._state
-        #print('is_closed() : state [{}]'.format(state))
-        if state == 'off':
+        # print('is_closed() : state [{}]'.format(state))
+        if state == "off":
             return False
-        if state == 'on':
+        if state == "on":
             return True
         return None
 
     def set_cover_position(self, **kwargs):
-        #_LOGGER.info("running set_cover_position from cover")
+        # _LOGGER.info("running set_cover_position from cover")
         """Move the cover to a specific position."""
 
         newpos = float(kwargs["position"])
-#        _LOGGER.info("Set new pos: %f", newpos)
+        #        _LOGGER.info("Set new pos: %f", newpos)
 
         currpos = self.current_cover_position
         posdiff = abs(newpos - currpos)
-#       25 sec corrisponde alla chiusura/apertura completa
+        #       25 sec corrisponde alla chiusura/apertura completa
         mydelay = posdiff / 2.0
         if newpos > currpos:
-#            _LOGGER.info("Opening to %f: delay %f", newpos, mydelay )
+            #            _LOGGER.info("Opening to %f: delay %f", newpos, mydelay )
             self.open_cover()
         else:
-#            _LOGGER.info("Closing to %f: delay %f", newpos, mydelay )
+            #            _LOGGER.info("Closing to %f: delay %f", newpos, mydelay )
             self.close_cover()
-        sleep( mydelay )
+        sleep(mydelay)
         self.stop_cover()
         self._position = 50  # newpos
-#        self._state = 'on'
-#        self._device._device.open_cover()
+
+    #        self._state = 'on'
+    #        self._device._device.open_cover()
 
     def open_cover(self, **kwargs):
         """Open the cover."""
-        #_LOGGER.info("running open_cover from cover")
+        # _LOGGER.info("running open_cover from cover")
         self._device.set_status(self._open_cmd, self._switch_id)
-#        self._state = 'on'
-#        self._device._device.open_cover()
+
+    #        self._state = 'on'
+    #        self._device._device.open_cover()
 
     def close_cover(self, **kwargs):
-        #_LOGGER.info("running close_cover from cover")
+        # _LOGGER.info("running close_cover from cover")
         """Close cover."""
-        #_LOGGER.info('about to set_status from cover of off, %s', self._switch_id)
+        # _LOGGER.info('about to set_status from cover of off, %s', self._switch_id)
         self._device.set_status(self._close_cmd, self._switch_id)
-#        self._state = 'off'
-#        self._device._device.close_cover()
+
+    #        self._state = 'off'
+    #        self._device._device.close_cover()
 
     def stop_cover(self, **kwargs):
-        #_LOGGER.info("running stop_cover from cover")
+        # _LOGGER.info("running stop_cover from cover")
         """Stop the cover."""
         self._device.set_status(self._stop_cmd, self._switch_id)
-#        self._state = 'stop'
-#        self._device._device.stop_cover()
+
+    #        self._state = 'stop'
+    #        self._device._device.stop_cover()
 
     def update(self):
         """Get state of Tuya switch."""
-        #_LOGGER.info("running update(self) from cover")
+        # _LOGGER.info("running update(self) from cover")
         try:
             self._status = self._device.status()
-            self._state = self._status['dps'][self._switch_id]
-            #print('update() : state [{}]'.format(self._state))
+            self._state = self._status["dps"][self._switch_id]
+            # print('update() : state [{}]'.format(self._state))
         except Exception:
             self._available = False
         else:

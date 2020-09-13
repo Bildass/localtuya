@@ -37,7 +37,10 @@
                     "friendly_name": "Friendly name",
                     "current": "Current",
                     "current_consumption": "Current Consumption",
-                    "voltage": "Voltage"
+                    "voltage": "Voltage",
+                    "open_cmd": "Open Command",
+                    "close_cmd": "Close Command",
+                    "stop_cmd": "Stop Command"
                 }
             }
         }
