@@ -13,4 +13,4 @@ CONF_VOLTAGE = "voltage"
 DOMAIN = "localtuya"
 
 # Platforms in this list must support config flows
-PLATFORMS = ["switch"]
+PLATFORMS = ["light", "switch"]
