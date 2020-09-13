@@ -76,13 +76,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     # TODO: keeping for now but should be removed
     dps = {}
-<<<<<<< HEAD
     dps[config.get(CONF_ID)]=None
     pytuyadevice.set_dpsUsed(dps)
-=======
-    dps["101"] = None
-    dps["102"] = None
->>>>>>> edc9debf839a6553cc2ad26d754006454314e63a
 
     covers = []
     for device_config in entities_to_setup:
@@ -96,18 +91,13 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 device_config.get(CONF_CLOSE_CMD),
                 device_config.get(CONF_STOP_CMD),
             )
-<<<<<<< HEAD
-	)
-    print('Setup localtuya cover [{}] with device ID [{}] '.format(config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID)))
-    _LOGGER.info("Setup localtuya cover %s with device ID=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID) )
-    _LOGGER.debug("Cover %s uses open_cmd=%s close_cmd=%s stop_cmd=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_OPEN_CMD), config.get(CONF_CLOSE_CMD), config.get(CONF_STOP_CMD) )
-=======
+#    print('Setup localtuya cover [{}] with device ID [{}] '.format(config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID)))
+#    _LOGGER.info("Setup localtuya cover %s with device ID=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_ID) )
+#    _LOGGER.debug("Cover %s uses open_cmd=%s close_cmd=%s stop_cmd=%s", config.get(CONF_FRIENDLY_NAME), config.get(CONF_OPEN_CMD), config.get(CONF_CLOSE_CMD), config.get(CONF_STOP_CMD) )
         )
 
     device.set_dpsUsed(dps)
     async_add_entities(covers, True)
-
->>>>>>> edc9debf839a6553cc2ad26d754006454314e63a
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up of the Tuya cover."""
@@ -199,16 +189,11 @@ class TuyaDevice(CoverEntity):
         self._open_cmd = open_cmd
         self._close_cmd = close_cmd
         self._stop_cmd = stop_cmd
-<<<<<<< HEAD
-        #_LOGGER.info("running def __init__ of TuyaDevice(CoverEntity) from cover.py with self=%s device=%s name=%s friendly_name=%s icon=%s switchid=%s open_cmd=%s close_cmd=%s stop_cmd=%s", self, device, name, friendly_name, icon, switchid, open_cmd, close_cmd, stop_cmd)
-        print('Initialized tuya cover [{}] with switch status [{}] and state [{}]'.format(self._name, self._status, self._state))
-=======
         print(
             "Initialized tuya cover [{}] with switch status [{}] and state [{}]".format(
                 self._name, self._status, self._state
             )
         )
->>>>>>> edc9debf839a6553cc2ad26d754006454314e63a
 
     @property
     def name(self):
