@@ -35,8 +35,6 @@ from threading import Lock
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pytuya>=8.0.0']
-
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
 CONF_PROTOCOL_VERSION = 'protocol_version'
@@ -84,7 +82,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     devices = config.get(CONF_SWITCHES)
 
     switches = []
-    pytuyadevice = pytuya.PytuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice = pytuya.TuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
     pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
 
     if len(devices) > 0:
@@ -145,7 +143,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     add_devices(switches, True)
 
 class TuyaCache:
-    """Cache wrapper for pytuya.PytuyaDevice"""
+    """Cache wrapper for pytuya.TuyaDevice"""
 
     def __init__(self, device):
         """Initialize the cache."""
@@ -172,13 +170,13 @@ class TuyaCache:
 #                    return None
                     raise ConnectionError("Failed to update status .")
 
-    def set_dps(self, state, switchid):
+    def set_dps(self, state, dps_index):
         """Change the Tuya switch status and clear the cache."""
         self._cached_status = ''
         self._cached_status_time = 0
         for i in range(5):
             try:
-                return self._device.set_dps(state, switchid)
+                return self._device.set_dps(state, dps_index)
             except Exception:
                 print('Failed to set status of device [{}]'.format(self._device.address))
                 if i+1 == 3:

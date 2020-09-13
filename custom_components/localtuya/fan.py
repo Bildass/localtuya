@@ -32,8 +32,6 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = 'localtuyafan'
 
-REQUIREMENTS = ['pytuya>=8.0.0']
-
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
 CONF_PROTOCOL_VERSION = 'protocol_version'
@@ -58,7 +56,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up of the Tuya switch."""
     from . import pytuya
     fans = []
-    pytuyadevice = pytuya.PytuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice = pytuya.TuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
     pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
     _LOGGER.debug("localtuya fan: setup_platform: %s", pytuyadevice)
 

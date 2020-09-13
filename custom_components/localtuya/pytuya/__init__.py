@@ -11,7 +11,7 @@
  For more information see https://github.com/clach04/python-tuya
 
  Classes
-    PytuyaDevice(dev_id, address, local_key=None)
+    TuyaDevice(dev_id, address, local_key=None)
         dev_id (str): Device ID e.g. 01234567891234567890
         address (str): Device Network IP Address e.g. 10.0.1.99
         local_key (str, optional): The encryption key. Defaults to None.
@@ -20,8 +20,7 @@
     json = status()          # returns json payload
     set_version(version)     #  3.1 [default] or 3.3
     set_dpsUsed(dpsUsed)     
-    set_dps(on, switch=1) # Set the  of the device to 'on' or 'off' (bool)
-    set_value(index, value)  # Set int value of any index.
+    set_dps(on, dps_index)   # Set int value of any dps index.
     set_timer(num_secs):
 
         
@@ -172,12 +171,7 @@ payload_dict = {
   }
 }
 
-#class PytuyaDevice(XenonDevice):
-#    def __init__(self, dev_id, address, local_key=None, dev_type=None):
-#        super(PytuyaDevice, self).__init__(dev_id, address, local_key, dev_type)
-
-#class XenonDevice(object):
-class PytuyaDevice(object):
+class TuyaDevice(object):
     def __init__(self, dev_id, address, local_key=None, connection_timeout=10):
         """
         Represents a Tuya device.
@@ -365,20 +359,20 @@ class PytuyaDevice(object):
 
         return result
     
-    def set_dps(self, value, dpsIndex):
+    def set_dps(self, value, dps_index):
         """
-        Set int value of any index.
+        Set value (may be any type: bool, int or string) of any dps index.
 
         Args:
-            dpsIndex(int):   dps index to set
+            dps_index(int):   dps index to set
             value: new value for the dps index
         """
         # open device, send request, then close connection
-        if isinstance(dpsIndex, int):
-            dpsIndex = str(dpsIndex)  # index and payload is a string
+        if isinstance(dps_index, int):
+            dps_index = str(dps_index)  # index and payload is a string
 
         payload = self.generate_payload(SET, {
-            dpsIndex: value})
+            dps_index: value})
         
         data = self._send_receive(payload)
         log.debug('set_dps received data=%r', data)

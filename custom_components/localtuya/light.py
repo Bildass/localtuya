@@ -31,8 +31,6 @@ from homeassistant.components.light import (
 from homeassistant.util import color as colorutil
 import socket
 
-REQUIREMENTS = ['pytuya>=8.0.0']
-
 CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
 CONF_PROTOCOL_VERSION = 'protocol_version'
@@ -62,7 +60,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     from . import pytuya
 
     lights = []
-    pytuyadevice = pytuya.PytuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
+    pytuyadevice = pytuya.TuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
     pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
 
     bulb_device = TuyaCache(pytuyadevice)
@@ -79,7 +77,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     add_devices(lights)
 
 class TuyaCache:
-    """Cache wrapper for pytuya.PytuyaDevices"""
+    """Cache wrapper for pytuya.TuyaDevices"""
 
     def __init__(self, device):
         """Initialize the cache."""
@@ -105,13 +103,13 @@ class TuyaCache:
         log.warn(
             "Failed to get status after {} tries".format(UPDATE_RETRY_LIMIT))
 
-    def set_dps(self, state, switchid):
+    def set_dps(self, state, dps_index):
         """Change the Tuya switch status and clear the cache."""
         self._cached_status = ''
         self._cached_status_time = 0
         for _ in range(UPDATE_RETRY_LIMIT):
             try:
-                return self._device.set_dps(state, switchid)
+                return self._device.set_dps(state, dps_index)
             except ConnectionError:
                 pass
             except socket.timeout:
@@ -135,75 +133,16 @@ class TuyaCache:
     def cached_status(self):
         return self._cached_status
 
-    def support_color(self):
-        return self._device.support_color()
-
-    def support_color_temp(self):
-        return self._device.support_color_temp()
-
-    def brightness(self):
-        for _ in range(UPDATE_RETRY_LIMIT):
-            try:
-                return self._device.brightness()
-            except ConnectionError:
-                pass
-            except KeyError:
-                return "999"
-            except socket.timeout:
-                pass
-        log.warn(
-            "Failed to get brightness after {} tries".format(UPDATE_RETRY_LIMIT))
-
-    def color_temp(self):
-        for _ in range(UPDATE_RETRY_LIMIT):
-            try:
-                return self._device.colourtemp()
-            except ConnectionError:
-                pass
-            except KeyError:
-                return "999"
-            except socket.timeout:
-                pass
-        log.warn(
-            "Failed to get color temp after {} tries".format(UPDATE_RETRY_LIMIT))
-
-    def set_brightness(self, brightness):
-        for _ in range(UPDATE_RETRY_LIMIT):
-            try:
-                return self._device.set_brightness(brightness)
-            except ConnectionError:
-                pass
-            except KeyError:
-                pass
-            except socket.timeout:
-                pass
-        log.warn(
-            "Failed to set brightness after {} tries".format(UPDATE_RETRY_LIMIT))
-
-    def set_color_temp(self, color_temp):
-        for _ in range(UPDATE_RETRY_LIMIT):
-            try:
-                return self._device.set_colourtemp(color_temp)
-            except ConnectionError:
-                pass
-            except KeyError:
-                pass
-            except socket.timeout:
-                pass
-        log.warn(
-            "Failed to set color temp after {} tries".format(UPDATE_RETRY_LIMIT))
-
-    def state(self):
+   def state(self):
         self._device.state();
  
-    def turn_on(self):
-        self._device.turn_on();
-
-    def turn_off(self):
-        self._device.turn_off();
-
 class LocaltuyaLight(LightEntity):
     """Representation of a Tuya switch."""
+    DPS_INDEX_ON         = '1'
+    DPS_INDEX_MODE       = '2'
+    DPS_INDEX_BRIGHTNESS = '3'
+    DPS_INDEX_COLOURTEMP = '4'
+    DPS_INDEX_COLOUR     = '5'
 
     def __init__(self, device, name, friendly_name, icon, bulbid):
         """Initialize the Tuya switch."""
@@ -301,7 +240,7 @@ class LocaltuyaLight(LightEntity):
             converted_brightness = int(kwargs[ATTR_BRIGHTNESS])
             if converted_brightness <= 25:
                 converted_brightness = 25
-            self._device.set_brightness(converted_brightness)
+            self.set_brightness(converted_brightness)
         if ATTR_HS_COLOR in kwargs:
             raise ValueError(" TODO implement RGB from HS")
         if ATTR_COLOR_TEMP in kwargs:
@@ -320,3 +259,86 @@ class LocaltuyaLight(LightEntity):
             supports = supports | SUPPORT_COLOR
         #supports = supports | SUPPORT_COLOR_TEMP
         return supports
+
+    def support_color(self):
+        return supported_features() & SUPPORT_COLOR
+
+    def support_color_temp(self):
+        return supported_features() & SUPPORT_COLOR_TEMP
+
+    def color_temp(self):
+        for _ in range(UPDATE_RETRY_LIMIT):
+            try:
+                return self._state[self.DPS][self.DPS_INDEX_COLOURTEMP]
+            except ConnectionError:
+                pass
+            except KeyError:
+                return "999"
+            except socket.timeout:
+                pass
+        log.warn(
+            "Failed to get color temp after {} tries".format(UPDATE_RETRY_LIMIT))
+
+    def set_color_temp(self, color_temp):
+        for _ in range(UPDATE_RETRY_LIMIT):
+            try:
+                if not 0 <= colourtemp <= 255:
+                    raise ValueError("The colour temperature needs to be between 0 and 255.")
+
+                self._device.set_dps(colourtemp, self.DPS_INDEX_COLOURTEMP)
+            except ConnectionError:
+                pass
+            except KeyError:
+                pass
+            except socket.timeout:
+                pass
+        log.warn(
+            "Failed to set color temp after {} tries".format(UPDATE_RETRY_LIMIT))
+
+    def set_brightness(self, brightness):
+        for _ in range(UPDATE_RETRY_LIMIT):
+            try:
+                if not 25 <= brightness <= 255:
+                    raise ValueError("The brightness needs to be between 25 and 255.")
+
+                self._device.set_dps(brightness, self.DPS_INDEX_BRIGHTNESS)
+            except ConnectionError:
+                pass
+            except KeyError:
+                pass
+            except socket.timeout:
+                pass
+        log.warn(
+            "Failed to set brightness after {} tries".format(UPDATE_RETRY_LIMIT))
+
+
+    @staticmethod
+    def _hexvalue_to_rgb(hexvalue):
+        """
+        Converts the hexvalue used by tuya for colour representation into
+        an RGB value.
+        
+        Args:
+            hexvalue(string): The hex representation generated by BulbDevice._rgb_to_hexvalue()
+        """
+        r = int(hexvalue[0:2], 16)
+        g = int(hexvalue[2:4], 16)
+        b = int(hexvalue[4:6], 16)
+
+        return (r, g, b)
+
+    @staticmethod
+    def _hexvalue_to_hsv(hexvalue):
+        """
+        Converts the hexvalue used by tuya for colour representation into
+        an HSV value.
+        
+        Args:
+            hexvalue(string): The hex representation generated by BulbDevice._rgb_to_hexvalue()
+        """
+        h = int(hexvalue[7:10], 16) / 360
+        s = int(hexvalue[10:12], 16) / 255
+        v = int(hexvalue[12:14], 16) / 255
+
+        return (h, s, v)
+
