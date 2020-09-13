@@ -20,4 +20,4 @@ CONF_STOP_CMD = 'stop_cmd'
 DOMAIN = "localtuya"
 
 # Platforms in this list must support config flows
-PLATFORMS = ["cover", "light", "switch"]
+PLATFORMS = ["cover", "fan", "light", "switch"]
