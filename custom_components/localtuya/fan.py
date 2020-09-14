@@ -15,76 +15,72 @@ fan:
 
 """
 import logging
-import requests
 
 import voluptuous as vol
 
-from homeassistant.components.fan import (SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH,
-                                          FanEntity, SUPPORT_SET_SPEED,
-                                          SUPPORT_OSCILLATE, SUPPORT_DIRECTION, PLATFORM_SCHEMA)
-
-from homeassistant.const import STATE_OFF
-"""from . import DATA_TUYA, TuyaDevice"""
-from homeassistant.const import (CONF_HOST, CONF_ID, CONF_FRIENDLY_NAME, CONF_ICON, CONF_NAME)
+from homeassistant.components.fan import (
+    FanEntity,
+    PLATFORM_SCHEMA,
+    SPEED_LOW,
+    SPEED_MEDIUM,
+    SPEED_HIGH,
+    SUPPORT_SET_SPEED,
+    SUPPORT_OSCILLATE,
+    SUPPORT_DIRECTION,
+)
+from homeassistant.const import CONF_ID, CONF_FRIENDLY_NAME, STATE_OFF
 import homeassistant.helpers.config_validation as cv
+
+from . import BASE_PLATFORM_SCHEMA, prepare_setup_entities, import_from_yaml
+from .pytuya import TuyaDevice
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_NAME = 'localtuyafan'
+PLATFORM = "fan"
 
-CONF_DEVICE_ID = 'device_id'
-CONF_LOCAL_KEY = 'local_key'
-CONF_PROTOCOL_VERSION = 'protocol_version'
-
-DEFAULT_ID = '1'
-DEFAULT_PROTOCOL_VERSION = 3.3
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(BASE_PLATFORM_SCHEMA)
 
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_ICON): cv.icon,
-    vol.Required(CONF_HOST): cv.string,
-    vol.Required(CONF_DEVICE_ID): cv.string,
-    vol.Required(CONF_LOCAL_KEY): cv.string,
-    vol.Required(CONF_NAME): cv.string,
-    vol.Required(CONF_FRIENDLY_NAME): cv.string,
-    vol.Required(CONF_PROTOCOL_VERSION, default=DEFAULT_PROTOCOL_VERSION): vol.Coerce(float),
-    vol.Optional(CONF_ID, default=DEFAULT_ID): cv.string,
-})
+def flow_schema(dps):
+    """Return schema used in config flow."""
+    return {}
 
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Set up of the Tuya switch."""
-    from . import pytuya
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Setup a Tuya fan based on a config entry."""
+    device, entities_to_setup = prepare_setup_entities(
+        config_entry, PLATFORM
+    )
+    if not entities_to_setup:
+        return
+
     fans = []
-    pytuyadevice = pytuya.TuyaDevice(config.get(CONF_DEVICE_ID), config.get(CONF_HOST), config.get(CONF_LOCAL_KEY))
-    pytuyadevice.set_version(float(config.get(CONF_PROTOCOL_VERSION)))
-    _LOGGER.debug("localtuya fan: setup_platform: %s", pytuyadevice)
-
-    fan_device = pytuyadevice
-    fans.append(
+    for device_config in entities_to_setup:
+        fans.append(
             LocaltuyaFan(
-                fan_device,
-                config.get(CONF_NAME),
-                config.get(CONF_FRIENDLY_NAME),
-                config.get(CONF_ICON),
-                config.get(CONF_ID),
+                device,
+                device_config[CONF_FRIENDLY_NAME],
+                device_config[CONF_ID],
             )
-	)
-    _LOGGER.info("Setup localtuya fan %s with device ID %s ", config.get(CONF_FRIENDLY_NAME), config.get(CONF_DEVICE_ID) )
+        )
 
-    add_entities(fans, True)
+    async_add_entities(fans, True)
+
+
+def setup_platform(hass, config, add_devices, discovery_info=None):
+    """Set up of the Tuya fan."""
+    return import_from_yaml(hass, config, PLATFORM)
+
 
 class LocaltuyaFan(FanEntity):
     """Representation of a Tuya fan."""
 
-    # def __init__(self, hass, name: str, supported_features: int) -> None:
-    def __init__(self, device, name, friendly_name, icon, switchid):
+    def __init__(self, device, friendly_name, switchid):
         """Initialize the entity."""
         self._device = device
         self._name = friendly_name
         self._available = False
         self._friendly_name = friendly_name
-        self._icon = icon
         self._switch_id = switchid
         self._status = self._device.status()
         self._state = False
@@ -95,7 +91,7 @@ class LocaltuyaFan(FanEntity):
     @property
     def oscillating(self):
         """Return current oscillating status."""
-        #if self._speed == STATE_OFF:
+        # if self._speed == STATE_OFF:
         #    return False
         _LOGGER.debug("localtuya fan: oscillating = %s", self._oscillating)
         return self._oscillating
@@ -163,7 +159,7 @@ class LocaltuyaFan(FanEntity):
     def oscillate(self, oscillating: bool) -> None:
         """Set oscillation."""
         self._oscillating = oscillating
-        self._device.set_value('8', oscillating)
+        self._device.set_value("8", oscillating)
         self.schedule_update_ha_state()
 
     # @property
@@ -174,8 +170,7 @@ class LocaltuyaFan(FanEntity):
     @property
     def unique_id(self):
         """Return unique device identifier."""
-        _LOGGER.debug("localtuya fan unique_id = %s", self._device)
-        return self._device.id
+        return f"local_{self._device.id}_{self._switch_id}"
 
     @property
     def available(self):
@@ -195,20 +190,20 @@ class LocaltuyaFan(FanEntity):
                 try:
                     status = self._device.status()
                     _LOGGER.debug("localtuya fan: status = %s", status)
-                    self._state = status['dps']['1']
-                    if status['dps']['1'] == False:
+                    self._state = status["dps"]["1"]
+                    if status["dps"]["1"] == False:
                         self._speed = STATE_OFF
-                    elif int(status['dps']['2']) == 1:
+                    elif int(status["dps"]["2"]) == 1:
                         self._speed = SPEED_LOW
-                    elif int(status['dps']['2']) == 2:
+                    elif int(status["dps"]["2"]) == 2:
                         self._speed = SPEED_MEDIUM
-                    elif int(status['dps']['2']) == 3:
+                    elif int(status["dps"]["2"]) == 3:
                         self._speed = SPEED_HIGH
                     # self._speed = status['dps']['2']
-                    self._oscillating = status['dps']['8']
+                    self._oscillating = status["dps"]["8"]
                     success = True
                 except ConnectionError:
-                    if i+1 == 3:
+                    if i + 1 == 3:
                         success = False
                         raise ConnectionError("Failed to update status.")
         self._available = success
