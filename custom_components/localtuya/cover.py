@@ -76,8 +76,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     # TODO: keeping for now but should be removed
     dps = {}
-    dps[config.get(CONF_ID)]=None
-    pytuyadevice.set_dpsUsed(dps)
 
     covers = []
     for device_config in entities_to_setup:
