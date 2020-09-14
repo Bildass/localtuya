@@ -72,7 +72,7 @@ def strip_dps_values(user_input, dps_strings):
 
 async def validate_input(hass: core.HomeAssistant, data):
     """Validate the user input allows us to connect."""
-    pytuyadevice = pytuya.Device(
+    pytuyadevice = pytuya.TuyaDevice(
         data[CONF_DEVICE_ID], data[CONF_HOST], data[CONF_LOCAL_KEY]
     )
     pytuyadevice.set_version(float(data[CONF_PROTOCOL_VERSION]))
