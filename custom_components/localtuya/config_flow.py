@@ -178,7 +178,7 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return converted
 
         await self.async_set_unique_id(user_input[CONF_DEVICE_ID])
-        self._set_platform(user_input[CONF_PLATFORM], [])
+        self._set_platform(user_input[CONF_PLATFORM])
 
         if len(user_input.get(CONF_SWITCHES, [])) > 0:
             for switch_conf in user_input[CONF_SWITCHES].values():
