@@ -54,6 +54,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         return
 
     fans = []
+
     for device_config in entities_to_setup:
         fans.append(
             LocaltuyaFan(

@@ -84,7 +84,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         dps[device_config[CONF_ID]] = None
         covers.append(
             LocaltuyaCover(
-                TuyaCache(device),
+                TuyaCache(device, config_entry.data[CONF_FRIENDLY_NAME]),
                 device_config[CONF_FRIENDLY_NAME],
                 device_config[CONF_ID],
                 device_config.get(CONF_OPEN_CMD),
@@ -107,11 +107,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 class TuyaCache:
     """Cache wrapper for pytuya.TuyaDevice"""
 
-    def __init__(self, device):
+    def __init__(self, device, friendly_name):
         """Initialize the cache."""
         self._cached_status = ""
         self._cached_status_time = 0
         self._device = device
+        self._friendly_name = friendly_name
         self._lock = Lock()
 
     @property
@@ -196,6 +197,24 @@ class LocaltuyaCover(CoverEntity):
         )
 
     @property
+    def device_info(self):
+        return {
+            "identifiers": {
+                # Serial numbers are unique identifiers within a specific domain
+                ("LocalTuya", f"local_{self._device.unique_id}")
+            },
+            "name": self._device._friendly_name,
+            "manufacturer": "Tuya generic",
+            "model": "SmartCover",
+            "sw_version": "3.3",
+        }
+
+    @property
+    def unique_id(self):
+        """Return unique device identifier."""
+        return f"local_{self._device.unique_id}_{self._switch_id}"
+
+    @property
     def name(self):
         """Get name of Tuya switch."""
         return self._name
@@ -214,11 +233,6 @@ class LocaltuyaCover(CoverEntity):
     def stop_cmd(self):
         """Get name of stop command."""
         return self._stop_cmd
-
-    @property
-    def unique_id(self):
-        """Return unique device identifier."""
-        return f"local_{self._device.unique_id}"
 
     @property
     def available(self):

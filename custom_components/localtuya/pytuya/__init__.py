@@ -171,8 +171,9 @@ payload_dict = {
   }
 }
 
+
 class TuyaDevice(object):
-    def __init__(self, dev_id, address, local_key=None, connection_timeout=10):
+    def __init__(self, dev_id, address, local_key, connection_timeout=10):
         """
         Represents a Tuya device.
         

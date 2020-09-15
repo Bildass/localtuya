@@ -63,7 +63,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for device_config in entities_to_setup:
         lights.append(
             LocaltuyaLight(
-                TuyaCache(device),
+                TuyaCache(device, config_entry.data[CONF_FRIENDLY_NAME]),
                 device_config[CONF_FRIENDLY_NAME],
                 device_config[CONF_ID],
             )
@@ -80,11 +80,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 class TuyaCache:
     """Cache wrapper for pytuya.TuyaDevices"""
 
-    def __init__(self, device):
+    def __init__(self, device, friendly_name):
         """Initialize the cache."""
         self._cached_status = ""
         self._cached_status_time = 0
         self._device = device
+        self._friendly_name = friendly_name
         self._lock = Lock()
 
     @property
@@ -146,6 +147,19 @@ class LocaltuyaLight(LightEntity):
         self._brightness = 127
         self._color_temp = 127
         self._bulb_id = bulbid
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {
+                # Serial numbers are unique identifiers within a specific domain
+                ("LocalTuya", f"local_{self._device.unique_id}")
+            },
+            "name": self._device._friendly_name,
+            "manufacturer": "Tuya generic",
+            "model": "SmartLight",
+            "sw_version": "3.3",
+        }
 
     def state(self):
         self._device.state()
