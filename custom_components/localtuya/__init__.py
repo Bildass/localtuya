@@ -75,10 +75,12 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up LocalTuya integration from a config entry."""
-    for component in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, component)
-        )
+    for platform in PLATFORMS:
+#        print("ASE*** [{}] [{}]".format(entry.data["entities"][0][CONF_PLATFORM], platform))
+        if entry.data["entities"][0][CONF_PLATFORM] == platform:
+            hass.async_create_task(
+                hass.config_entries.async_forward_entry_setup(entry, platform)
+            )
     return True
 
 

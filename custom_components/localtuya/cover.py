@@ -26,6 +26,7 @@ import voluptuous as vol
 
 from homeassistant.components.cover import (
     CoverEntity,
+    DOMAIN,
     PLATFORM_SCHEMA,
     SUPPORT_CLOSE,
     SUPPORT_OPEN,
@@ -43,8 +44,6 @@ from .const import CONF_OPEN_CMD, CONF_CLOSE_CMD, CONF_STOP_CMD
 from .pytuya import TuyaDevice
 
 _LOGGER = logging.getLogger(__name__)
-
-PLATFORM = "cover"
 
 DEFAULT_OPEN_CMD = "on"
 DEFAULT_CLOSE_CMD = "off"
@@ -72,7 +71,7 @@ def flow_schema(dps):
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Setup a Tuya cover based on a config entry."""
     device, entities_to_setup = prepare_setup_entities(
-        config_entry, PLATFORM
+        config_entry, DOMAIN
     )
     if not entities_to_setup:
         return
@@ -102,7 +101,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up of the Tuya cover."""
-    return import_from_yaml(hass, config, PLATFORM)
+    return import_from_yaml(hass, config, DOMAIN)
 
 
 class TuyaCache:

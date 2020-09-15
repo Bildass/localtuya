@@ -32,6 +32,7 @@ import voluptuous as vol
 
 from homeassistant.components.switch import (
     SwitchEntity,
+    DOMAIN,
     PLATFORM_SCHEMA,
 )
 from homeassistant.const import (
@@ -54,8 +55,6 @@ from .const import (
 from .pytuya import TuyaDevice
 
 _LOGGER = logging.getLogger(__name__)
-
-PLATFORM = "switch"
 
 DEFAULT_ID = "1"
 
@@ -93,7 +92,7 @@ def flow_schema(dps):
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Setup a Tuya switch based on a config entry."""
     device, entities_to_setup = prepare_setup_entities(
-        config_entry, PLATFORM
+        config_entry, DOMAIN
     )
     if not entities_to_setup:
         return
@@ -116,7 +115,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up of the Tuya switch."""
-    return import_from_yaml(hass, config, PLATFORM)
+    return import_from_yaml(hass, config, DOMAIN)
 
 
 class TuyaCache:
