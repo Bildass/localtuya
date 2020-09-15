@@ -173,7 +173,7 @@ payload_dict = {
 
 
 class TuyaDevice(object):
-    def __init__(self, dev_id, address, local_key, friendly_name, name = "", connection_timeout=10):
+    def __init__(self, dev_id, address, local_key, connection_timeout=10):
         """
         Represents a Tuya device.
         
@@ -189,8 +189,6 @@ class TuyaDevice(object):
         self.id = dev_id
         self.address = address
         self.local_key = local_key.encode('latin1')
-        self.friendly_name = friendly_name
-        self.name = name
         self.connection_timeout = connection_timeout
         self.version = 3.1
         self.dev_type = 'type_0a'

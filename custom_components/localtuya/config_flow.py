@@ -32,7 +32,6 @@ NO_ADDITIONAL_PLATFORMS = "no_additional_platforms"
 USER_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_NAME): str,
-        vol.Required(CONF_FRIENDLY_NAME): str,
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_DEVICE_ID): str,
         vol.Required(CONF_LOCAL_KEY): str,
@@ -77,8 +76,6 @@ async def validate_input(hass: core.HomeAssistant, data):
         data[CONF_DEVICE_ID],
         data[CONF_HOST],
         data[CONF_LOCAL_KEY],
-        data[CONF_FRIENDLY_NAME],
-        data[CONF_NAME],
     )
     pytuyadevice.set_version(float(data[CONF_PROTOCOL_VERSION]))
     pytuyadevice.set_dpsUsed({})

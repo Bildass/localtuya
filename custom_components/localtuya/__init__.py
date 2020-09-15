@@ -50,8 +50,6 @@ def prepare_setup_entities(config_entry, platform):
         config_entry.data[CONF_DEVICE_ID],
         config_entry.data[CONF_HOST],
         config_entry.data[CONF_LOCAL_KEY],
-        config_entry.data[CONF_FRIENDLY_NAME],
-        config_entry.data[CONF_NAME],
     )
     device.set_version(float(config_entry.data[CONF_PROTOCOL_VERSION]))
     device.set_dpsUsed({})
