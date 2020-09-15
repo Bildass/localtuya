@@ -16,7 +16,7 @@ from homeassistant.const import (
 import homeassistant.helpers.config_validation as cv
 
 from . import pytuya
-from .const import CONF_LOCAL_KEY, CONF_PROTOCOL_VERSION, DOMAIN, PLATFORMS
+from .const import CONF_LOCAL_KEY, CONF_PROTOCOL_VERSION, DOMAIN
 
 
 DEFAULT_ID = "1"
@@ -75,12 +75,11 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up LocalTuya integration from a config entry."""
-    for platform in PLATFORMS:
+    for platform in set(entity[CONF_PLATFORM] for entity in entry.data[CONF_ENTITIES]):
 #        print("ASE*** [{}] [{}]".format(entry.data["entities"][0][CONF_PLATFORM], platform))
-        if entry.data["entities"][0][CONF_PLATFORM] == platform:
-            hass.async_create_task(
-                hass.config_entries.async_forward_entry_setup(entry, platform)
-            )
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, platform)
+        )
     return True
 
 
