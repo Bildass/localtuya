@@ -92,18 +92,22 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     return True
 
 
+def get_entity_config(config_entry, dps_id):
+    """Return entity config for a given DPS id."""
+    for entity in config_entry.data[CONF_ENTITIES]:
+        if entity[CONF_ID] == dps_id:
+            return entity
+    raise Exception(f"missing entity config for id {dps_id}")
+
+
 class LocalTuyaEntity(Entity):
     """Representation of a Tuya entity."""
 
-    def __init__(
-        self,
-        device,
-        friendly_name,
-        dps_id,
-    ):
+    def __init__(self, device, config_entry, dps_id, **kwargs):
         """Initialize the Tuya entity."""
         self._device = device
-        self._name = friendly_name
+        self._config_entry = config_entry
+        self._config = get_entity_config(config_entry, dps_id)
         self._available = False
         self._dps_id = dps_id
         self._status = None
@@ -111,7 +115,7 @@ class LocalTuyaEntity(Entity):
     @property
     def name(self):
         """Get name of Tuya entity."""
-        return self._name
+        return self._config[CONF_FRIENDLY_NAME]
 
     @property
     def unique_id(self):

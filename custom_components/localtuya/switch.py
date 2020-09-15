@@ -104,11 +104,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         switches.append(
             LocaltuyaSwitch(
                 TuyaCache(device, config_entry.data[CONF_FRIENDLY_NAME]),
-                device_config[CONF_FRIENDLY_NAME],
+                config_entry,
                 device_config[CONF_ID],
-                device_config.get(CONF_CURRENT),
-                device_config.get(CONF_CURRENT_CONSUMPTION),
-                device_config.get(CONF_VOLTAGE),
             )
         )
 
@@ -194,21 +191,16 @@ class LocaltuyaSwitch(LocalTuyaEntity, SwitchEntity):
     def __init__(
         self,
         device,
-        friendly_name,
+        config_entry,
         switchid,
-        attr_current,
-        attr_consumption,
-        attr_voltage,
+        **kwargs,
     ):
         """Initialize the Tuya switch."""
-        super().__init__(device, friendly_name, switchid)
-        self._attr_current = attr_current
-        self._attr_consumption = attr_consumption
-        self._attr_voltage = attr_voltage
+        super().__init__(device, config_entry, switchid, **kwargs)
         self._state = None
         print(
             "Initialized tuya switch [{}] with switch status [{}] and state [{}]".format(
-                self._name, self._status, self._state
+                self.name, self._status, self._state
             )
         )
 
@@ -225,6 +217,7 @@ class LocaltuyaSwitch(LocalTuyaEntity, SwitchEntity):
             "sw_version": "3.3",
         }
 
+    @property
     def is_on(self):
         """Check if Tuya switch is on."""
         return self._state
@@ -232,12 +225,14 @@ class LocaltuyaSwitch(LocalTuyaEntity, SwitchEntity):
     @property
     def device_state_attributes(self):
         attrs = {}
-        if self._attr_current:
-            attrs[ATTR_CURRENT] = self.dps(self._attr_current)
-        if self._attr_consumption:
-            attrs[ATTR_CURRENT_CONSUMPTION] = self.dps(self._attr_consumption) / 10
-        if self._attr_voltage:
-            attrs[ATTR_VOLTAGE] = self.dps(self._attr_voltage) / 10
+        if CONF_CURRENT in self._config:
+            attrs[ATTR_CURRENT] = self.dps(self._config[CONF_CURRENT])
+        if CONF_CURRENT_CONSUMPTION in self._config:
+            attrs[ATTR_CURRENT_CONSUMPTION] = (
+                self.dps(self._config[CONF_CURRENT_CONSUMPTION]) / 10
+            )
+        if CONF_VOLTAGE in self._config:
+            attrs[ATTR_VOLTAGE] = self.dps(self._config[CONF_VOLTAGE]) / 10
         return attrs
 
     def turn_on(self, **kwargs):
