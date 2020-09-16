@@ -191,7 +191,7 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         #print('ENTITIES: [{}] '.format(self.entities))
         config = {
             CONF_NAME:  f"{user_input[CONF_FRIENDLY_NAME]} (YAML)",
-            CONF_FRIENDLY_NAME: f"{user_input[CONF_FRIENDLY_NAME]} (YAML)",
+            CONF_FRIENDLY_NAME: f"{user_input[CONF_FRIENDLY_NAME]}",
             CONF_HOST: user_input[CONF_HOST],
             CONF_DEVICE_ID: user_input[CONF_DEVICE_ID],
             CONF_LOCAL_KEY: user_input[CONF_LOCAL_KEY],
