@@ -40,7 +40,10 @@
                     "voltage": "Voltage",
                     "open_cmd": "Open Command",
                     "close_cmd": "Close Command",
-                    "stop_cmd": "Stop Command"
+                    "stop_cmd": "Stop Command",
+                    "unit_of_measurement": "Unit of Measurement",
+                    "device_class": "Device Class",
+                    "scaling": "Scaling Factor"
                 }
             }
         }
@@ -68,7 +71,10 @@
                     "voltage": "Voltage",
                     "open_cmd": "Open Command",
                     "close_cmd": "Close Command",
-                    "stop_cmd": "Stop Command"
+                    "stop_cmd": "Stop Command",
+                    "unit_of_measurement": "Unit of Measurement",
+                    "device_class": "Device Class",
+                    "scaling": "Scaling Factor"
                 }
             },
             "yaml_import": {
