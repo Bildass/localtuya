@@ -39,7 +39,7 @@ from .const import CONF_SCALING
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_SCALING = 1
+DEFAULT_SCALING = 1.0
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(BASE_PLATFORM_SCHEMA)
 
@@ -49,7 +49,9 @@ def flow_schema(dps):
     return {
         vol.Optional(CONF_UNIT_OF_MEASUREMENT): str,
         vol.Optional(CONF_DEVICE_CLASS): vol.In(DEVICE_CLASSES),
-        vol.Optional(CONF_SCALING, default=DEFAULT_SCALING): int,
+        vol.Optional(CONF_SCALING, default=DEFAULT_SCALING): vol.All(
+            vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0)
+        ),
     }
 
 
