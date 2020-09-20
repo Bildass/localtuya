@@ -19,7 +19,10 @@ CONF_OPEN_CMD = 'open_cmd'
 CONF_CLOSE_CMD = 'close_cmd'
 CONF_STOP_CMD = 'stop_cmd'
 
+# sensor
+CONF_SCALING = "scaling"
+
 DOMAIN = "localtuya"
 
 # Platforms in this list must support config flows
-PLATFORMS = ["cover", "fan", "light", "switch"]
+PLATFORMS = ["cover", "fan", "light", "sensor", "switch"]
