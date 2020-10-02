@@ -4,16 +4,16 @@
 A Home Assistant / Hass.io add-on for local handling of Tuya-based devices.
 
 The following Tuya device types are currently supported:
-* 1 gang switches
-* 2 gang switches
-* Wi-Fi plugs (including those with additional USB plugs)
+* 1 and multiple gang switches
+* Wi-Fi smart plugs (including those with additional USB plugs)
 * Lights
 * Covers
 * Fans
+* Climates (soon)
 
 Energy monitoring (voltage, current, watts, etc.) is supported for compatible devices. 
 
-This repository was substantially developed by utilizing and merging code from NameLessJedi, mileperhour and TradeFace. Refer to the "Thanks to" section below.
+This repository's development has substantially started by utilizing and merging code from NameLessJedi, mileperhour and TradeFace, and then was deeply refactored to provide proper integration with Home Assistant environment, adding config flow and other features. Refer to the "Thanks to" section below.
 
 # Installation:
 
@@ -24,95 +24,102 @@ Alternatively, you can install localtuya through HACS by adding this repository.
 
 # Usage:
 
-**NOTE: You must have your Tuya device's Key and ID in order to use localtuya. Follow the instructions here (https://github.com/codetheweb/tuyapi/blob/master/docs/SETUP.md) if you still need your Key and ID.**
+**NOTE: You must have your Tuya device's Key and ID in order to use localtuya. There are several ways to obtain the localKey depending on your environment and the devices you own. A good place to start getting info is https://github.com/codetheweb/tuyapi/blob/master/docs/SETUP.md .**
 
-1. Add the proper entry to your configuration.yaml file. Several example configurations for different device types are provided below. Make sure to save when you are finished editing configuration.yaml.
+Devices can be configured in two ways:
 
-```
-   #### 1 GANG SWITCH ####
-   switch:
-  - platform: localtuya
-    host: 192.168.0.1
-    local_key: 1234567891234567
-    device_id: 12345678912345671234
-    name: tuya_01
-    friendly_name: tuya_01
-    protocol_version: 3.3
-    current: 18
-    current_consumption: 19
-    voltage: 20
-```
+# 1. YAML config files
+
+Add the proper entry to your configuration.yaml file. Several example configurations for different device types are provided below. Make sure to save when you are finished editing configuration.yaml.
 
 ```
-    ##### 2 GANG SWITCH / PLUG #####
-  - platform: localtuya
-    host: 192.168.0.1
-    local_key: 1234567891234567
-    device_id: 12345678912345671234
-    name: tuya_01
-    friendly_name: tuya_01
-    protocol_version: 3.3
-    switches:
-      sw01:
-        name: main_plug
-        friendly_name: Main Plug
+localtuya:
+  - host: 192.168.1.x
+    device_id: xxxxx
+    local_key: xxxxx
+    friendly_name: Tuya Device
+    protocol_version: "3.3"
+    entities:
+      - platform: binary_sensor
+        friendly_name: Plug Status
         id: 1
-        current: 18
-        current_consumption: 19
-        voltage: 20
-      sw02:
-        name: usb_plug
-        friendly_name: USB Plug
-        id: 7  
-```
+        device_class: power
+        state_on: "true" # Optional
+        state_off: "false" # Optional
 
-```
-   #### COVER ####
-   cover:
-     - platform: localtuya #REQUIRED
-       host: 192.168.0.123 #REQUIRED
-       local_key: 1234567891234567 #REQUIRED
-       device_id: 123456789123456789abcd #REQUIRED
-       name: cover_guests #REQUIRED
-       friendly_name: Cover guests #REQUIRED
-       protocol_version: 3.3 #REQUIRED
-       id: 1 #OPTIONAL
-       icon: mdi:blinds #OPTIONAL
-       open_cmd: open #OPTIONAL, default is 'on'
-       close_cmd: close #OPTIONAL, default is 'off'
-       stop_cmd: stop #OPTIONAL, default is 'stop'
-```
+      - platform: cover
+        friendly_name: Device Cover
+        id: 2
+        open_close_cmds: ["on_off","open_close"] # Optional, default: "on_off"
+        positioning_mode: ["none","position","fake"] # Optional, default: "none"
+        currpos_dps: 3 # Optional, required only for "position" mode
+        setpos_dps: 4  # Optional, required only for "position" mode
+        span_time: 25  # Full movement time: Optional, required only for "fake" mode
+        
+      - platform: fan
+        friendly_name: Device Fan
+        id: 3
 
-```
-   #### FAN ####
-   fan:
-    - platform: localtuya
-      host: 192.168.0.123
-      local_key: 1234567891234567
-      device_id: 123456789123456789abcd
-      name: fan guests
-      friendly_name: fan guests
-      protocol_version: 3.3
-      id: 1
+      - platform: light
+        friendly_name: Device Light
+        id: 4
+
+      - platform: sensor
+        friendly_name: Plug Voltage
+        id: 20
+        scaling: 0.1 # Optional
+        device_class: voltage # Optional
+        unit_of_measurement: "V" # Optional
+
+      - platform: switch
+        friendly_name: Plug
+        id: 1
+        current: 18 # Optional
+        current_consumption: 19 # Optional
+        voltage: 20 # Optional
 ```
    
-2. Enable debug logging in your configuration.yaml file.
-```
-      #Logging
-      logger:
-        default: info
-        logs:
-          custom_components.localtuya: debug
-```
+Note that a single device can contain several different entities. Some examples:
+- a cover device might have 1 (or many) cover entities, plus a switch to control backlight
+- a multi-gang switch will contain several switch entities, one for each gang controlled
 
-3. Restart Home Assistant.
+Restart Home Assistant when finished editing.
 
-4. Wait until Home Assistant is fully loaded, then access your logs. If localtuya has succesfully connected to your device, you will see a "decrypted result" with all of your device's DPs. See below for a succesful connection log:
-```
-2020-09-04 02:08:26 DEBUG (SyncWorker_26) [custom_components.localtuya.pytuya] decrypted result='{"devId":"REDACTED","dps":{"1":"stop","2":100,"3":40,"5":false,"7":"closing","8":"cancel","9":0,"10":0}}'
-```   
+# 2. Using config flow
 
-5. Add any applicable sensors, using the below configuration.yaml entry as a guide:
+Start by going to Configuration - Integration and pressing the "+" button to create a new Integration, then select LocalTuya in the drop-down menu.
+Wait for 6 seconds for the scanning of the devices in your LAN. Then, a drop-down menu will appear containing the list of detectes devices: you can 
+select one of these, or manually input all the parameters.
+
+![discovery](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/1-discovery.png)
+
+If you have selected one entry, you just have to input the Friendly Name of the Device, and the localKey. 
+Once you press "Submit", the connection will be tested to check that everything works, in order to proceed.
+
+![device](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/2-device.png)
+
+Then, it's time to add the entities: this step will take place several times. Select the entity type from the drop-down menu to set it up.
+After you have defined all the needed entities leave the "Do not add more entities" checkbox checked: this will complete the procedure.
+
+![entity_type](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/3-entity_type.png)
+
+For each entity, the associated DP has to be selected. All the options requiring to select a DP will provide a drop-down menu showing 
+all the avaliable DPs found on the device (with their current status!!) for an easy identification. Each entity type has different options 
+to be configured, here is an example for the "switch" entity:
+
+![entity](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/4-entity.png)
+
+After all the entities have been configured, the procedure is complete, and the Device can be associated to the Area desired.
+
+![success](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/5-success.png)
+
+
+# Energy monitoring values
+
+Energy monitoring (voltage, current...) values can be obtained in two different ways:
+1) creating individual sensors, each one with the desired name. Note: Voltage and Consumption usually include the first decimal, so 0.1 as "scaling" parameter shall be used in order to get the correct values.
+2) accessing the voltage/current/current_consumption attributes of a switch, and then defining template sensors like this (please note that in this case the values are already divided by 10 for Voltage and Consumption):
+
 ```   
        sensor:
          - platform: template
@@ -135,20 +142,12 @@ Alternatively, you can install localtuya through HACS by adding this repository.
 
 * Do not declare anything as "tuya", such as by initiating a "switch.tuya". Using "tuya" launches Home Assistant's built-in, cloud-based Tuya integration in lieu of localtuya.
 
-* Raw data from Tuya devices for Voltage and Watts includes the first decimal. For example, if the value is 2203, then the correct value is 220,3V. Values are thus divided by 10 ('/10' in the script). Current, however, is sent in mA as an integer with no decimals, so it does not need any conversion factor added on to the declaration.
-
-* If your device is composed (e.g. one switch with an independent LED light in it), this LED can be declared as a 'switch'. However, the Python script does not include RGB handling! In order to use RGB handling, it must be declared as a custom 'light device'. This has not been tested with localtuya, however it may be possible to make it work. Google is your friend. 
-   
-* For each switch and/or subswitch, name **and** friendly_name must be specified in configuration.yaml. Name will be used as the Entity ID, while friendly_name will be used as the name in the frontend.
-
 # To-do list:
 
 * Create a (good and precise) sensor (counter) for Energy (kWh) -not just Power, but based on it-. 
       Ideas: Use: https://www.home-assistant.io/components/integration/ and https://www.home-assistant.io/components/utility_meter/
    
-* RGB integration (for devices integrating both plug switch, power meter, and led light) 
-   
-* Create a switch for cover backlight (dps 101): pytuya library already supports it
+* Everything listed in https://github.com/rospogrigio/localtuya-homeassistant/issues/15
 
 # Thanks to:
 
@@ -157,3 +156,5 @@ NameLessJedi https://github.com/NameLessJedi/localtuya-homeassistant and mileper
 TradeFace, for being the only one to provide the correct code for communication with the cover (in particular, the 0x0d command for the status instead of the 0x0a, and related needs such as double reply to be received): https://github.com/TradeFace/tuya/
 
 sean6541, for the working (standard) Python Handler for Tuya devices.
+
+postlund, for the ideas, for coding 95% of the refactoring and boosting the quality of this repo to levels hard to imagine (by me, at least) and teaching me A LOT of how things work in Home Assistant.
