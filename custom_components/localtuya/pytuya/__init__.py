@@ -365,7 +365,7 @@ class TuyaProtocol(asyncio.Protocol):
                 dev_type,
                 self.dev_type,
             )
-            return self.exchange(command, dps)
+            return await self.exchange(command, dps)
         return payload
 
     async def status(self):
