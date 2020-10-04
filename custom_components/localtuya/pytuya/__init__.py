@@ -336,11 +336,13 @@ class TuyaProtocol(asyncio.Protocol):
     def close(self):
         """Close connection and abort all outstanding listeners."""
         if self.transport is not None:
-            self.dispatcher.abort()
-            self.heartbeater.cancel()
             transport = self.transport
             self.transport = None
             transport.close()
+        if self.dispatcher is not None:
+            self.dispatcher.abort()
+        if self.heartbeater is not None:
+            self.heartbeater.cancel()
 
     async def exchange(self, command, dps=None):
         """Send and receive a message, returning response from device."""

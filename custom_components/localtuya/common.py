@@ -108,7 +108,7 @@ class TuyaDevice(pytuya.TuyaListener):
         for entity in config_entry[CONF_ENTITIES]:
             self._dps_to_request[entity[CONF_ID]] = None
 
-    def connect(self, delay=None):
+    def connect(self):
         """Connet to device if not already connected."""
         if self._connect_task is None:
             self._connect_task = asyncio.ensure_future(self._make_connection())
