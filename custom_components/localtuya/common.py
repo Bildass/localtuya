@@ -101,6 +101,7 @@ class TuyaDevice(pytuya.TuyaListener):
         self._interface = None
         self._status = {}
         self._dps_to_request = {}
+        self._is_closing = False
         self._connect_task = None
         self._connection_attempts = 0
 
@@ -110,7 +111,7 @@ class TuyaDevice(pytuya.TuyaListener):
 
     def connect(self):
         """Connet to device if not already connected."""
-        if self._connect_task is None or self._interface:
+        if not self._is_closing and self._connect_task is None and not self._interface:
             self._connect_task = asyncio.ensure_future(self._make_connection())
 
     async def _make_connection(self):
@@ -148,8 +149,16 @@ class TuyaDevice(pytuya.TuyaListener):
             self._hass.loop.call_soon(self.connect)
         self._connect_task = None
 
+    def close(self):
+        """Close connection and stop re-connect loop."""
+        self._is_closing = True
+        if self._connect_task:
+            self._connect_task.cancel()
+        if self._interface:
+            self._interface.close()
+
     async def set_dps(self, state, dps_index):
-        """Change value of a DP of the Tuya device and update the cached status."""
+        """Change value of a DP of the Tuya device."""
         if self._interface is not None:
             try:
                 await self._interface.set_dps(state, dps_index)
@@ -172,6 +181,9 @@ class TuyaDevice(pytuya.TuyaListener):
     @callback
     def disconnected(self, exc):
         """Device disconnected."""
+        if exc is not None:
+            _LOGGER.error("Disconnected from %: %s", exc)
+
         signal = f"localtuya_{self._config_entry[CONF_DEVICE_ID]}"
         async_dispatcher_send(self._hass, signal, None)
 

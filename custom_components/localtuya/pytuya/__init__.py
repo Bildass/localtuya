@@ -359,7 +359,11 @@ class TuyaProtocol(asyncio.Protocol):
         dev_type = self.dev_type
 
         # Wait for special sequence number if heartbeat
-        seqno = MessageDispatcher.HEARTBEAT_SEQNO if command == HEARTBEAT else (self.seqno - 1)
+        seqno = (
+            MessageDispatcher.HEARTBEAT_SEQNO
+            if command == HEARTBEAT
+            else (self.seqno - 1)
+        )
 
         self.transport.write(payload)
         msg = await self.dispatcher.wait_for(seqno)
@@ -387,8 +391,6 @@ class TuyaProtocol(asyncio.Protocol):
 
     async def heartbeat(self):
         """Send a heartbeat message."""
-        # We don't expect a response to this, just send blindly
-        #self.transport.write(self._generate_payload(HEARTBEAT))
         return await self.exchange(HEARTBEAT)
 
     async def set_dps(self, value, dps_index):

@@ -56,12 +56,11 @@ import logging
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.const import (
+    CONF_DEVICE_ID,
     CONF_PLATFORM,
     CONF_ENTITIES,
     SERVICE_RELOAD,
 )
-from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.reload import async_integration_yaml_config
 
 from .const import DOMAIN, TUYA_DEVICE
