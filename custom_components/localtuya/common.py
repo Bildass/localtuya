@@ -110,18 +110,10 @@ class TuyaDevice(pytuya.TuyaListener):
 
     def connect(self):
         """Connet to device if not already connected."""
-        if self._connect_task is None:
+        if self._connect_task is None or self._interface:
             self._connect_task = asyncio.ensure_future(self._make_connection())
 
     async def _make_connection(self):
-        # Do nothing if already connected
-        if self._interface:
-            return
-
-        # The sleep gives another task the possibility to sweep in and
-        # connect, so we block that here
-        self._interface = True
-
         backoff = min(
             randrange(2 ** self._connection_attempts), BACKOFF_TIME_UPPER_LIMIT
         )
@@ -150,8 +142,9 @@ class TuyaDevice(pytuya.TuyaListener):
         except Exception:
             _LOGGER.exception("connect failed")
             self._connection_attempts += 1
-            self._interface.close()
-            self._interface = None
+            if self._interface is not None:
+                self._interface.close()
+                self._interface = None
             self._hass.loop.call_soon(self.connect)
         self._connect_task = None
 
@@ -161,7 +154,7 @@ class TuyaDevice(pytuya.TuyaListener):
             try:
                 await self._interface.set_dps(state, dps_index)
             except Exception:
-                _LOGGER.exception("Failed to set DP {dps_index} to state")
+                _LOGGER.exception("Failed to set DP %d to %d", dps_index, state)
         else:
             _LOGGER.error(
                 "Not connected to device %s", self._config_entry[CONF_FRIENDLY_NAME]
