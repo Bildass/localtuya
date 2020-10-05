@@ -100,6 +100,14 @@ PAYLOAD_DICT = {
 }
 
 
+class TuyaLoggingAdapter(logging.LoggerAdapter):
+    """Adapter that adds device id to all log points."""
+
+    def process(self, msg, kwargs):
+        """Process log point and return output."""
+        return f"[{self.extra['device_id']}] {msg}", kwargs
+
+
 def pack_message(msg):
     """Pack a TuyaMessage into bytes."""
     # Create full message excluding CRC and suffix
@@ -171,8 +179,9 @@ class MessageDispatcher:
     # other messages. This is a hack to allow waiting for heartbeats.
     HEARTBEAT_SEQNO = -100
 
-    def __init__(self, listener):
+    def __init__(self, log, listener):
         """Initialize a new MessageBuffer."""
+        self.log = log
         self.buffer = b""
         self.listeners = {}
         self.listener = listener
@@ -187,9 +196,9 @@ class MessageDispatcher:
     async def wait_for(self, seqno, timeout=5):
         """Wait for response to a sequence number to be received and return it."""
         if seqno in self.listeners:
-            raise Exception(f"listener exists for {seqno}")
+            raise Exception(f"listener exists for {seqno} (id: {self.id})")
 
-        _LOGGER.debug("Waiting for sequence number %d", seqno)
+        self.log.debug("Waiting for sequence number %d", seqno)
         self.listeners[seqno] = asyncio.Semaphore(0)
         try:
             await asyncio.wait_for(self.listeners[seqno].acquire(), timeout=timeout)
@@ -231,21 +240,21 @@ class MessageDispatcher:
     def _dispatch(self, msg):
         """Dispatch a message to someone that is listening."""
         if msg.seqno in self.listeners:
-            _LOGGER.debug("Dispatching sequence number %d", msg.seqno)
+            self.log.debug("Dispatching sequence number %d", msg.seqno)
             sem = self.listeners[msg.seqno]
             self.listeners[msg.seqno] = msg
             sem.release()
         elif msg.cmd == 0x09:
-            _LOGGER.debug("Got heartbeat response")
+            self.log.debug("Got heartbeat response")
             if self.HEARTBEAT_SEQNO in self.listeners:
                 sem = self.listeners[self.HEARTBEAT_SEQNO]
                 self.listeners[self.HEARTBEAT_SEQNO] = msg
                 sem.release()
         elif msg.cmd == 0x08:
-            _LOGGER.debug("Got status update")
+            self.log.debug("Got status update")
             self.listener(msg)
         else:
-            _LOGGER.debug(
+            self.log.debug(
                 "Got message type %d for unknown listener %d: %s",
                 msg.command,
                 msg.seqno,
@@ -291,6 +300,7 @@ class TuyaProtocol(asyncio.Protocol):
             port (int): The port to connect to.
         """
         self.loop = asyncio.get_running_loop()
+        self.log = TuyaLoggingAdapter(_LOGGER, {"device_id": dev_id})
         self.id = dev_id
         self.local_key = local_key.encode("latin1")
         self.version = protocol_version
@@ -310,7 +320,7 @@ class TuyaProtocol(asyncio.Protocol):
             if listener is not None:
                 listener.status_updated(self._decode_payload(msg.payload))
 
-        return MessageDispatcher(_status_update)
+        return MessageDispatcher(self.log, _status_update)
 
     def connection_made(self, transport):
         """Did connect to the device."""
@@ -321,7 +331,7 @@ class TuyaProtocol(asyncio.Protocol):
                 try:
                     await self.heartbeat()
                 except Exception as ex:
-                    _LOGGER.error("Heartbeat failed (%s), disconnecting", ex)
+                    self.log.error("Heartbeat failed (%s), disconnecting", ex)
                     break
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
             self.close()
@@ -354,7 +364,11 @@ class TuyaProtocol(asyncio.Protocol):
 
     async def exchange(self, command, dps=None):
         """Send and receive a message, returning response from device."""
-        _LOGGER.debug("Sending command %s (device type: %s)", command, self.dev_type)
+        self.log.debug(
+            "Sending command %s (device type: %s)",
+            command,
+            self.dev_type,
+        )
         payload = self._generate_payload(command, dps)
         dev_type = self.dev_type
 
@@ -368,7 +382,7 @@ class TuyaProtocol(asyncio.Protocol):
         self.transport.write(payload)
         msg = await self.dispatcher.wait_for(seqno)
         if msg is None:
-            _LOGGER.debug("Wait was aborted for %d", seqno)
+            self.log.debug("Wait was aborted for seqno %d", seqno)
             return None
 
         # TODO: Verify stuff, e.g. CRC sequence number?
@@ -376,7 +390,7 @@ class TuyaProtocol(asyncio.Protocol):
 
         # Perform a new exchange (once) if we switched device type
         if dev_type != self.dev_type:
-            _LOGGER.debug(
+            self.log.debug(
                 "Re-send %s due to device type change (%s -> %s)",
                 command,
                 dev_type,
@@ -420,7 +434,7 @@ class TuyaProtocol(asyncio.Protocol):
             try:
                 data = await self.status()
             except Exception as e:
-                _LOGGER.warning("Failed to get status: %s", e)
+                self.log.warning("Failed to get status: %s", e)
                 raise
             detected_dps.update(data["dps"])
 
@@ -437,7 +451,7 @@ class TuyaProtocol(asyncio.Protocol):
             self.dps_to_request.update({str(index): None for index in dps_index})
 
     def _decode_payload(self, payload):
-        _LOGGER.debug("decode payload=%r", payload)
+        self.log.debug("Decode payload: %s", payload)
 
         if not payload:
             payload = "{}"
@@ -455,17 +469,17 @@ class TuyaProtocol(asyncio.Protocol):
 
             if "data unvalid" in payload:
                 self.dev_type = "type_0d"
-                _LOGGER.debug(
-                    "'data unvalid' error detected: switching to dev_type %r",
+                self.log.debug(
+                    "switching to dev_type %s",
                     self.dev_type,
                 )
                 return None
         elif not payload.startswith(b"{"):
-            raise Exception(f"Unexpected payload={payload}")
+            raise Exception(f"Unexpected payload={payload} (id: {self.id})")
 
         if not isinstance(payload, str):
             payload = payload.decode()
-        _LOGGER.debug("decrypted result=%r", payload)
+        self.log.debug("Decrypted payload: %s", payload)
         return json.loads(payload)
 
     def _generate_payload(self, command, data=None):
@@ -497,7 +511,7 @@ class TuyaProtocol(asyncio.Protocol):
             json_data["dps"] = self.dps_to_request
 
         payload = json.dumps(json_data).replace(" ", "").encode("utf-8")
-        _LOGGER.debug("paylod=%r", payload)
+        self.log.debug("Paylod: %s", payload)
 
         if self.version == 3.3:
             payload = self.cipher.encrypt(payload, False)
