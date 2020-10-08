@@ -1,3 +1,4 @@
+![logo](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/logo.png)
 
 # localtuya-homeassistant
 
