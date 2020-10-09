@@ -331,7 +331,7 @@ class TuyaProtocol(asyncio.Protocol):
                 try:
                     await self.heartbeat()
                 except Exception as ex:
-                    self.log.error("Heartbeat failed (%s), disconnecting", ex)
+                    self.log.exception("Heartbeat failed (%s), disconnecting", ex)
                     break
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
             self.close()
@@ -346,21 +346,25 @@ class TuyaProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         """Disconnected from device."""
-        self.close()
-        listener = self.listener()
-        if listener is not None:
-            listener.disconnected(exc)
+        try:
+            self.close()
+        except Exception:
+            self.log.exception("Failed to close connection")
+        finally:
+            listener = self.listener()
+            if listener is not None:
+                listener.disconnected(exc)
 
     def close(self):
         """Close connection and abort all outstanding listeners."""
+        if self.heartbeater is not None:
+            self.heartbeater.cancel()
+        if self.dispatcher is not None:
+            self.dispatcher.abort()
         if self.transport is not None:
             transport = self.transport
             self.transport = None
             transport.close()
-        if self.dispatcher is not None:
-            self.dispatcher.abort()
-        if self.heartbeater is not None:
-            self.heartbeater.cancel()
 
     async def exchange(self, command, dps=None):
         """Send and receive a message, returning response from device."""
@@ -436,11 +440,12 @@ class TuyaProtocol(asyncio.Protocol):
             except Exception as e:
                 self.log.warning("Failed to get status: %s", e)
                 raise
-            detected_dps.update(data["dps"])
+            if "dps" in data:
+                detected_dps.update(data["dps"])
 
             if self.dev_type == "type_0a":
                 return detected_dps
-
+        self.log.debug("detected dps: %s", detected_dps)
         return detected_dps
 
     def add_dps_to_request(self, dps_index):
