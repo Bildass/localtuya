@@ -327,6 +327,7 @@ class TuyaProtocol(asyncio.Protocol):
 
         async def heartbeat_loop():
             """Continuously send heart beat updates."""
+            self.log.debug("Started heartbeat loop")
             while True:
                 try:
                     await self.heartbeat()
@@ -334,6 +335,7 @@ class TuyaProtocol(asyncio.Protocol):
                     self.log.exception("Heartbeat failed (%s), disconnecting", ex)
                     break
                 await asyncio.sleep(HEARTBEAT_INTERVAL)
+            self.log.debug("Stopped heartbeat loop")
             self.close()
 
         self.transport = transport
@@ -346,17 +348,22 @@ class TuyaProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         """Disconnected from device."""
+        self.log.debug("connection_lost: %s", exc)
         try:
             self.close()
         except Exception:
             self.log.exception("Failed to close connection")
         finally:
-            listener = self.listener()
-            if listener is not None:
-                listener.disconnected(exc)
+            try:
+                listener = self.listener()
+                if listener is not None:
+                    listener.disconnected(exc)
+            except Exception:
+                self.log.exception("Failed to call disconnected callback")
 
     def close(self):
         """Close connection and abort all outstanding listeners."""
+        self.log.debug("Closing connection")
         if self.heartbeater is not None:
             self.heartbeater.cancel()
         if self.dispatcher is not None:
