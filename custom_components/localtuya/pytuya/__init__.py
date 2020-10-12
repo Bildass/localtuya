@@ -191,7 +191,10 @@ class MessageDispatcher:
         for key in self.listeners:
             sem = self.listeners[key]
             self.listeners[key] = None
-            sem.release()
+
+            # TODO: Received data and semahore should be stored separately
+            if isinstance(sem, asyncio.Semaphore):
+                sem.release()
 
     async def wait_for(self, seqno, timeout=5):
         """Wait for response to a sequence number to be received and return it."""

@@ -195,7 +195,9 @@ class TuyaDevice(pytuya.TuyaListener):
     @callback
     def disconnected(self, exc):
         """Device disconnected."""
-        _LOGGER.debug("Disconnected from %s: %s", self.id, exc)
+        _LOGGER.debug(
+            "Disconnected from %s: %s", self._config_entry[CONF_DEVICE_ID], exc
+        )
 
         signal = f"localtuya_{self._config_entry[CONF_DEVICE_ID]}"
         async_dispatcher_send(self._hass, signal, None)
