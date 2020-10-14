@@ -150,12 +150,12 @@ class TuyaDevice(pytuya.TuyaListener):
             _LOGGER.debug("Retrieving initial state")
             status = await self._interface.status()
             if status is None:
-                raise Exception("failed to retrieve status")
+                raise Exception("Failed to retrieve status")
 
             self.status_updated(status)
             self._connection_attempts = 0
         except Exception:
-            _LOGGER.exception("connect failed")
+            _LOGGER.exception(f"Connect to {self._config_entry[CONF_HOST]} failed")
             self._connection_attempts += 1
             if self._interface is not None:
                 self._interface.close()

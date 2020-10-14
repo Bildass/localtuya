@@ -7,7 +7,7 @@ Mostly derived from Shenzhen Xenon ESP8266MOD WiFi smart devices
 E.g. https://wikidevi.com/wiki/Xenon_SM-PW701U
 
 Author: clach04
-Maintained by: rospogrigio
+Maintained by: postlund
 
 For more information see https://github.com/clach04/python-tuya
 
@@ -24,7 +24,6 @@ Functions
    add_dps_to_request(dps_index)  # adds dps_index to the list of dps used by the
                                   # device (to be queried in the payload)
    set_dps(on, dps_index)   # Set value of any dps index.
-   set_timer(num_secs):
 
 
 Credits
@@ -51,9 +50,9 @@ from abc import ABC, abstractmethod
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-version_tuple = (8, 1, 0)
+version_tuple = (9, 0, 0)
 version = version_string = __version__ = "%d.%d.%d" % version_tuple
-__author__ = "rospogrigio"
+__author__ = "postlund"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -351,7 +350,7 @@ class TuyaProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         """Disconnected from device."""
-        self.log.debug("connection_lost: %s", exc)
+        self.log.debug("Connection lost: %s", exc)
         try:
             self.close()
         except Exception:
