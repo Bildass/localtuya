@@ -2,6 +2,8 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 [![](https://img.shields.io/badge/MAINTAINER-%40rospogrigio-green?style=for-the-badge)](https://github.com/rospogrigio)
 
+![logo](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/logo-small.png)
+
 # localtuya-homeassistant
 
 A Home Assistant / Hass.io add-on for local handling of Tuya-based devices.
