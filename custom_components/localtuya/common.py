@@ -182,6 +182,18 @@ class TuyaDevice(pytuya.TuyaListener):
                 "Not connected to device %s", self._config_entry[CONF_FRIENDLY_NAME]
             )
 
+    async def set_dps(self, states):
+        """Change value of a DPs of the Tuya device."""
+        if self._interface is not None:
+            try:
+                await self._interface.set_dps(states)
+            except Exception:
+                _LOGGER.exception("Failed to set DPs %r", states)
+        else:
+            _LOGGER.error(
+                "Not connected to device %s", self._config_entry[CONF_FRIENDLY_NAME]
+            )
+
     @callback
     def status_updated(self, status):
         """Device updated status."""

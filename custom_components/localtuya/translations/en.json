@@ -61,7 +61,9 @@
                     "brightness_upper": "Brightness Upper Value",
                     "color_temp": "Color Temperature",
                     "color": "Color",
-                    "color_mode": "Color Mode"
+                    "color_mode": "Color Mode",
+                    "color_temp_min_kelvin": "Minimum Color Temperature in K",
+                    "color_temp_max_kelvin": "Maximum Color Temperature in K"
                 }
             }
         }
@@ -103,7 +105,9 @@
                     "brightness_upper": "Brightness Upper Value",
                     "color_temp": "Color Temperature",
                     "color": "Color",
-                    "color_mode": "Color Mode"
+                    "color_mode": "Color Mode",
+                    "color_temp_min_kelvin": "Minimum Color Temperature in K",
+                    "color_temp_max_kelvin": "Maximum Color Temperature in K"
                 }
             },
             "yaml_import": {

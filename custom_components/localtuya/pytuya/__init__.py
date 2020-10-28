@@ -444,7 +444,7 @@ class TuyaProtocol(asyncio.Protocol):
         """
         return await self.exchange(SET, {str(dp_index): value})
 
-    async def set_dps(self, value, dps):
+    async def set_dps(self, dps):
         """Set values for a set of datapoints."""
         return await self.exchange(SET, dps)
 
