@@ -4,7 +4,6 @@ import textwrap
 from functools import partial
 
 import homeassistant.util.color as color_util
-
 import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -18,11 +17,7 @@ from homeassistant.components.light import (
     SUPPORT_EFFECT,
     LightEntity,
 )
-from homeassistant.const import (
-    CONF_BRIGHTNESS,
-    CONF_COLOR_TEMP,
-    CONF_SCENE,
-)
+from homeassistant.const import CONF_BRIGHTNESS, CONF_COLOR_TEMP, CONF_SCENE
 
 from .common import LocalTuyaEntity, async_setup_entry
 from .const import (
