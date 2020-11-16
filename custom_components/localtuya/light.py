@@ -47,7 +47,7 @@ CUSTOM_SCENE = "Custom"
 
 MUSIC_SCENE = "Music"
 
-SCENE_LIST_1 = {
+SCENE_LIST_RGBW_1000 = {
     "Night": "000e0d0000000000000000c80000",
     "Read": "010e0d0000000000000003e801f4",
     "Meeting": "020e0d0000000000000003e803e8",
@@ -62,7 +62,7 @@ SCENE_LIST_1 = {
     + "3e800000000",
 }
 
-SCENE_LIST_2 = {
+SCENE_LIST_RGBW_255 = {
     "Night": "bd76000168ffff",
     "Read": "fffcf70168ffff",
     "Meeting": "cf38000168ffff",
@@ -71,6 +71,22 @@ SCENE_LIST_2 = {
     "Scenario 2": "scene_2",
     "Scenario 3": "scene_3",
     "Scenario 4": "scene_4",
+}
+
+SCENE_LIST_RGB_1000 = {
+    "Night": "000e0d00002e03e802cc00000000",
+    "Read": "010e0d000084000003e800000000",
+    "Working": "020e0d00001403e803e800000000",
+    "Leisure": "030e0d0000e80383031c00000000",
+    "Soft": "04464602007803e803e800000000464602007803e8000a00000000",
+    "Colorful": "05464601000003e803e800000000464601007803e803e80000000046460100f003e80"
+    + "3e800000000464601003d03e803e80000000046460100ae03e803e800000000464601011303e803"
+    + "e800000000",
+    "Dazzling": "06464601000003e803e800000000464601007803e803e80000000046460100f003e80"
+    + "3e800000000",
+    "Music": "07464602000003e803e800000000464602007803e803e80000000046460200f003e803e8"
+    + "00000000464602003d03e803e80000000046460200ae03e803e800000000464602011303e803e80"
+    + "0000000",
 }
 
 
@@ -143,9 +159,12 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
         self._effect_list = []
         self._scenes = None
         if self._config.get(CONF_SCENE) is not None:
-            self._scenes = (
-                SCENE_LIST_1 if self._config.get(CONF_SCENE) > 20 else SCENE_LIST_2
-            )
+            if self._config.get(CONF_SCENE) < 20:
+                self._scenes = SCENE_LIST_RGBW_255
+            elif self._config.get(CONF_BRIGHTNESS) is None:
+                self._scenes = SCENE_LIST_RGB_1000
+            else:
+                self._scenes = SCENE_LIST_RGBW_1000
             for scene in self._scenes:
                 self._effect_list.append(scene)
         if self._config.get(CONF_MUSIC_MODE):
