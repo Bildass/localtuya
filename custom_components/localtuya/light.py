@@ -341,7 +341,7 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
         if supported & SUPPORT_BRIGHTNESS:
             self._brightness = self.dps_conf(CONF_BRIGHTNESS)
 
-        if self.__is_color_mode():
+        if supported & SUPPORT_COLOR:
             color = self.dps_conf(CONF_COLOR)
             if color is not None:
                 if self.__is_color_rgb_encoded():
