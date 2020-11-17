@@ -311,6 +311,7 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
                         round(self._hs[0]), round(self._hs[1] * 10.0), brightness
                     )
                 states[self._config.get(CONF_COLOR)] = color
+                states[self._config.get(CONF_COLOR_MODE)] = COLOR_MODE
 
         if ATTR_HS_COLOR in kwargs and (features & SUPPORT_COLOR):
             if brightness is None:
@@ -362,7 +363,7 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
 
         if supported & SUPPORT_COLOR:
             color = self.dps_conf(CONF_COLOR)
-            if color is not None:
+            if color is not None and not self.__is_white_mode():
                 if self.__is_color_rgb_encoded():
                     hue = int(color[6:10], 16)
                     sat = int(color[10:12], 16)
