@@ -166,7 +166,7 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
             else:
                 self._scenes = SCENE_LIST_RGBW_1000
             self._effect_list = list(self._scenes.keys())
-        if self.has_config(CONF_MUSIC_MODE):
+        if self._config.get(CONF_MUSIC_MODE):
             self._effect_list.append(SCENE_MUSIC)
 
     @property
