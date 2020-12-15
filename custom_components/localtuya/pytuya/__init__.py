@@ -74,7 +74,7 @@ MESSAGE_END_FMT = ">2I"  # 2*uint32: crc, suffix
 PREFIX_VALUE = 0x000055AA
 SUFFIX_VALUE = 0x0000AA55
 
-HEARTBEAT_INTERVAL = 20
+HEARTBEAT_INTERVAL = 10
 
 # This is intended to match requests.json payload at
 # https://github.com/codetheweb/tuyapi :
