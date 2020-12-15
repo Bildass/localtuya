@@ -71,7 +71,12 @@ from homeassistant.helpers.reload import async_integration_yaml_config
 
 from .common import TuyaDevice
 from .config_flow import config_schema
-from .const import CONF_PRODUCT_KEY, DATA_DISCOVERY, DOMAIN, TUYA_DEVICE
+from .const import (
+    CONF_PRODUCT_KEY,
+    DATA_DISCOVERY,
+    DOMAIN,
+    TUYA_DEVICE,
+)
 from .discovery import TuyaDiscovery
 
 _LOGGER = logging.getLogger(__name__)
@@ -155,11 +160,19 @@ async def async_setup(hass: HomeAssistant, config: dict):
         if entry.data.get(CONF_PRODUCT_KEY) != product_key:
             updates[CONF_PRODUCT_KEY] = product_key
 
+        # Update settings if something changed, otherwise try to connect. Updating
+        # settings triggers a reload of the config entry, which tears down the device
+        # so no need to connect in that case.
         if updates:
             _LOGGER.debug("Update keys for device %s: %s", device_id, updates)
             hass.config_entries.async_update_entry(
                 entry, data={**entry.data, **updates}
             )
+        elif entry.entry_id in hass.data[DOMAIN]:
+            _LOGGER.debug("Device %s found with IP %s", device_id, device_ip)
+
+            device = hass.data[DOMAIN][entry.entry_id][TUYA_DEVICE]
+            device.connect()
 
     discovery = TuyaDiscovery(_device_discovered)
 
@@ -209,7 +222,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 for platform in platforms
             ]
         )
-        device.connect()
 
     hass.async_create_task(setup_entities())
 
@@ -230,7 +242,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     )
 
     hass.data[DOMAIN][entry.entry_id][UNSUB_LISTENER]()
-    hass.data[DOMAIN][entry.entry_id][TUYA_DEVICE].close()
+    await hass.data[DOMAIN][entry.entry_id][TUYA_DEVICE].close()
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
