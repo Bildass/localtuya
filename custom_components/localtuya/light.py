@@ -284,8 +284,8 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
     async def async_turn_on(self, **kwargs):
         """Turn on or control the light."""
         states = {}
-		if not self.is_on:
-	        states[self._dp_id] = True
+        if not self.is_on:
+            states[self._dp_id] = True
         features = self.supported_features
         brightness = None
         if ATTR_EFFECT in kwargs and (features & SUPPORT_EFFECT):
