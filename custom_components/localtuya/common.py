@@ -150,10 +150,10 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
     async def close(self):
         """Close connection and stop re-connect loop."""
         self._is_closing = True
-        if self._connect_task:
+        if self._connect_task is not None:
             self._connect_task.cancel()
             await self._connect_task
-        if self._interface:
+        if self._interface is not None:
             await self._interface.close()
 
     async def set_dp(self, state, dp_index):
