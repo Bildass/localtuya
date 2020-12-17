@@ -58,12 +58,14 @@ import asyncio
 import logging
 
 import homeassistant.helpers.config_validation as cv
+import homeassistant.helpers.entity_registry as er
 import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
     CONF_DEVICE_ID,
     CONF_ENTITIES,
     CONF_HOST,
+    CONF_ID,
     CONF_PLATFORM,
     EVENT_HOMEASSISTANT_STOP,
     SERVICE_RELOAD,
@@ -72,7 +74,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.reload import async_integration_yaml_config
 
-from .common import TuyaDevice
+from .common import TuyaDevice, async_config_entry_by_device_id
 from .config_flow import config_schema
 from .const import CONF_PRODUCT_KEY, DATA_DISCOVERY, DOMAIN, TUYA_DEVICE
 from .discovery import TuyaDiscovery
@@ -112,14 +114,6 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
     device_cache = {}
 
-    def _entry_by_device_id(device_id):
-        """Look up config entry by device id."""
-        current_entries = hass.config_entries.async_entries(DOMAIN)
-        for entry in current_entries:
-            if entry.data[CONF_DEVICE_ID] == device_id:
-                return entry
-        return None
-
     async def _handle_reload(service):
         """Handle reload service call."""
         config = await async_integration_yaml_config(hass, DOMAIN)
@@ -142,7 +136,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
     async def _handle_set_dp(event):
         """Handle set_dp service call."""
-        entry = _entry_by_device_id(event.data[CONF_DEVICE_ID])
+        entry = async_config_entry_by_device_id(hass, event.data[CONF_DEVICE_ID])
         if not entry:
             raise HomeAssistantError("unknown device id")
 
@@ -163,7 +157,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
         # If device is not in cache, check if a config entry exists
         if device_id not in device_cache:
-            entry = _entry_by_device_id(device_id)
+            entry = async_config_entry_by_device_id(hass, device_id)
             if entry:
                 # Save address from config entry in cache to trigger
                 # potential update below
@@ -172,7 +166,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
         if device_id not in device_cache:
             return
 
-        entry = _entry_by_device_id(device_id)
+        entry = async_config_entry_by_device_id(hass, device_id)
         if entry is None:
             return
 
@@ -252,6 +246,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             ]
         )
 
+    await async_remove_orphan_entities(hass, entry)
+
     hass.async_create_task(setup_entities())
 
     return True
@@ -281,3 +277,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
 async def update_listener(hass, config_entry):
     """Update listener."""
     await hass.config_entries.async_reload(config_entry.entry_id)
+
+
+async def async_remove_orphan_entities(hass, entry):
+    """Remove entities associated with config entry that has been removed."""
+    ent_reg = await er.async_get_registry(hass)
+    entities = {
+        int(ent.unique_id.split("_")[-1]): ent.entity_id
+        for ent in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+    }
+
+    for entity in entry.data[CONF_ENTITIES]:
+        if entity[CONF_ID] in entities:
+            del entities[entity[CONF_ID]]
+
+    for entity_id in entities.values():
+        ent_reg.async_remove(entity_id)

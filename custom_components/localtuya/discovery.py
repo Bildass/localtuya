@@ -72,7 +72,7 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
     def device_found(self, device):
         """Discover a new device."""
         if device.get("ip") not in self.devices:
-            self.devices[device.get("ip")] = device
+            self.devices[device.get("gwId")] = device
             _LOGGER.debug("Discovered device: %s", device)
 
         if self._callback:
