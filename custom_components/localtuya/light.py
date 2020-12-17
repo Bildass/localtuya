@@ -188,7 +188,10 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
         """Return the hs color value."""
         if self.is_color_mode:
             return self._hs
-        if self.supported_features & SUPPORT_COLOR:
+        if (
+            self.supported_features & SUPPORT_COLOR
+            and not self.supported_features & SUPPORT_COLOR_TEMP
+        ):
             return [0, 0]
         return None
 
