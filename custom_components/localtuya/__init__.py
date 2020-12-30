@@ -22,11 +22,11 @@ localtuya:
         id: 2
         commands_set: # Optional, default: "on_off_stop"
             ["on_off_stop","open_close_stop","fz_zz_stop","1_2_3"]
-        positioning_mode: ["none","position","fake"] # Optional, default: "none"
+        positioning_mode: ["none","position","timed"] # Optional, default: "none"
         currpos_dp: 3 # Optional, required only for "position" mode
         setpos_dp: 4  # Optional, required only for "position" mode
         position_inverted: [True,False] # Optional, default: False
-        span_time: 25 # Full movement time: Optional, required only for "fake" mode
+        span_time: 25 # Full movement time: Optional, required only for "timed" mode
 
       - platform: fan
         friendly_name: Device Fan
