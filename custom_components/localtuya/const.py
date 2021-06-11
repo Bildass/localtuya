@@ -41,11 +41,23 @@ CONF_FAN_SPEED_HIGH = "fan_speed_high"
 # sensor
 CONF_SCALING = "scaling"
 
+# vacuum
+CONF_IDLE_STATUS_VALUE = "idle_status_value"
+CONF_RETURNING_STATUS_VALUE = "returning_status_value"
+CONF_DOCKED_STATUS_VALUE = "docked_status_value"
+CONF_BATTERY_DP = "battery_dp"
+CONF_MODE_DP = "mode_dp"
+CONF_MODES = "modes"
+CONF_FAN_SPEED_DP = "fan_speed_dp"
+CONF_FAN_SPEEDS = "fan_speeds"
+CONF_CLEAN_TIME_DP = "clean_time_dp"
+CONF_CLEAN_AREA_DP = "clean_area_dp"
+
 DATA_DISCOVERY = "discovery"
 
 DOMAIN = "localtuya"
 
 # Platforms in this list must support config flows
-PLATFORMS = ["binary_sensor", "cover", "fan", "light", "sensor", "switch"]
+PLATFORMS = ["binary_sensor", "cover", "fan", "light", "sensor", "switch", "vacuum"]
 
 TUYA_DEVICE = "tuya_device"
