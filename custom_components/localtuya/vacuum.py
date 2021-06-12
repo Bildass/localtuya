@@ -23,6 +23,7 @@ from homeassistant.components.vacuum import (
 from .common import LocalTuyaEntity, async_setup_entry
 
 from .const import (
+    CONF_POWERGO_DP,
     CONF_IDLE_STATUS_VALUE,
     CONF_RETURNING_STATUS_VALUE,
     CONF_DOCKED_STATUS_VALUE,
@@ -42,16 +43,17 @@ CLEAN_AREA  = "clean_area"
 MODES_LIST  = "cleaning_mode_list"
 MODE        = "cleaning_mode"
 
-DEFAULT_IDLE_STATUS = "standby,sleep"
+DEFAULT_IDLE_STATUS = "standby,sleep,pause"
 DEFAULT_RETURNING_STATUS = "docking"
 DEFAULT_DOCKED_STATUS = "charging,chargecompleted"
-DEFAULT_MODES = "smart,standby,chargego,wall_follow,spiral,single"
+DEFAULT_MODES = "chargego,smart,standby,wall_follow,spiral,single"
 DEFAULT_FAN_SPEEDS = "low,normal,high"
 
 def flow_schema(dps):
     """Return schema used in config flow."""
     return {
         vol.Required(CONF_IDLE_STATUS_VALUE, default=DEFAULT_IDLE_STATUS): str,
+        vol.Required(CONF_POWERGO_DP): vol.In(dps),
         vol.Required(CONF_DOCKED_STATUS_VALUE, default=DEFAULT_DOCKED_STATUS): str,
         vol.Optional(CONF_RETURNING_STATUS_VALUE, default=DEFAULT_RETURNING_STATUS): str,
         vol.Optional(CONF_BATTERY_DP): vol.In(dps),
@@ -82,10 +84,7 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         if self.has_config(CONF_MODES):
             self._modes_list = self._config[CONF_MODES].split(",")
             self._attrs[MODES_LIST] = self._modes_list
-            if len(self._modes_list) >= 3:
-                self._start_mode = self._modes_list[0]
-                self._pause_mode = self._modes_list[1]
-                self._return_mode = self._modes_list[2]
+            self._return_mode = self._modes_list[0]
         
         self._docked_status_list = []
         if self.has_config(CONF_DOCKED_STATUS_VALUE):
@@ -146,25 +145,25 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
     async def async_start(self, **kwargs):
         """Turn the vacuum on and start cleaning."""
-        await self._device.set_dp(self._start_mode, self._config[CONF_MODE_DP])
+        await self._device.set_dp(True, self._config[CONF_POWERGO_DP])
 
     async def async_pause(self, **kwargs):
         """Stop the vacuum cleaner, do not return to base."""
-        if self._pause_mode:
-            await self._device.set_dp(self._pause_mode, self._config[CONF_MODE_DP])
-        else:
-            _LOGGER.error("Missing command for pause in commands set.")
+        await self._device.set_dp(False, self._config[CONF_POWERGO_DP])
 
     async def async_return_to_base(self, **kwargs):
         """Set the vacuum cleaner to return to the dock."""
         if self._return_mode:
             await self._device.set_dp(self._return_mode, self._config[CONF_MODE_DP])
         else:
-            _LOGGER.error("Missing command for pause in commands set.")
+            _LOGGER.error("Missing command for return home in commands set.")
 
     async def async_stop(self, **kwargs):
         """Turn the vacuum off stopping the cleaning and returning home."""
-        self.async_pause()
+        if self._return_mode:
+            await self._device.set_dp(self._return_mode, self._config[CONF_MODE_DP])
+        else:
+            _LOGGER.error("Missing command for return home in commands set.")
 
     async def async_clean_spot(self, **kwargs):
         """Perform a spot clean-up."""

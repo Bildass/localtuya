@@ -42,6 +42,7 @@ CONF_FAN_SPEED_HIGH = "fan_speed_high"
 CONF_SCALING = "scaling"
 
 # vacuum
+CONF_POWERGO_DP = "powergo_dp"
 CONF_IDLE_STATUS_VALUE = "idle_status_value"
 CONF_RETURNING_STATUS_VALUE = "returning_status_value"
 CONF_DOCKED_STATUS_VALUE = "docked_status_value"
