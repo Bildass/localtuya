@@ -9,6 +9,7 @@ from homeassistant.components.vacuum import (
     STATE_DOCKED,
     STATE_IDLE,
     STATE_RETURNING,
+    STATE_PAUSED,
     SUPPORT_BATTERY,
     SUPPORT_FAN_SPEED,
     SUPPORT_PAUSE,
@@ -17,6 +18,7 @@ from homeassistant.components.vacuum import (
     SUPPORT_STATE,
     SUPPORT_STATUS,
     SUPPORT_STOP,
+    SUPPORT_PAUSE,
     StateVacuumEntity,
 )
 
@@ -33,7 +35,8 @@ from .const import (
     CONF_FAN_SPEED_DP,
     CONF_FAN_SPEEDS,
     CONF_CLEAN_TIME_DP,
-    CONF_CLEAN_AREA_DP
+    CONF_CLEAN_AREA_DP,
+    CONF_PAUSED_STATE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -48,6 +51,7 @@ DEFAULT_RETURNING_STATUS = "docking"
 DEFAULT_DOCKED_STATUS = "charging,chargecompleted"
 DEFAULT_MODES = "chargego,smart,standby,wall_follow,spiral,single"
 DEFAULT_FAN_SPEEDS = "low,normal,high"
+DEFAULT_PAUSED_STATE = "paused"
 
 def flow_schema(dps):
     """Return schema used in config flow."""
@@ -63,6 +67,7 @@ def flow_schema(dps):
         vol.Optional(CONF_FAN_SPEEDS, default=DEFAULT_FAN_SPEEDS): str,
         vol.Optional(CONF_CLEAN_TIME_DP): vol.In(dps),
         vol.Optional(CONF_CLEAN_AREA_DP): vol.In(dps),
+        vol.Optional(CONF_PAUSED_STATE, default=DEFAULT_PAUSED_STATE): str,
     }
 
 
@@ -193,6 +198,8 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             self._state = STATE_DOCKED
         elif state_value == self._config[CONF_RETURNING_STATUS_VALUE]:
             self._state = STATE_RETURNING
+        elif state_value == self._config[CONF_PAUSED_STATE]:
+            self._state = STATE_PAUSED
         else:
             self._state = STATE_CLEANING
 

@@ -53,6 +53,7 @@ CONF_FAN_SPEED_DP = "fan_speed_dp"
 CONF_FAN_SPEEDS = "fan_speeds"
 CONF_CLEAN_TIME_DP = "clean_time_dp"
 CONF_CLEAN_AREA_DP = "clean_area_dp"
+CONF_PAUSED_STATE = "paused_state"
 
 DATA_DISCOVERY = "discovery"
 
