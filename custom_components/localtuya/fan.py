@@ -79,8 +79,8 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
     @property
     def current_direction(self):
         """Return the current direction of the fan."""
-        direction = self.service.value(CharacteristicsTypes.ROTATION_DIRECTION)
-        return TUYA_DIRECTION_TO_HA[direction]
+        return self._direction
+
 
     @property
     def is_on(self):
@@ -123,7 +123,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         if not self.is_on:
             await self.async_turn_on()
 
-        if percentage is not None
+        if percentage is not None:
             await self._device.set_dp(
                 math.ceil(
                     percentage_to_ranged_value(self._speed_range, percentage)
@@ -131,22 +131,6 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
                 self._config.get(CONF_FAN_SPEED_CONTROL)
                 )
 
-    # async def async_set_speed(self, speed: str) -> None:
-    #     """Set the speed of the fan."""
-    #     mapping = {
-    #         SPEED_LOW: self._config.get(CONF_FAN_SPEED_LOW),
-    #         SPEED_MEDIUM: self._config.get(CONF_FAN_SPEED_MEDIUM),
-    #         SPEED_HIGH: self._config.get(CONF_FAN_SPEED_HIGH),
-    #     }
-
-    #     if speed == SPEED_OFF:
-    #         await self._device.set_dp(False, self._dp_id)
-    #     else:
-    #         await self._device.set_dp(
-    #             mapping.get(speed), self._config.get(CONF_FAN_SPEED_CONTROL)
-    #         )
-
-    #     self.schedule_update_ha_state()
 
     async def async_oscillate(self, oscillating: bool) -> None:
         """Set oscillation."""
@@ -157,9 +141,10 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
     async def async_set_direction(self, direction):
         """Set the direction of the fan."""
-        await self.async_put_characteristics(
-            {CharacteristicsTypes.ROTATION_DIRECTION: DIRECTION_TO_TUYA[direction]}
+        await self._device.set_dp(
+            DIRECTION_TO_TUYA[direction], self._config.get(CONF_FAN_DIRECTION)
         )
+        self.schedule_update_ha_state()        
 
     @property
     def supported_features(self) -> int:
@@ -181,7 +166,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
     def speed_count(self) -> int:
         """Speed count for the fan."""
         return self.has_config(CONF_FAN_SPEED_COUNT)
-        )
+
 
     def status_updated(self):
         """Get state of Tuya fan."""
@@ -201,26 +186,13 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
                 )
                 self._percentage = None
 
-
-    #     mappings = {
-    #         self._config.get(CONF_FAN_SPEED_LOW): SPEED_LOW,
-    #         self._config.get(CONF_FAN_SPEED_MEDIUM): SPEED_MEDIUM,
-    #         self._config.get(CONF_FAN_SPEED_HIGH): SPEED_HIGH,
-    #     }
-
-    #     if self.has_config(CONF_FAN_SPEED_CONTROL):
-    #         self._speed = mappings.get(self.dps_conf(CONF_FAN_SPEED_CONTROL))
-    #         if self.speed is None:
-    #             self.warning(
-    #                 "%s/%s: Ignoring unknown fan controller state: %s",
-    #                 self.name,
-    #                 self.entity_id,
-    #                 self.dps_conf(CONF_FAN_SPEED_CONTROL),
-    #             )
-    #             self._speed = None
-
         if self.has_config(CONF_FAN_OSCILLATING_CONTROL):
             self._oscillating = self.dps_conf(CONF_FAN_OSCILLATING_CONTROL)
+
+        if self.has_config(CONF_FAN_DIRECTION):
+            self._oscillating = TUYA_DIRECTION_TO_HA[
+                self.dps_conf(CONF_FAN_OSCILLATING_CONTROL)
+                ]   
 
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocaltuyaFan, flow_schema)
