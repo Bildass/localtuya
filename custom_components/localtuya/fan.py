@@ -1,13 +1,9 @@
-# DPS [1] VALUE [True] --> fan on,off > True, False
-# DPS [3] VALUE [6] --> fan speed > 1-6
-# DPS [4] VALUE [forward] --> fan direction > forward, reverse
-# DPS [102] VALUE [normal] --> preset mode > normal, sleep, nature
-# DPS [103] VALUE [off] --> timer > off, 1hour, 2hour, 4hour, 8hour
-
 """Platform to locally control Tuya-based fan devices."""
 import logging
 from functools import partial
+import math
 
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components.fan import (
     DOMAIN,
@@ -70,6 +66,9 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         self._oscillating = None
         self._direction = None
         self._percentage = None
+        self._speed_range = (
+            1, self._config.get(CONF_FAN_SPEED_COUNT),
+        )
 
     @property
     def oscillating(self):
@@ -125,9 +124,9 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
         if percentage is not None:
             await self._device.set_dp(
-                math.ceil(
+                str(math.ceil(
                     percentage_to_ranged_value(self._speed_range, percentage)
-                    ),
+                    )),
                 self._config.get(CONF_FAN_SPEED_CONTROL)
                 )
 
@@ -165,7 +164,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
     @property
     def speed_count(self) -> int:
         """Speed count for the fan."""
-        return self.has_config(CONF_FAN_SPEED_COUNT)
+        return int_states_in_range(self._speed_range)
 
 
     def status_updated(self):
@@ -174,25 +173,24 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         self._is_on = self.dps(self._dp_id)
 
         if self.has_config(CONF_FAN_SPEED_COUNT):
-            self._percentage = ranged_value_to_percentage(
-                self._speed_range, self.dps_conf(CONF_FAN_SPEED_CONTROL)
-                )
-            if self._percentage is None:
+            value = int(self.dps_conf(CONF_FAN_SPEED_CONTROL))
+            if value is not None:
+                self._percentage = ranged_value_to_percentage(self._speed_range, value)
+            else:
                 self.warning(
                     "%s/%s: Ignoring unknown fan controller state: %s",
                     self.name,
                     self.entity_id,
-                    self.dps_conf(CONF_FAN_SPEED_CONTROL),
+                    value,
                 )
-                self._percentage = None
 
         if self.has_config(CONF_FAN_OSCILLATING_CONTROL):
             self._oscillating = self.dps_conf(CONF_FAN_OSCILLATING_CONTROL)
 
         if self.has_config(CONF_FAN_DIRECTION):
-            self._oscillating = TUYA_DIRECTION_TO_HA[
-                self.dps_conf(CONF_FAN_OSCILLATING_CONTROL)
-                ]   
+            value = self.dps_conf(CONF_FAN_DIRECTION)
+            if value is not None:
+                self._direction = TUYA_DIRECTION_TO_HA[value]   
 
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocaltuyaFan, flow_schema)
