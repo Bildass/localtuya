@@ -1,3 +1,9 @@
+# DPS [1] VALUE [True] --> fan on,off > True, False
+# DPS [3] VALUE [6] --> fan speed > 1-6
+# DPS [4] VALUE [forward] --> fan direction > forward, reverse
+# DPS [102] VALUE [normal] --> preset mode > normal, sleep, nature
+# DPS [103] VALUE [off] --> timer > off, 1hour, 2hour, 4hour, 8hour
+
 """Platform to locally control Tuya-based fan devices."""
 import logging
 from functools import partial
@@ -20,7 +26,11 @@ from .const import (
     CONF_FAN_OSCILLATING_CONTROL,
     CONF_FAN_SPEED_CONTROL,
     CONF_FAN_DIRECTION,
-    CONF_FAN_SPEED_COUNT
+    CONF_FAN_DIRECTION_FWD,
+    CONF_FAN_DIRECTION_REV,
+    CONF_FAN_SPEED_MIN,
+    CONF_FAN_SPEED_MAX,
+    CONF_FAN_ORDERED_LIST
 )
 
 from homeassistant.util.percentage import (
@@ -40,15 +50,13 @@ def flow_schema(dps):
         vol.Optional(CONF_FAN_SPEED_CONTROL): vol.In(dps),
         vol.Optional(CONF_FAN_OSCILLATING_CONTROL): vol.In(dps),
         vol.Optional(CONF_FAN_DIRECTION): vol.In(dps),
-        vol.Optional(CONF_FAN_SPEED_COUNT, default=3): cv.positive_int
+        vol.Optional(CONF_FAN_DIRECTION_FWD, default="forward"): cv.string,
+        vol.Optional(CONF_FAN_DIRECTION_REV, default="reverse"): cv.string,
+        vol.Optional(CONF_FAN_SPEED_MIN, default=1): cv.positive_int,
+        vol.Optional(CONF_FAN_SPEED_MAX, default=9): cv.positive_int,
+        vol.Optional(CONF_FAN_ORDERED_LIST, default="disabled"): cv.string,
     }
 
-# make this configurable later
-DIRECTION_TO_TUYA = {
-    DIRECTION_REVERSE: "reverse",
-    DIRECTION_FORWARD: "forward",
-}
-TUYA_DIRECTION_TO_HA = {v: k for (k, v) in DIRECTION_TO_TUYA.items()}
 
 class LocaltuyaFan(LocalTuyaEntity, FanEntity):
     """Representation of a Tuya fan."""
@@ -67,8 +75,20 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         self._direction = None
         self._percentage = None
         self._speed_range = (
-            1, self._config.get(CONF_FAN_SPEED_COUNT),
+            self._config.get(CONF_FAN_SPEED_MIN), 
+            self._config.get(CONF_FAN_SPEED_MAX),
         )
+        self._ordered_list = self._config.get(CONF_FAN_ORDERED_LIST).split(",")
+        self._ordered_list_mode = None
+
+        if (type(self._ordered_list) is list and len(self._ordered_list) > 1):
+            self._use_ordered_list = True
+            _LOGGER.debug("Fan _use_ordered_list: %s > %s", self._use_ordered_list, self._ordered_list)
+
+        else:
+            self._use_ordered_list = False
+            _LOGGER.debug("Fan _use_ordered_list: %s", self._use_ordered_list)
+        
 
     @property
     def oscillating(self):
@@ -80,7 +100,6 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         """Return the current direction of the fan."""
         return self._direction
 
-
     @property
     def is_on(self):
         """Check if Tuya fan is on."""
@@ -91,18 +110,9 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         """Return the current percentage."""
         return self._percentage
 
-    # @property
-    # def speed(self) -> str:
-    #     """Return the current speed."""
-    #     return self._speed
-
-    # @property
-    # def speed_list(self) -> list:
-    #     """Get the list of available speeds."""
-    #     return [SPEED_OFF, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH]
-
     async def async_turn_on(self, speed: str = None, **kwargs) -> None:
         """Turn on the entity."""
+        _LOGGER.debug("Fan async_turn_on")
         await self._device.set_dp(True, self._dp_id)
         if speed is not None:
             await self.async_set_speed(speed)
@@ -111,11 +121,17 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn off the entity."""
+        
+        _LOGGER.debug("Fan async_turn_on")
+        
         await self._device.set_dp(False, self._dp_id)
         self.schedule_update_ha_state()
 
     async def async_set_percentage(self, percentage):
         """Set the speed of the fan."""
+        
+        _LOGGER.debug("Fan async_set_percentage: %s", percentage)
+        
         if percentage == 0:
             return await self.async_turn_off()
 
@@ -123,16 +139,28 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
             await self.async_turn_on()
 
         if percentage is not None:
-            await self._device.set_dp(
-                str(math.ceil(
-                    percentage_to_ranged_value(self._speed_range, percentage)
-                    )),
-                self._config.get(CONF_FAN_SPEED_CONTROL)
-                )
+            if self._use_ordered_list:
+                await self._device.set_dp(
+                    str(
+                        percentage_to_ordered_list_item(self._ordered_list, percentage)
+                        ),
+                    self._config.get(CONF_FAN_SPEED_CONTROL)
+                    )
+                _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ordered_list_item(self._ordered_list, percentage))
+
+            else:
+                await self._device.set_dp(
+                    str(math.ceil(
+                        percentage_to_ranged_value(self._speed_range, percentage)
+                        )),
+                    self._config.get(CONF_FAN_SPEED_CONTROL)
+                    )
+                _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ranged_value(self._ordered_list, percentage))
 
 
     async def async_oscillate(self, oscillating: bool) -> None:
         """Set oscillation."""
+        _LOGGER.debug("Fan async_oscillate: %s", oscillating)
         await self._device.set_dp(
             oscillating, self._config.get(CONF_FAN_OSCILLATING_CONTROL)
         )
@@ -140,8 +168,16 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
     async def async_set_direction(self, direction):
         """Set the direction of the fan."""
+        _LOGGER.debug("Fan async_set_direction: %s", direction)
+
+        if direction == DIRECTION_FORWARD:
+            value = self._config.get(CONF_FAN_DIRECTION_FWD)
+        
+        if direction == DIRECTION_REVERSE:
+            value = self._config.get(CONF_FAN_DIRECTION_REV)
+
         await self._device.set_dp(
-            DIRECTION_TO_TUYA[direction], self._config.get(CONF_FAN_DIRECTION)
+            value, self._config.get(CONF_FAN_DIRECTION)
         )
         self.schedule_update_ha_state()        
 
@@ -164,7 +200,9 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
     @property
     def speed_count(self) -> int:
         """Speed count for the fan."""
-        return int_states_in_range(self._speed_range)
+        speed_count = int_states_in_range(self._speed_range)
+        _LOGGER.debug("Fan speed_count: %s", speed_count)
+        return speed_count
 
 
     def status_updated(self):
@@ -172,25 +210,34 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
         self._is_on = self.dps(self._dp_id)
 
-        if self.has_config(CONF_FAN_SPEED_COUNT):
-            value = int(self.dps_conf(CONF_FAN_SPEED_CONTROL))
-            if value is not None:
-                self._percentage = ranged_value_to_percentage(self._speed_range, value)
-            else:
-                self.warning(
-                    "%s/%s: Ignoring unknown fan controller state: %s",
-                    self.name,
-                    self.entity_id,
-                    value,
-                )
+        current_speed = self.dps_conf(CONF_FAN_SPEED_CONTROL)
+        if self._use_ordered_list:
+            _LOGGER.debug("Fan current_speed ordered_list_item_to_percentage: %s from %s", current_speed, self._ordered_list)
+            if current_speed is not None:
+                self._percentage = ordered_list_item_to_percentage(self._ordered_list, current_speed)
+        
+        else:
+            _LOGGER.debug("Fan current_speed ranged_value_to_percentage: %s from %s", current_speed, self._speed_range)
+            if current_speed is not None:
+                self._percentage = ranged_value_to_percentage(self._speed_range, int(current_speed))
+
+        _LOGGER.debug("Fan current_percentage: %s", self._percentage)
 
         if self.has_config(CONF_FAN_OSCILLATING_CONTROL):
             self._oscillating = self.dps_conf(CONF_FAN_OSCILLATING_CONTROL)
+            _LOGGER.debug("Fan current_oscillating : %s", self._oscillating)
+
 
         if self.has_config(CONF_FAN_DIRECTION):
             value = self.dps_conf(CONF_FAN_DIRECTION)
             if value is not None:
-                self._direction = TUYA_DIRECTION_TO_HA[value]   
-
+                if value == self._config.get(CONF_FAN_DIRECTION_FWD):
+                    self._direction = DIRECTION_FORWARD
+        
+                if value == self._config.get(CONF_FAN_DIRECTION_REV):
+                    self._direction = DIRECTION_REVERSE
+        
+        _LOGGER.debug("Fan current_direction : %s > %s > %s", value, self._direction, self._config.get(CONF_FAN_DIRECTION_FWD))
+        
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocaltuyaFan, flow_schema)
