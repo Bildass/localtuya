@@ -1,9 +1,3 @@
-# DPS [1] VALUE [True] --> fan on,off > True, False
-# DPS [3] VALUE [6] --> fan speed > 1-6
-# DPS [4] VALUE [forward] --> fan direction > forward, reverse
-# DPS [102] VALUE [normal] --> preset mode > normal, sleep, nature
-# DPS [103] VALUE [off] --> timer > off, 1hour, 2hour, 4hour, 8hour
-
 """Platform to locally control Tuya-based fan devices."""
 import logging
 from functools import partial
@@ -237,7 +231,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
                 if value == self._config.get(CONF_FAN_DIRECTION_REV):
                     self._direction = DIRECTION_REVERSE
         
-        _LOGGER.debug("Fan current_direction : %s > %s > %s", value, self._direction, self._config.get(CONF_FAN_DIRECTION_FWD))
+        _LOGGER.debug("Fan current_direction : %s > %s", value, self._direction)
         
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocaltuyaFan, flow_schema)
