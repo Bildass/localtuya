@@ -70,10 +70,14 @@
                     "color_temp_max_kelvin": "Maximum Color Temperature in K",
                     "music_mode": "Music mode available",
                     "scene": "Scene",
-                    "fan_speed_control": "Fan Speed Control",
-                    "fan_oscillating_control": "Fan Oscillating Control",
-                    "fan_direction": "Fan Direction Control",
-                    "fan_speed_count": "Fan Speed Count"
+                    "fan_speed_control": "Fan Speed Control dps",
+                    "fan_oscillating_control": "Fan Oscillating Control dps",
+                    "fan_speed_min": "minimum fan speed integer",
+                    "fan_speed_max": "maximum fan speed integer",
+                    "fan_speed_ordered_list": "Fan speed modes list (overrides speed min/max)",
+                    "fan_direction":"fan direction dps",
+                    "fan_direction_forward": "forward dps string",
+                    "fan_direction_reverse": "reverser dps string"
                 }
             }
         }
@@ -121,11 +125,14 @@
                     "color_temp_max_kelvin": "Maximum Color Temperature in K",
                     "music_mode": "Music mode available",
                     "scene": "Scene",
-                    "fan_speed_control": "Fan Speed Control",
-                    "fan_oscillating_control": "Fan Oscillating Control",
-                    "fan_speed_low": "Fan Low Speed Setting",
-                    "fan_speed_medium": "Fan Medium Speed Setting",
-                    "fan_speed_high": "Fan High Speed Setting"
+                    "fan_speed_control": "Fan Speed Control dps",
+                    "fan_oscillating_control": "Fan Oscillating Control dps",
+                    "fan_speed_min": "minimum fan speed integer",
+                    "fan_speed_max": "maximum fan speed integer",
+                    "fan_speed_ordered_list": "Fan speed modes list (overrides speed min/max)",
+                    "fan_direction":"fan direction dps",
+                    "fan_direction_forward": "forward dps string",
+                    "fan_direction_reverse": "reverser dps string"
                 }
             },
             "yaml_import": {
