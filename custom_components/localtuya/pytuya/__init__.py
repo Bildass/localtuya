@@ -61,6 +61,7 @@ TuyaMessage = namedtuple("TuyaMessage", "seqno cmd retcode payload crc")
 SET = "set"
 STATUS = "status"
 HEARTBEAT = "heartbeat"
+UPDATEDPS = "updatedps"      # Request refresh of DPS
 
 PROTOCOL_VERSION_BYTES_31 = b"3.1"
 PROTOCOL_VERSION_BYTES_33 = b"3.3"
@@ -90,11 +91,13 @@ PAYLOAD_DICT = {
         STATUS: {"hexByte": 0x0A, "command": {"gwId": "", "devId": ""}},
         SET: {"hexByte": 0x07, "command": {"devId": "", "uid": "", "t": ""}},
         HEARTBEAT: {"hexByte": 0x09, "command": {}},
+        UPDATEDPS: {"hexByte": 0x12, "command": {"dpId": [18, 19, 20]}},
     },
     "type_0d": {
         STATUS: {"hexByte": 0x0D, "command": {"devId": "", "uid": "", "t": ""}},
         SET: {"hexByte": 0x07, "command": {"devId": "", "uid": "", "t": ""}},
         HEARTBEAT: {"hexByte": 0x09, "command": {}},
+        UPDATEDPS: {"hexByte": 0x12, "command": {"dpId": [18, 19, 20]}},
     },
 }
 
@@ -379,6 +382,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             while True:
                 try:
                     await self.heartbeat()
+                    await self.updatedps()
                     await asyncio.sleep(HEARTBEAT_INTERVAL)
                 except asyncio.CancelledError:
                     self.debug("Stopped heartbeat loop")
@@ -477,6 +481,16 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
     async def heartbeat(self):
         """Send a heartbeat message."""
         return await self.exchange(HEARTBEAT)
+
+    async def updatedps(self):
+        """
+        Request device to update index.
+        Args:
+            index(array): list of dps to update (ex. [4, 5, 6, 18, 19, 20])
+        """
+        self.debug('updatedps() entry (dev_type is %s)', self.dev_type)
+        payload = self._generate_payload(UPDATEDPS)
+        self.transport.write(payload)
 
     async def set_dp(self, value, dp_index):
         """
@@ -582,7 +596,10 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             json_data["t"] = str(int(time.time()))
 
         if data is not None:
-            json_data["dps"] = data
+            if "dpId" in json_data:
+                json_data["dpId"] = data
+            else:
+                json_data["dps"] = data
         elif command_hb == 0x0D:
             json_data["dps"] = self.dps_to_request
 
@@ -591,7 +608,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         if self.version == 3.3:
             payload = self.cipher.encrypt(payload, False)
-            if command_hb != 0x0A:
+            if command_hb != 0x0A and command_hb != 0x12:
                 # add the 3.3 header
                 payload = PROTOCOL_33_HEADER + payload
         elif command == SET:
