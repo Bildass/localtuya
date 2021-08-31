@@ -234,13 +234,13 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
         def _update_handler(status):
             """Update entity state when status was updated."""
-            if status is not None:
-                self._status = status
-                self.status_updated()
-            else:
-                self._status = {}
-
-            self.schedule_update_ha_state()
+            if status is None:
+                status = {}
+            if self._status != status:
+                self._status = status.copy()
+                if status:
+                    self.status_updated()
+                self.schedule_update_ha_state()
 
         signal = f"localtuya_{self._config_entry.data[CONF_DEVICE_ID]}"
         self.async_on_remove(
