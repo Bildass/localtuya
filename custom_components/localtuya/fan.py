@@ -149,7 +149,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
                         )),
                     self._config.get(CONF_FAN_SPEED_CONTROL)
                     )
-                _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ranged_value(self._ordered_list, percentage))
+                _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ranged_value(self._speed_range, percentage))
 
 
     async def async_oscillate(self, oscillating: bool) -> None:
