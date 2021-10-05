@@ -77,7 +77,7 @@
                     "fan_speed_ordered_list": "Fan speed modes list (overrides speed min/max)",
                     "fan_direction":"fan direction dps",
                     "fan_direction_forward": "forward dps string",
-                    "fan_direction_reverse": "reverser dps string"
+                    "fan_direction_reverse": "reverse dps string"
                 }
             }
         }
@@ -132,7 +132,7 @@
                     "fan_speed_ordered_list": "Fan speed modes list (overrides speed min/max)",
                     "fan_direction":"fan direction dps",
                     "fan_direction_forward": "forward dps string",
-                    "fan_direction_reverse": "reverser dps string"
+                    "fan_direction_reverse": "reverse dps string"
                 }
             },
             "yaml_import": {
