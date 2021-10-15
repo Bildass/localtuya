@@ -46,6 +46,6 @@ DATA_DISCOVERY = "discovery"
 DOMAIN = "localtuya"
 
 # Platforms in this list must support config flows
-PLATFORMS = ["binary_sensor", "cover", "fan", "light", "sensor", "switch"]
+PLATFORMS = ["binary_sensor", "cover", "fan", "light", "sensor", "switch", "number", "select"]
 
 TUYA_DEVICE = "tuya_device"
