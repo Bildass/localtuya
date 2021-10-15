@@ -74,7 +74,11 @@
                     "fan_oscillating_control": "Fan Oscillating Control",
                     "fan_speed_low": "Fan Low Speed Setting",
                     "fan_speed_medium": "Fan Medium Speed Setting",
-                    "fan_speed_high": "Fan High Speed Setting"
+                    "fan_speed_high": "Fan High Speed Setting",
+                    "max_value": "Maximum Value",
+                    "min_value": "Minimum Value",
+                    "select_options": "Valid entries, separate entries by a ;",
+                    "select_options_friendly": "User Friendly options, separate entries by a ;"
                 }
             }
         }
@@ -124,9 +128,13 @@
                     "scene": "Scene",
                     "fan_speed_control": "Fan Speed Control",
                     "fan_oscillating_control": "Fan Oscillating Control",
-                    "fan_speed_low": "Fan Low Speed Setting",
+                    "fan_speed_low": "Fan Low Speed Settingaa",
                     "fan_speed_medium": "Fan Medium Speed Setting",
-                    "fan_speed_high": "Fan High Speed Setting"
+                    "fan_speed_high": "Fan High Speed Setting",
+                    "max_value": "Maximum Value",
+                    "min_value": "Minimum Value",
+                    "select_options": "Valid entries, separate entries by a ;",
+                    "select_options_friendly": "User Friendly options, separate entries by a ;"
                 }
             },
             "yaml_import": {
