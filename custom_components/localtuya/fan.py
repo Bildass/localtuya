@@ -12,6 +12,7 @@ from homeassistant.components.fan import (
     SUPPORT_DIRECTION,
     SUPPORT_OSCILLATE,
     SUPPORT_SET_SPEED,
+    SUPPORT_PRESET_MODE,
     FanEntity,
 )
 
@@ -25,7 +26,8 @@ from .const import (
     CONF_FAN_SPEED_MIN,
     CONF_FAN_SPEED_MAX,
     CONF_FAN_ORDERED_LIST,
-    CONF_FAN_SPEED_DPS_TYPE
+    CONF_FAN_SPEED_DPS_TYPE,
+    CONF_FAN_PRESET_LIST
 )
 
 from homeassistant.util.percentage import (
