@@ -24,7 +24,8 @@ from .const import (
     CONF_FAN_DIRECTION_REV,
     CONF_FAN_SPEED_MIN,
     CONF_FAN_SPEED_MAX,
-    CONF_FAN_ORDERED_LIST
+    CONF_FAN_ORDERED_LIST,
+    CONF_FAN_SPEED_DPS_TYPE
 )
 
 from homeassistant.util.percentage import (
@@ -44,11 +45,15 @@ def flow_schema(dps):
         vol.Optional(CONF_FAN_SPEED_CONTROL): vol.In(dps),
         vol.Optional(CONF_FAN_OSCILLATING_CONTROL): vol.In(dps),
         vol.Optional(CONF_FAN_DIRECTION): vol.In(dps),
+        vol.Optional(CONF_FAN_PRESET_CONTROL): vol.In(dps),
         vol.Optional(CONF_FAN_DIRECTION_FWD, default="forward"): cv.string,
         vol.Optional(CONF_FAN_DIRECTION_REV, default="reverse"): cv.string,
         vol.Optional(CONF_FAN_SPEED_MIN, default=1): cv.positive_int,
         vol.Optional(CONF_FAN_SPEED_MAX, default=9): cv.positive_int,
-        vol.Optional(CONF_FAN_ORDERED_LIST, default="disabled"): cv.string,
+        vol.Optional(CONF_FAN_ORDERED_LIST): cv.string,
+        vol.Optional(CONF_FAN_PRESET_LIST): cv.string,
+        vol.Optional(CONF_FAN_SPEED_DPS_TYPE, default="string"): vol.In(
+            ["string", "integer", "list"]),
     }
 
 
@@ -68,21 +73,21 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         self._oscillating = None
         self._direction = None
         self._percentage = None
+        self._preset = None
         self._speed_range = (
             self._config.get(CONF_FAN_SPEED_MIN), 
             self._config.get(CONF_FAN_SPEED_MAX),
         )
-        self._ordered_list = self._config.get(CONF_FAN_ORDERED_LIST).split(",")
-        self._ordered_list_mode = None
-
-        if (type(self._ordered_list) is list and len(self._ordered_list) > 1):
-            self._use_ordered_list = True
-            _LOGGER.debug("Fan _use_ordered_list: %s > %s", self._use_ordered_list, self._ordered_list)
-
-        else:
-            self._use_ordered_list = False
-            _LOGGER.debug("Fan _use_ordered_list: %s", self._use_ordered_list)
+        self._ordered_list = self._config.get(CONF_FAN_ORDERED_LIST).replace(" ","").split(",")
+        self._preset_list = self._config.get(CONF_FAN_PRESET_LIST).replace(" ","").split(",")
+        self._ordered_speed_dps_type = self._config.get(CONF_FAN_SPEED_DPS_TYPE)
         
+        if (self._ordered_speed_dps_type == "list" and type(self._ordered_list) is list 
+                and len(self._ordered_list) > 1):
+            _LOGGER.debug("Fan _use_ordered_list: %s", self._ordered_list)
+        else:
+            _LOGGER.debug("Fan _use_ordered_list: Not a valid list")
+            
 
     @property
     def oscillating(self):
@@ -125,13 +130,32 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
         _LOGGER.debug("Fan async_set_percentage: %s", percentage)
 
-
+        
         if percentage is not None:
             if percentage == 0:
                 return await self.async_turn_off()
             elif not self.is_on:
                 await self.async_turn_on()
-            if self._use_ordered_list:
+            
+            if self._ordered_speed_dps_type == "string":
+                await self._device.set_dp(
+                    str(math.ceil(
+                        percentage_to_ranged_value(self._speed_range, percentage)
+                        )),
+                    self._config.get(CONF_FAN_SPEED_CONTROL)
+                    )
+                _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ranged_value(self._speed_range, percentage))
+            
+            elif self._ordered_speed_dps_type == "integer":
+                await self._device.set_dp(
+                    int(math.ceil(
+                        percentage_to_ranged_value(self._speed_range, percentage)
+                        )),
+                    self._config.get(CONF_FAN_SPEED_CONTROL)
+                    )
+                _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ranged_value(self._speed_range, percentage))
+
+            elif self._ordered_speed_dps_type == "list":
                 await self._device.set_dp(
                     str(
                         percentage_to_ordered_list_item(self._ordered_list, percentage)
@@ -140,14 +164,23 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
                     )
                 _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ordered_list_item(self._ordered_list, percentage))
 
-            else:
-                await self._device.set_dp(
-                    str(math.ceil(
-                        percentage_to_ranged_value(self._speed_range, percentage)
-                        )),
-                    self._config.get(CONF_FAN_SPEED_CONTROL)
-                    )
-                _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ranged_value(self._speed_range, percentage))
+            # if self._use_ordered_list:
+            #     await self._device.set_dp(
+            #         str(
+            #             percentage_to_ordered_list_item(self._ordered_list, percentage)
+            #             ),
+            #         self._config.get(CONF_FAN_SPEED_CONTROL)
+            #         )
+            #     _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ordered_list_item(self._ordered_list, percentage))
+
+            # else:
+            #     await self._device.set_dp(
+            #         str(math.ceil(
+            #             percentage_to_ranged_value(self._speed_range, percentage)
+            #             )),
+            #         self._config.get(CONF_FAN_SPEED_CONTROL)
+            #         )
+            #     _LOGGER.debug("Fan async_set_percentage: %s > %s", percentage, percentage_to_ranged_value(self._speed_range, percentage))
             self.schedule_update_ha_state()
 
 
@@ -172,7 +205,15 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         await self._device.set_dp(
             value, self._config.get(CONF_FAN_DIRECTION)
         )
-        self.schedule_update_ha_state()        
+        self.schedule_update_ha_state()   
+
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Set the preset mode of the fan."""     
+        _LOGGER.debug("Fan set preset: %s", preset_mode)
+        await self._device.set_dp(
+            preset_mode, self._config.get(CONF_FAN_PRESET_CONTROL)
+        )
+        self.schedule_update_ha_state()
 
     @property
     def supported_features(self) -> int:
@@ -187,6 +228,9 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
         if self.has_config(CONF_FAN_DIRECTION):
             features |= SUPPORT_DIRECTION
+
+        if self.has_config(CONF_FAN_PRESET_CONTROL):
+            features |= SUPPORT_PRESET_MODE
 
         return features 
     
@@ -203,18 +247,23 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
         self._is_on = self.dps(self._dp_id)
 
+        # check for speed and preset.
         current_speed = self.dps_conf(CONF_FAN_SPEED_CONTROL)
-        if self._use_ordered_list:
-            _LOGGER.debug("Fan current_speed ordered_list_item_to_percentage: %s from %s", current_speed, self._ordered_list)
-            if current_speed is not None:
+        if current_speed is not None:
+
+            if current_speed in self._preset_list:
+                _LOGGER.debug("Fan current_speed in preset list: %s from %s", current_speed, self._preset_list)
+                self._preset = current_speed
+
+            if self._ordered_speed_dps_type == "list":
+                _LOGGER.debug("Fan current_speed ordered_list_item_to_percentage: %s from %s", current_speed, self._ordered_list)
                 self._percentage = ordered_list_item_to_percentage(self._ordered_list, current_speed)
-        
-        else:
-            _LOGGER.debug("Fan current_speed ranged_value_to_percentage: %s from %s", current_speed, self._speed_range)
-            if current_speed is not None:
+            
+            elif self._ordered_speed_dps_type == "string" or self._ordered_speed_dps_type == "integer" :
+                _LOGGER.debug("Fan current_speed ranged_value_to_percentage: %s from %s", current_speed, self._speed_range)
                 self._percentage = ranged_value_to_percentage(self._speed_range, int(current_speed))
 
-        _LOGGER.debug("Fan current_percentage: %s", self._percentage)
+            _LOGGER.debug("Fan current_percentage: %s", self._percentage)
 
         if self.has_config(CONF_FAN_OSCILLATING_CONTROL):
             self._oscillating = self.dps_conf(CONF_FAN_OSCILLATING_CONTROL)
