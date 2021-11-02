@@ -7,10 +7,10 @@ import json
 
 import voluptuous as vol
 from homeassistant.components.climate import (
+    ClimateEntity,
     DEFAULT_MAX_TEMP,
     DEFAULT_MIN_TEMP,
     DOMAIN,
-    ClimateEntity,
 )
 from homeassistant.components.climate.const import (
     CURRENT_HVAC_HEAT,
