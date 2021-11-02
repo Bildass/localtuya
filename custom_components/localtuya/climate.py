@@ -353,7 +353,7 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
                 else:
                     self._preset_mode = PRESET_NONE
 
-        """Update the HVAC status"""
+        # Update the HVAC status
         if self.has_config(CONF_HVAC_MODE_DP):
             if not self._state:
                 self._hvac_mode = HVAC_MODE_OFF
