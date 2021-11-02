@@ -366,7 +366,7 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
                     # in case hvac mode and preset share the same dp
                     self._hvac_mode = HVAC_MODE_AUTO
 
-        """Update the current action"""
+        # Update the current action
         for action,value in self._conf_hvac_action_set.items():
             if self.dps_conf(CONF_HVAC_ACTION_DP) == value:
                 self._hvac_action = action
