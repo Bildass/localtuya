@@ -72,8 +72,8 @@ _LOGGER = logging.getLogger(__name__)
 
 HVAC_MODE_SETS = {
     "manual/auto": {
-        HVAC_MODE_HEAT: "manual",
         HVAC_MODE_AUTO: "auto",
+        HVAC_MODE_HEAT: "manual",
     },
     "Manual/Auto": {
         HVAC_MODE_HEAT: "Manual",
