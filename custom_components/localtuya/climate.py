@@ -76,8 +76,8 @@ HVAC_MODE_SETS = {
         HVAC_MODE_HEAT: "manual",
     },
     "Manual/Auto": {
-        HVAC_MODE_HEAT: "Manual",
         HVAC_MODE_AUTO: "Auto",
+        HVAC_MODE_HEAT: "Manual",
     },
     "True/False": {
         HVAC_MODE_HEAT: True,
