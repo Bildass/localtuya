@@ -18,7 +18,6 @@ from homeassistant.components.vacuum import (
     SUPPORT_STATE,
     SUPPORT_STATUS,
     SUPPORT_STOP,
-    SUPPORT_PAUSE,
     SUPPORT_LOCATE,
     StateVacuumEntity,
 )
@@ -45,10 +44,10 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-CLEAN_TIME  = "clean_time"
-CLEAN_AREA  = "clean_area"
-MODES_LIST  = "cleaning_mode_list"
-MODE        = "cleaning_mode"
+CLEAN_TIME = "clean_time"
+CLEAN_AREA = "clean_area"
+MODES_LIST = "cleaning_mode_list"
+MODE = "cleaning_mode"
 
 DEFAULT_IDLE_STATUS = "standby,sleep"
 DEFAULT_RETURNING_STATUS = "docking"
@@ -59,13 +58,15 @@ DEFAULT_PAUSED_STATE = "paused"
 DEFAULT_RETURN_MODE = "chargego"
 DEFAULT_STOP_STATUS = "standby"
 
+
 def flow_schema(dps):
     """Return schema used in config flow."""
     return {
         vol.Required(CONF_IDLE_STATUS_VALUE, default=DEFAULT_IDLE_STATUS): str,
         vol.Required(CONF_POWERGO_DP): vol.In(dps),
         vol.Required(CONF_DOCKED_STATUS_VALUE, default=DEFAULT_DOCKED_STATUS): str,
-        vol.Optional(CONF_RETURNING_STATUS_VALUE, default=DEFAULT_RETURNING_STATUS): str,
+        vol.Optional(CONF_RETURNING_STATUS_VALUE,
+                     default=DEFAULT_RETURNING_STATUS): str,
         vol.Optional(CONF_BATTERY_DP): vol.In(dps),
         vol.Optional(CONF_MODE_DP): vol.In(dps),
         vol.Optional(CONF_MODES, default=DEFAULT_MODES): str,
@@ -85,7 +86,7 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
     def __init__(self, device, config_entry, switchid, **kwargs):
         """Initialize a new LocaltuyaVacuum."""
-        super().__init__(device, config_entry, switchid ,_LOGGER, **kwargs)
+        super().__init__(device, config_entry, switchid , _LOGGER, **kwargs)
         self._state = None
         self._battery_level = None
         self._attrs = {}
@@ -98,7 +99,7 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         if self.has_config(CONF_MODES):
             self._modes_list = self._config[CONF_MODES].split(",")
             self._attrs[MODES_LIST] = self._modes_list
-        
+
         self._docked_status_list = []
         if self.has_config(CONF_DOCKED_STATUS_VALUE):
             self._docked_status_list = self._config[CONF_DOCKED_STATUS_VALUE].split(",")
@@ -115,7 +116,8 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     @property
     def supported_features(self):
         """Flag supported features."""
-        supported_features = SUPPORT_START | SUPPORT_PAUSE | SUPPORT_STOP | SUPPORT_STATUS | SUPPORT_STATE
+        supported_features = (SUPPORT_START | SUPPORT_PAUSE
+                              | SUPPORT_STOP | SUPPORT_STATUS | SUPPORT_STATE)
 
         if self.has_config(CONF_RETURN_MODE):
             supported_features = supported_features | SUPPORT_RETURN_HOME
@@ -153,11 +155,6 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         """Return the list of available fan speeds."""
         return self._fan_speed_list
 
-    @property
-    def error(self):
-        """Return error message."""
-        return ""
-
     async def async_start(self, **kwargs):
         """Turn the vacuum on and start cleaning."""
         await self._device.set_dp(True, self._config[CONF_POWERGO_DP])
@@ -169,14 +166,16 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     async def async_return_to_base(self, **kwargs):
         """Set the vacuum cleaner to return to the dock."""
         if self.has_config(CONF_RETURN_MODE):
-            await self._device.set_dp(self._config[CONF_RETURN_MODE], self._config[CONF_MODE_DP])
+            await self._device.set_dp(self._config[CONF_RETURN_MODE],
+                                      self._config[CONF_MODE_DP])
         else:
             _LOGGER.error("Missing command for return home in commands set.")
 
     async def async_stop(self, **kwargs):
-        """Turn the vacuum off stopping the cleaning"""
+        """Turn the vacuum off stopping the cleaning."""
         if self.has_config(CONF_STOP_STATUS):
-            await self._device.set_dp(self._config[CONF_STOP_STATUS], self._config[CONF_MODE_DP])
+            await self._device.set_dp(self._config[CONF_STOP_STATUS],
+                                      self._config[CONF_MODE_DP])
         else:
             _LOGGER.error("Missing command for stop in commands set.")
 
@@ -189,9 +188,8 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         if self.has_config(CONF_LOCATE_DP):
             await self._device.set_dp('', self._config[CONF_LOCATE_DP])
 
-    async def async_set_fan_speed(self, **kwargs):
+    async def async_set_fan_speed(self, fan_speed, **kwargs):
         """Set the fan speed."""
-        fan_speed = kwargs["fan_speed"]
         await self._device.set_dp(fan_speed, self._config[CONF_FAN_SPEED_DP])
 
     async def async_send_command(self, command, params=None, **kwargs):
@@ -216,20 +214,21 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
         if self.has_config(CONF_BATTERY_DP):
             self._battery_level = self.dps_conf(CONF_BATTERY_DP)
-        
+
         self._cleaning_mode = ""
         if self.has_config(CONF_MODES):
             self._cleaning_mode = self.dps_conf(CONF_MODE_DP)
             self._attrs[MODE] = self._cleaning_mode
-        
+
         self._fan_speed = ""
         if self.has_config(CONF_FAN_SPEEDS):
             self._fan_speed = self.dps_conf(CONF_FAN_SPEED_DP)
-        
+
         if self.has_config(CONF_CLEAN_TIME_DP):
             self._attrs[CLEAN_TIME] = self.dps_conf(CONF_CLEAN_TIME_DP)
-        
+
         if self.has_config(CONF_CLEAN_AREA_DP):
             self._attrs[CLEAN_AREA] = self.dps_conf(CONF_CLEAN_AREA_DP)
-        
+
+
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocaltuyaVacuum, flow_schema)
