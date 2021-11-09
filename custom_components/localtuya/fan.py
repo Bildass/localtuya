@@ -109,7 +109,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         _LOGGER.debug("Fan async_turn_on")
         await self._device.set_dp(True, self._dp_id)
         if percentage is not None:
-            await self.async_set_percentage(speed)
+            await self.async_set_percentage(percentage)
         else:
             self.schedule_update_ha_state()
 
