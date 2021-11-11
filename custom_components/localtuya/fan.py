@@ -245,4 +245,5 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
                     self._direction = DIRECTION_REVERSE
             _LOGGER.debug("Fan current_direction : %s > %s", value, self._direction)
 
+
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocaltuyaFan, flow_schema)
