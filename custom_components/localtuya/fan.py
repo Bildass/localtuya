@@ -74,7 +74,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         self._ordered_list = self._config.get(CONF_FAN_ORDERED_LIST).split(",")
         self._ordered_list_mode = None
 
-        if type(self._ordered_list) is list and len(self._ordered_list) > 1:
+        if isinstance(self._ordered_list, list) and len(self._ordered_list) > 1:
             self._use_ordered_list = True
             _LOGGER.debug(
                 "Fan _use_ordered_list: %s > %s",
@@ -105,7 +105,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         """Return the current percentage."""
         return self._percentage
 
-    async def async_turn_on(self, percentage: str = None, **kwargs) -> None:
+    async def async_turn_on(self, percentage: str = None, preset_mode: str = None, **kwargs: Any) -> None:
         """Turn on the entity."""
         _LOGGER.debug("Fan async_turn_on")
         await self._device.set_dp(True, self._dp_id)
