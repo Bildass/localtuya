@@ -122,7 +122,6 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
     async def async_set_percentage(self, percentage):
         """Set the speed of the fan."""
-
         _LOGGER.debug("Fan async_set_percentage: %s", percentage)
 
         if percentage is not None:
@@ -199,7 +198,6 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
     def status_updated(self):
         """Get state of Tuya fan."""
-
         self._is_on = self.dps(self._dp_id)
 
         current_speed = self.dps_conf(CONF_FAN_SPEED_CONTROL)
