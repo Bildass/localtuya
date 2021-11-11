@@ -105,7 +105,8 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         """Return the current percentage."""
         return self._percentage
 
-    async def async_turn_on(self, percentage: str = None, preset_mode: str = None, **kwargs) -> None:
+    async def async_turn_on(self, percentage: str = None,
+        preset_mode: str = None, **kwargs) -> None:
         """Turn on the entity."""
         _LOGGER.debug("Fan async_turn_on")
         await self._device.set_dp(True, self._dp_id)
