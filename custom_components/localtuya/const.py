@@ -40,9 +40,7 @@ CONF_FAN_ORDERED_LIST = "fan_speed_ordered_list"
 CONF_FAN_DIRECTION = "fan_direction"
 CONF_FAN_DIRECTION_FWD = "fan_direction_forward"
 CONF_FAN_DIRECTION_REV = "fan_direction_reverse"
-CONF_FAN_SPEED_DPS_TYPE = "fan_speed_dps_type"
-CONF_FAN_PRESET_CONTROL = "fan_preset_control"
-CONF_FAN_PRESET_LIST = "fan_preset_list"
+
 # sensor
 CONF_SCALING = "scaling"
 
