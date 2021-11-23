@@ -91,7 +91,7 @@
                     "preset_set": "Presets Set (optional)",
                     "eco_dp": "Eco DP (optional)",
                     "eco_value": "Eco value (optional)",
-                    "euristic_action": "Enable euristic action (optional)"
+                    "heuristic_action": "Enable heuristic action (optional)"
                 }
             }
         }
@@ -160,7 +160,7 @@
                     "preset_set": "Presets Set (optional)",
                     "eco_dp": "Eco DP (optional)",
                     "eco_value": "Eco value (optional)",
-                    "euristic_action": "Enable euristic action (optional)"
+                    "heuristic_action": "Enable heuristic action (optional)"
                 }
             },
             "yaml_import": {
