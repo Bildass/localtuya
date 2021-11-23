@@ -61,7 +61,7 @@ TuyaMessage = namedtuple("TuyaMessage", "seqno cmd retcode payload crc")
 SET = "set"
 STATUS = "status"
 HEARTBEAT = "heartbeat"
-UPDATEDPS = "updatedps"      # Request refresh of DPS
+UPDATEDPS = "updatedps"  # Request refresh of DPS
 
 PROTOCOL_VERSION_BYTES_31 = b"3.1"
 PROTOCOL_VERSION_BYTES_33 = b"3.3"
@@ -485,10 +485,11 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
     async def updatedps(self):
         """
         Request device to update index.
+
         Args:
             index(array): list of dps to update (ex. [4, 5, 6, 18, 19, 20])
         """
-        self.debug('updatedps() entry (dev_type is %s)', self.dev_type)
+        self.debug("updatedps() entry (dev_type is %s)", self.dev_type)
         payload = self._generate_payload(UPDATEDPS)
         self.transport.write(payload)
 
@@ -608,7 +609,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         if self.version == 3.3:
             payload = self.cipher.encrypt(payload, False)
-            if command_hb != 0x0A and command_hb != 0x12:
+            if command_hb not in [0x0A, 0x12]:
                 # add the 3.3 header
                 payload = PROTOCOL_33_HEADER + payload
         elif command == SET:
