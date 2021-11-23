@@ -7,33 +7,32 @@ import json
 
 import voluptuous as vol
 from homeassistant.components.climate import (
-    ClimateEntity,
     DEFAULT_MAX_TEMP,
     DEFAULT_MIN_TEMP,
     DOMAIN,
+    ClimateEntity,
 )
 from homeassistant.components.climate.const import (
-    CURRENT_HVAC_HEAT,
-    CURRENT_HVAC_OFF,
     HVAC_MODE_AUTO,
+    HVAC_MODE_HEAT,
+    HVAC_MODE_OFF,
     HVAC_MODE_COOL,
+    HVAC_MODE_HEAT_COOL,
     HVAC_MODE_DRY,
     HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_HEAT_COOL,
-    HVAC_MODE_OFF,
-    PRESET_ACTIVITY,
-    PRESET_AWAY,
-    PRESET_BOOST,
-    PRESET_COMFORT,
-    PRESET_ECO,
-    PRESET_HOME,
-    PRESET_NONE,
-    PRESET_SLEEP,
-    SUPPORT_FAN_MODE,
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
+    CURRENT_HVAC_OFF,
+    CURRENT_HVAC_HEAT,
+    PRESET_NONE,
+    PRESET_ECO,
+    PRESET_AWAY,
+    PRESET_BOOST,
+    PRESET_COMFORT,
+    PRESET_HOME,
+    PRESET_SLEEP,
+    PRESET_ACTIVITY,
 )
 from homeassistant.const import (
     ATTR_TEMPERATURE,
@@ -48,22 +47,21 @@ from homeassistant.const import (
 from .common import LocalTuyaEntity, async_setup_entry
 from .const import (
     CONF_CURRENT_TEMPERATURE_DP,
-    CONF_ECO_DP,
-    CONF_ECO_VALUE,
-    CONF_EURISTIC_ACTION,
-    CONF_FAN_MODE_DP,
-    CONF_HVAC_ACTION_DP,
-    CONF_HVAC_ACTION_SET,
-    CONF_HVAC_MODE_DP,
-    CONF_HVAC_MODE_SET,
     CONF_MAX_TEMP_DP,
     CONF_MIN_TEMP_DP,
     CONF_PRECISION,
-    CONF_PRESET_DP,
-    CONF_PRESET_SET,
     CONF_TARGET_PRECISION,
     CONF_TARGET_TEMPERATURE_DP,
     CONF_TEMPERATURE_STEP,
+    CONF_HVAC_MODE_DP,
+    CONF_HVAC_MODE_SET,
+    CONF_EURISTIC_ACTION,
+    CONF_HVAC_ACTION_DP,
+    CONF_HVAC_ACTION_SET,
+    CONF_ECO_DP,
+    CONF_ECO_VALUE,
+    CONF_PRESET_DP,
+    CONF_PRESET_SET,
 )
 
 from . import pytuya
@@ -72,12 +70,12 @@ _LOGGER = logging.getLogger(__name__)
 
 HVAC_MODE_SETS = {
     "manual/auto": {
-        HVAC_MODE_AUTO: "auto",
         HVAC_MODE_HEAT: "manual",
+        HVAC_MODE_AUTO: "auto",
     },
     "Manual/Auto": {
-        HVAC_MODE_AUTO: "Auto",
         HVAC_MODE_HEAT: "Manual",
+        HVAC_MODE_AUTO: "Auto",
     },
     "True/False": {
         HVAC_MODE_HEAT: True,
@@ -99,9 +97,9 @@ HVAC_ACTION_SETS = {
 }
 PRESET_SETS = {
     "Manual/Holiday/Program": {
-        PRESET_NONE: "Manual",
         PRESET_AWAY: "Holiday",
         PRESET_HOME: "Program",
+        PRESET_NONE: "Manual",
     },
 }
 
@@ -110,6 +108,7 @@ TEMPERATURE_FAHRENHEIT = "fahrenheit"
 DEFAULT_TEMPERATURE_UNIT = TEMPERATURE_CELSIUS
 DEFAULT_PRECISION = PRECISION_TENTHS
 DEFAULT_TEMPERATURE_STEP = PRECISION_HALVES
+# Empirically tested to work for AVATTO thermostat
 MODE_WAIT = 0.1
 
 def flow_schema(dps):
@@ -146,7 +145,6 @@ def flow_schema(dps):
             [PRECISION_WHOLE, PRECISION_HALVES, PRECISION_TENTHS]
         ),
         vol.Optional(CONF_EURISTIC_ACTION, default=False): bool,
-        vol.Optional(CONF_FAN_MODE_DP): vol.In(dps),
     }
 
 
@@ -179,7 +177,7 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
         self._conf_eco_dp = self._config.get(CONF_ECO_DP)
         self._conf_eco_value = self._config.get(CONF_ECO_VALUE, "ECO")
         self._has_presets = self.has_config(CONF_ECO_DP) or self.has_config(CONF_PRESET_DP)
-        _LOGGER.debug(f"Initialized climate [{self.name}]")
+        print("Initialized climate [{}]".format(self.name))
 
     @property
     def supported_features(self):
@@ -189,8 +187,6 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
             supported_features = supported_features | SUPPORT_TARGET_TEMPERATURE
         if self.has_config(CONF_MAX_TEMP_DP):
             supported_features = supported_features | SUPPORT_TARGET_TEMPERATURE_RANGE
-        if self.has_config(CONF_FAN_MODE_DP):
-            supported_features = supported_features | SUPPORT_FAN_MODE
         if self.has_config(CONF_PRESET_DP) or self.has_config(CONF_ECO_DP):
             supported_features = supported_features | SUPPORT_PRESET_MODE
         return supported_features
@@ -303,6 +299,7 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
             return
         if not self._state and self._conf_hvac_mode_dp != self._dp_id:
             await self._device.set_dp(True, self._dp_id)
+            # Some thermostats need a small wait before sending another update
             await asyncio.sleep(MODE_WAIT)
         await self._device.set_dp(self._conf_hvac_mode_set[hvac_mode], self._conf_hvac_mode_dp)
 
@@ -341,7 +338,6 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
                 self.dps_conf(CONF_CURRENT_TEMPERATURE_DP) * self._precision
             )
 
-        #_LOGGER.debug("the test is %s", test)he preset status"""
         if self._has_presets:
             if self.has_config(CONF_ECO_DP) and self.dps_conf(CONF_ECO_DP) == self._conf_eco_value:
                 self._preset_mode = PRESET_ECO
@@ -353,7 +349,7 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
                 else:
                     self._preset_mode = PRESET_NONE
 
-        # Update the HVAC status
+        """Update the HVAC status"""
         if self.has_config(CONF_HVAC_MODE_DP):
             if not self._state:
                 self._hvac_mode = HVAC_MODE_OFF
@@ -366,7 +362,7 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
                     # in case hvac mode and preset share the same dp
                     self._hvac_mode = HVAC_MODE_AUTO
 
-        # Update the current action
+        """Update the current action"""
         for action,value in self._conf_hvac_action_set.items():
             if self.dps_conf(CONF_HVAC_ACTION_DP) == value:
                 self._hvac_action = action
