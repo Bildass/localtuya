@@ -29,7 +29,8 @@
                     "host": "Host",
                     "device_id": "Device ID",
                     "local_key": "Local key",
-                    "protocol_version": "Protocol Version"
+                    "protocol_version": "Protocol Version",
+                    "scan_interval": "Scan interval in seconds (fill only if the device is not updating automatically)"
                 }
             },
             "pick_entity_type": {
@@ -89,6 +90,7 @@
                     "host": "Host",
                     "local_key": "Local key",
                     "protocol_version": "Protocol Version",
+                    "scan_interval": "Scan interval in seconds (fill only if the device is not updating automatically)",
                     "entities": "Entities (uncheck an entity to remove it)"
                 }
             },

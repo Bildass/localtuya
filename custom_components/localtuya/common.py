@@ -1,6 +1,7 @@
 """Code shared between all platforms."""
 import asyncio
 import logging
+from datetime import timedelta
 
 from homeassistant.const import (
     CONF_DEVICE_ID,
@@ -9,8 +10,10 @@ from homeassistant.const import (
     CONF_HOST,
     CONF_ID,
     CONF_PLATFORM,
+    CONF_SCAN_INTERVAL,
 )
 from homeassistant.core import callback
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
@@ -116,6 +119,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         self.dps_to_request = {}
         self._is_closing = False
         self._connect_task = None
+        self._unsub_interval = None
         self.set_logger(_LOGGER, config_entry[CONF_DEVICE_ID])
 
         # This has to be done in case the device type is type_0d
@@ -151,12 +155,25 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                 raise Exception("Failed to retrieve status")
 
             self.status_updated(status)
+            if (
+                CONF_SCAN_INTERVAL in self._config_entry
+                and self._config_entry[CONF_SCAN_INTERVAL] > 0
+            ):
+                self._unsub_interval = async_track_time_interval(
+                    self._hass,
+                    self._async_refresh,
+                    timedelta(seconds=self._config_entry[CONF_SCAN_INTERVAL]),
+                )
         except Exception:  # pylint: disable=broad-except
             self.exception(f"Connect to {self._config_entry[CONF_HOST]} failed")
             if self._interface is not None:
                 await self._interface.close()
                 self._interface = None
         self._connect_task = None
+
+    async def _async_refresh(self, _now):
+        if self._interface is not None:
+            await self._interface.updatedps()
 
     async def close(self):
         """Close connection and stop re-connect loop."""
@@ -204,7 +221,9 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         """Device disconnected."""
         signal = f"localtuya_{self._config_entry[CONF_DEVICE_ID]}"
         async_dispatcher_send(self._hass, signal, None)
-
+        if self._unsub_interval is not None:
+            self._unsub_interval()
+            self._unsub_interval = None
         self._interface = None
         self.debug("Disconnected - waiting for discovery broadcast")
 
