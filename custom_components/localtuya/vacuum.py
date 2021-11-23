@@ -65,8 +65,9 @@ def flow_schema(dps):
         vol.Required(CONF_IDLE_STATUS_VALUE, default=DEFAULT_IDLE_STATUS): str,
         vol.Required(CONF_POWERGO_DP): vol.In(dps),
         vol.Required(CONF_DOCKED_STATUS_VALUE, default=DEFAULT_DOCKED_STATUS): str,
-        vol.Optional(CONF_RETURNING_STATUS_VALUE,
-                     default=DEFAULT_RETURNING_STATUS): str,
+        vol.Optional(
+            CONF_RETURNING_STATUS_VALUE, default=DEFAULT_RETURNING_STATUS
+        ): str,
         vol.Optional(CONF_BATTERY_DP): vol.In(dps),
         vol.Optional(CONF_MODE_DP): vol.In(dps),
         vol.Optional(CONF_MODES, default=DEFAULT_MODES): str,
@@ -86,7 +87,7 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
     def __init__(self, device, config_entry, switchid, **kwargs):
         """Initialize a new LocaltuyaVacuum."""
-        super().__init__(device, config_entry, switchid , _LOGGER, **kwargs)
+        super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
         self._battery_level = None
         self._attrs = {}
@@ -116,8 +117,13 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     @property
     def supported_features(self):
         """Flag supported features."""
-        supported_features = (SUPPORT_START | SUPPORT_PAUSE
-                              | SUPPORT_STOP | SUPPORT_STATUS | SUPPORT_STATE)
+        supported_features = (
+            SUPPORT_START
+            | SUPPORT_PAUSE
+            | SUPPORT_STOP
+            | SUPPORT_STATUS
+            | SUPPORT_STATE
+        )
 
         if self.has_config(CONF_RETURN_MODE):
             supported_features = supported_features | SUPPORT_RETURN_HOME
@@ -166,16 +172,18 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     async def async_return_to_base(self, **kwargs):
         """Set the vacuum cleaner to return to the dock."""
         if self.has_config(CONF_RETURN_MODE):
-            await self._device.set_dp(self._config[CONF_RETURN_MODE],
-                                      self._config[CONF_MODE_DP])
+            await self._device.set_dp(
+                self._config[CONF_RETURN_MODE], self._config[CONF_MODE_DP]
+            )
         else:
             _LOGGER.error("Missing command for return home in commands set.")
 
     async def async_stop(self, **kwargs):
         """Turn the vacuum off stopping the cleaning."""
         if self.has_config(CONF_STOP_STATUS):
-            await self._device.set_dp(self._config[CONF_STOP_STATUS],
-                                      self._config[CONF_MODE_DP])
+            await self._device.set_dp(
+                self._config[CONF_STOP_STATUS], self._config[CONF_MODE_DP]
+            )
         else:
             _LOGGER.error("Missing command for stop in commands set.")
 
@@ -186,7 +194,7 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     async def async_locate(self, **kwargs):
         """Locate the vacuum cleaner."""
         if self.has_config(CONF_LOCATE_DP):
-            await self._device.set_dp('', self._config[CONF_LOCATE_DP])
+            await self._device.set_dp("", self._config[CONF_LOCATE_DP])
 
     async def async_set_fan_speed(self, fan_speed, **kwargs):
         """Set the fan speed."""
@@ -194,8 +202,8 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
     async def async_send_command(self, command, params=None, **kwargs):
         """Send a command to a vacuum cleaner."""
-        if command == "set_mode" and 'mode' in params:
-            mode = params['mode']
+        if command == "set_mode" and "mode" in params:
+            mode = params["mode"]
             await self._device.set_dp(mode, self._config[CONF_MODE_DP])
 
     def status_updated(self):
