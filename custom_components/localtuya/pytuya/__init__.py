@@ -91,13 +91,13 @@ PAYLOAD_DICT = {
         STATUS: {"hexByte": 0x0A, "command": {"gwId": "", "devId": ""}},
         SET: {"hexByte": 0x07, "command": {"devId": "", "uid": "", "t": ""}},
         HEARTBEAT: {"hexByte": 0x09, "command": {}},
-        UPDATEDPS: {"hexByte": 0x12, "command": {"dpId": [18, 19, 20]}},
+        UPDATEDPS: {"hexByte": 0x12, "command": {"dpId": [4, 5, 6, 18, 19, 20]}},
     },
     "type_0d": {
         STATUS: {"hexByte": 0x0D, "command": {"devId": "", "uid": "", "t": ""}},
         SET: {"hexByte": 0x07, "command": {"devId": "", "uid": "", "t": ""}},
         HEARTBEAT: {"hexByte": 0x09, "command": {}},
-        UPDATEDPS: {"hexByte": 0x12, "command": {"dpId": [18, 19, 20]}},
+        UPDATEDPS: {"hexByte": 0x12, "command": {"dpId": [4, 5, 6, 18, 19, 20]}},
     },
 }
 
@@ -210,9 +210,11 @@ class AESCipher:
 class MessageDispatcher(ContextualLogger):
     """Buffer and dispatcher for Tuya messages."""
 
-    # Heartbeats always respond with sequence number 0, so they can't be waited for like
-    # other messages. This is a hack to allow waiting for heartbeats.
+    # Heartbeats and updatedps always respond with sequence number 0,
+    # so they can't be waited for like other messages.
+    # This is a hack to allow waiting for them.
     HEARTBEAT_SEQNO = -100
+    UPDATEDPS_SEQNO = -101
 
     def __init__(self, dev_id, listener):
         """Initialize a new MessageBuffer."""
@@ -295,9 +297,28 @@ class MessageDispatcher(ContextualLogger):
                 sem = self.listeners[self.HEARTBEAT_SEQNO]
                 self.listeners[self.HEARTBEAT_SEQNO] = msg
                 sem.release()
+        elif msg.cmd == 0x12:
+            self.debug("Got normal updatedps response")
+            if self.UPDATEDPS_SEQNO in self.listeners:
+                sem = self.listeners[self.UPDATEDPS_SEQNO]
+                self.listeners[self.UPDATEDPS_SEQNO] = msg
+                if isinstance(sem, asyncio.Semaphore):
+                    sem.release()
         elif msg.cmd == 0x08:
-            self.debug("Got status update")
-            self.listener(msg)
+            # If we have an open updatedps call then this is for it.
+            # Some devices send 0x12 and 0x08 in response to a updatedps.
+            # Empty DPS responses here are always for updatedps
+            # but hey we haven't decoded yet to know
+            if self.UPDATEDPS_SEQNO in self.listeners and isinstance(
+                self.listeners[self.UPDATEDPS_SEQNO], asyncio.Semaphore
+            ):
+                self.debug("Got status type updatedps response")
+                sem = self.listeners[self.UPDATEDPS_SEQNO]
+                self.listeners[self.UPDATEDPS_SEQNO] = msg
+                sem.release()
+            else:
+                self.debug("Got status update")
+                self.listener(msg)
         else:
             self.debug(
                 "Got message type %d for unknown listener %d: %s",
@@ -443,12 +464,13 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         payload = self._generate_payload(command, dps)
         dev_type = self.dev_type
 
-        # Wait for special sequence number if heartbeat
-        seqno = (
-            MessageDispatcher.HEARTBEAT_SEQNO
-            if command == HEARTBEAT
-            else (self.seqno - 1)
-        )
+        # Wait for special sequence number if heartbeat or updatedps
+        if command == HEARTBEAT:
+            seqno = MessageDispatcher.HEARTBEAT_SEQNO
+        elif command == UPDATEDPS:
+            seqno = MessageDispatcher.UPDATEDPS_SEQNO
+        else:
+            seqno = self.seqno - 1
 
         self.transport.write(payload)
         msg = await self.dispatcher.wait_for(seqno)
@@ -482,15 +504,10 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         return await self.exchange(HEARTBEAT)
 
     async def updatedps(self):
-        """
-        Request device to update index.
-
-        Args:
-            index(array): list of dps to update (ex. [4, 5, 6, 18, 19, 20])
-        """
-        self.debug("updatedps() entry (dev_type is %s)", self.dev_type)
-        payload = self._generate_payload(UPDATEDPS)
-        self.transport.write(payload)
+        """Request device to update index."""
+        if self.version == 3.3:
+            return await self.exchange(UPDATEDPS)
+        return True
 
     async def set_dp(self, value, dp_index):
         """
