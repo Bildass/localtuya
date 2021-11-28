@@ -509,14 +509,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         Request device to update index.
 
         Args:
-            dps([int]): list of dps to update, default=all detected
+            dps([int]): list of dps to update
         """
         if self.version == 3.3:
-            if dps is None:
-                if not self.dps_cache:
-                    await self.detect_available_dps()
-                if self.dps_cache:
-                    dps = [int(dp) for dp in self.dps_cache][:255]
             return await self.exchange(UPDATEDPS, dps)
         return True
 
