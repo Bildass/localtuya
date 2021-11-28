@@ -21,6 +21,7 @@ Functions
    json = status()          # returns json payload
    set_version(version)     #  3.1 [default] or 3.3
    detect_available_dps()   # returns a list of available dps provided by the device
+   update_dps(dps)          # sends update dps command
    add_dps_to_request(dp_index)  # adds dp_index to the list of dps used by the
                                   # device (to be queried in the payload)
    set_dp(on, dp_index)   # Set value of any dps index.
@@ -503,10 +504,20 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         """Send a heartbeat message."""
         return await self.exchange(HEARTBEAT)
 
-    async def updatedps(self):
-        """Request device to update index."""
+    async def update_dps(self, dps=None):
+        """
+        Request device to update index.
+
+        Args:
+            dps([int]): list of dps to update, default=all detected
+        """
         if self.version == 3.3:
-            return await self.exchange(UPDATEDPS)
+            if dps is None:
+                if not self.dps_cache:
+                    await self.detect_available_dps()
+                if self.dps_cache:
+                    dps = [int(dp) for dp in self.dps_cache][:255]
+            return await self.exchange(UPDATEDPS, dps)
         return True
 
     async def set_dp(self, value, dp_index):

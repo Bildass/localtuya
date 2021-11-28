@@ -173,7 +173,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
     async def _async_refresh(self, _now):
         if self._interface is not None:
-            await self._interface.updatedps()
+            await self._interface.update_dps()
 
     async def close(self):
         """Close connection and stop re-connect loop."""
