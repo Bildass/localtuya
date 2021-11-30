@@ -497,7 +497,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                     await self.detect_available_dps()
                 if self.dps_cache:
                     dps = [int(dp) for dp in self.dps_cache][:255]
-            self.debug("updatedps() entry (dps %s)", dps)
+            self.debug("updatedps() entry (dps_cache %s)", self.dps_cache)
             payload = self._generate_payload(UPDATEDPS, dps)
             self.transport.write(payload)
         return True
