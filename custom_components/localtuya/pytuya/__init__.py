@@ -78,6 +78,9 @@ SUFFIX_VALUE = 0x0000AA55
 
 HEARTBEAT_INTERVAL = 10
 
+# DPS that are known to be safe to use with update_dps (0x12) command
+UPDATE_DPS_WHITELIST = [18, 19, 20]  # Socket (Wi-Fi)
+
 # This is intended to match requests.json payload at
 # https://github.com/codetheweb/tuyapi :
 # type_0a devices require the 0a command as the status request
@@ -489,15 +492,17 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         Request device to update index.
 
         Args:
-            dps([int]): list of dps to update, default=all detected
+            dps([int]): list of dps to update, default=detected&whitelisted
         """
         if self.version == 3.3:
             if dps is None:
                 if not self.dps_cache:
                     await self.detect_available_dps()
                 if self.dps_cache:
-                    dps = [int(dp) for dp in self.dps_cache][:255]
-            self.debug("updatedps() entry (dps_cache %s)", self.dps_cache)
+                    dps = [int(dp) for dp in self.dps_cache]
+                    # filter non whitelisted dps
+                    dps = list(set(dps).intersection(set(UPDATE_DPS_WHITELIST)))
+            self.debug("updatedps() entry (dps %s, dps_cache %s)", dps, self.dps_cache)
             payload = self._generate_payload(UPDATEDPS, dps)
             self.transport.write(payload)
         return True
