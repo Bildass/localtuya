@@ -209,6 +209,9 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     def status_updated(self):
         """Device status was updated."""
         state_value = str(self.dps(self._dp_id))
+        
+        _LOGGER.info(f"Device {state_value}")
+        
         if state_value in self._idle_status_list:
             self._state = STATE_IDLE
         elif state_value in self._docked_status_list:
