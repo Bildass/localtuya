@@ -10,6 +10,7 @@ from homeassistant.components.vacuum import (
     STATE_IDLE,
     STATE_RETURNING,
     STATE_PAUSED,
+    STATE_ERROR,
     SUPPORT_BATTERY,
     SUPPORT_FAN_SPEED,
     SUPPORT_PAUSE,
@@ -36,7 +37,9 @@ from .const import (
     CONF_FAN_SPEEDS,
     CONF_CLEAN_TIME_DP,
     CONF_CLEAN_AREA_DP,
+    CONF_CLEAN_RECORD_DP,
     CONF_LOCATE_DP,
+    CONF_FAULT_DP,
     CONF_PAUSED_STATE,
     CONF_RETURN_MODE,
     CONF_STOP_STATUS,
@@ -46,8 +49,10 @@ _LOGGER = logging.getLogger(__name__)
 
 CLEAN_TIME = "clean_time"
 CLEAN_AREA = "clean_area"
+CLEAN_RECORD = "clean_record"
 MODES_LIST = "cleaning_mode_list"
 MODE = "cleaning_mode"
+FAULT = "fault"
 
 DEFAULT_IDLE_STATUS = "standby,sleep"
 DEFAULT_RETURNING_STATUS = "docking"
@@ -76,7 +81,9 @@ def flow_schema(dps):
         vol.Optional(CONF_FAN_SPEEDS, default=DEFAULT_FAN_SPEEDS): str,
         vol.Optional(CONF_CLEAN_TIME_DP): vol.In(dps),
         vol.Optional(CONF_CLEAN_AREA_DP): vol.In(dps),
+        vol.Optional(CONF_CLEAN_RECORD_DP): vol.In(dps),
         vol.Optional(CONF_LOCATE_DP): vol.In(dps),
+        vol.Optional(CONF_FAULT_DP): vol.In(dps),
         vol.Optional(CONF_PAUSED_STATE, default=DEFAULT_PAUSED_STATE): str,
         vol.Optional(CONF_STOP_STATUS, default=DEFAULT_STOP_STATUS): str,
     }
@@ -209,6 +216,7 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     def status_updated(self):
         """Device status was updated."""
         state_value = str(self.dps(self._dp_id))
+
         if state_value in self._idle_status_list:
             self._state = STATE_IDLE
         elif state_value in self._docked_status_list:
@@ -237,6 +245,14 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
         if self.has_config(CONF_CLEAN_AREA_DP):
             self._attrs[CLEAN_AREA] = self.dps_conf(CONF_CLEAN_AREA_DP)
+
+        if self.has_config(CONF_CLEAN_RECORD_DP):
+            self._attrs[CLEAN_RECORD] = self.dps_conf(CONF_CLEAN_RECORD_DP)
+
+        if self.has_config(CONF_FAULT_DP):
+            self._attrs[FAULT] = self.dps_conf(CONF_FAULT_DP)
+            if self._attrs[FAULT] != 0:
+                self._state = STATE_ERROR
 
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocaltuyaVacuum, flow_schema)
