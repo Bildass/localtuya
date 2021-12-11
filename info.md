@@ -66,6 +66,13 @@ localtuya:
 
       - platform: light
         friendly_name: Device Light
+        brightness: 10 # Optional
+        brightness_lower: 0 # Optional
+        brightness_upper: 100 # Optional
+        color_temp: 11 # Optional
+        color_temp_reverse: false # Optional
+        color_temp_min_kelvin: 2700 # Optional
+        color_temp_max_kelvin: 6500 # Optional
         id: 4
 
       - platform: sensor
