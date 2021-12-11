@@ -36,6 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 MIRED_TO_KELVIN_CONST = 1000000
 DEFAULT_MIN_KELVIN = 2700  # MIRED 370
 DEFAULT_MAX_KELVIN = 6500  # MIRED 153
+
 DEFAULT_COLOR_TEMP_REVERSE = False
 
 DEFAULT_LOWER_BRIGHTNESS = 29
@@ -120,7 +121,9 @@ def flow_schema(dps):
             vol.Coerce(int), vol.Range(min=1500, max=8000)
         ),
         vol.Optional(
-            CONF_COLOR_TEMP_REVERSE, default=False, description={"suggested_value": False}
+            CONF_COLOR_TEMP_REVERSE,
+            default=DEFAULT_COLOR_TEMP_REVERSE,
+            description={"suggested_value": DEFAULT_COLOR_TEMP_REVERSE},
         ): bool,
         vol.Optional(CONF_SCENE): vol.In(dps),
         vol.Optional(
@@ -207,7 +210,11 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
     def color_temp(self):
         """Return the color_temp of the light."""
         if self.has_config(CONF_COLOR_TEMP) and self.is_white_mode:
-            color_temp_value =  self._upper_color_temp - self._color_temp if self._color_temp_reverse else self._color_temp
+            color_temp_value = (
+                self._upper_color_temp - self._color_temp
+                if self._color_temp_reverse
+                else self._color_temp
+            )
             color_temp_scaled = int(
                 self._max_mired
                 - (
@@ -374,8 +381,13 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
         if ATTR_COLOR_TEMP in kwargs and (features & SUPPORT_COLOR_TEMP):
             if brightness is None:
                 brightness = self._brightness
-            
-            color_temp_value =  (self._max_mired - self._min_mired) - (int(kwargs[ATTR_COLOR_TEMP]) - self._min_mired) if self._color_temp_reverse else (int(kwargs[ATTR_COLOR_TEMP]) - self._min_mired)
+
+            color_temp_value = (
+                (self._max_mired - self._min_mired)
+                - (int(kwargs[ATTR_COLOR_TEMP]) - self._min_mired)
+                if self._color_temp_reverse
+                else (int(kwargs[ATTR_COLOR_TEMP]) - self._min_mired)
+            )
             color_temp_scaled = int(
                 self._upper_color_temp
                 - (self._upper_color_temp / (self._max_mired - self._min_mired))
