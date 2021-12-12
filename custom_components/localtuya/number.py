@@ -19,8 +19,9 @@ CONF_MAX_VALUE = "max_value"
 DEFAULT_MIN = 0
 DEFAULT_MAX = 100000
 
+
 def flow_schema(dps):
-#    """Return schema used in config flow."""
+    """Return schema used in config flow."""
     return {
         vol.Optional(CONF_MIN_VALUE, default=DEFAULT_MIN): vol.All(
             vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0),
@@ -59,7 +60,6 @@ class LocaltuyaNumber(LocalTuyaEntity, NumberEntity):
     @property
     def min_value(self) -> float:
         """Return the minimum value."""
-        
         return self._minValue
 
     @property
@@ -75,7 +75,6 @@ class LocaltuyaNumber(LocalTuyaEntity, NumberEntity):
     async def async_set_value(self, value: float) -> None:
         """Update the current value."""
         await self._device.set_dp(value, self._dp_id)
-
 
     def status_updated(self):
         """Device status was updated."""

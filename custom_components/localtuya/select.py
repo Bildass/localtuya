@@ -18,7 +18,7 @@ CONF_OPTIONS_FRIENDLY = "select_options_friendly"
 
 
 def flow_schema(dps):
-#    """Return schema used in config flow."""
+    """Return schema used in config flow."""
     return {
         vol.Required(CONF_OPTIONS): str,
         vol.Optional(CONF_OPTIONS_FRIENDLY): str,
@@ -40,7 +40,7 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
         self._state = STATE_UNKNOWN
         self._validOptions = self._config.get(CONF_OPTIONS).split(';')
 
-        #Set Display options
+        # Set Display options
         self._displayOptions = []
         displayOptionsStr = ""
         if (CONF_OPTIONS_FRIENDLY in self._config):
@@ -52,14 +52,17 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
         elif (len(displayOptionsStr.strip()) > 0):
             self._displayOptions.append(displayOptionsStr)
         else:
-            #Default display string to raw string
+            # Default display string to raw string
             _LOGGER.debug("No Display options configured - defaulting to raw values")
             self._displayOptions = self._validOptions
 
-        _LOGGER.debug("Total Raw Options: " + str(len(self._validOptions)) + " - Total Display Options: " + str(len(self._displayOptions)))
+        _LOGGER.debug("Total Raw Options: " + str(len(self._validOptions)) + 
+                      " - Total Display Options: " + str(len(self._displayOptions)))
         if (len(self._validOptions) > len(self._displayOptions)):
-            #If list of display items smaller than list of valid items, then default remaining items to be the raw value
-            _LOGGER.debug("Valid options is larger than display options - filling up with raw values")
+            # If list of display items smaller than list of valid items, 
+            # then default remaining items to be the raw value
+            _LOGGER.debug("Valid options is larger than display options - \
+                           filling up with raw values")
             for i in range(len(self._displayOptions), len(self._validOptions)):
                 self._displayOptions.append(self._validOptions[i])
 
@@ -83,7 +86,6 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
         optionValue = self._validOptions[self._displayOptions.index(option)]
         _LOGGER.debug("Sending Option: " + option + " -> " + optionValue)
         await self._device.set_dp(optionValue, self._dp_id)
-
 
     def status_updated(self):
         """Device status was updated."""
