@@ -60,7 +60,7 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
         _LOGGER.debug(
             "Total Raw Options: %s - Total Display Options: %s",
             str(len(self._valid_options)),
-            str(len(self._display_options))
+            str(len(self._display_options)),
         )
         if len(self._valid_options) > len(self._display_options):
             # If list of display items smaller than list of valid items,
