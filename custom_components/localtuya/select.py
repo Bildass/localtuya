@@ -38,43 +38,49 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
         """Initialize the Tuya sensor."""
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
         self._state = STATE_UNKNOWN
-        self._validOptions = self._config.get(CONF_OPTIONS).split(';')
+        self._state_friendly = ""
+        self._valid_options = self._config.get(CONF_OPTIONS).split(";")
 
         # Set Display options
-        self._displayOptions = []
-        displayOptionsStr = ""
-        if (CONF_OPTIONS_FRIENDLY in self._config):
-            displayOptionsStr = self._config.get(CONF_OPTIONS_FRIENDLY).strip()
-        _LOGGER.debug("Display Options Configured: " + displayOptionsStr)
+        self._display_options = []
+        display_options_str = ""
+        if CONF_OPTIONS_FRIENDLY in self._config:
+            display_options_str = self._config.get(CONF_OPTIONS_FRIENDLY).strip()
+        _LOGGER.debug("Display Options Configured: %s", display_options_str)
 
-        if (displayOptionsStr.find(";") >= 0):
-            self._displayOptions = displayOptionsStr.split(';')
-        elif (len(displayOptionsStr.strip()) > 0):
-            self._displayOptions.append(displayOptionsStr)
+        if display_options_str.find(";") >= 0:
+            self._display_options = display_options_str.split(";")
+        elif len(display_options_str.strip()) > 0:
+            self._display_options.append(display_options_str)
         else:
             # Default display string to raw string
             _LOGGER.debug("No Display options configured - defaulting to raw values")
-            self._displayOptions = self._validOptions
+            self._display_options = self._valid_options
 
-        _LOGGER.debug("Total Raw Options: " + str(len(self._validOptions)) + 
-                      " - Total Display Options: " + str(len(self._displayOptions)))
-        if (len(self._validOptions) > len(self._displayOptions)):
-            # If list of display items smaller than list of valid items, 
+        _LOGGER.debug(
+            "Total Raw Options: %s - Total Display Options: %s",
+            str(len(self._valid_options)),
+            str(len(self._display_options))
+        )
+        if len(self._valid_options) > len(self._display_options):
+            # If list of display items smaller than list of valid items,
             # then default remaining items to be the raw value
-            _LOGGER.debug("Valid options is larger than display options - \
-                           filling up with raw values")
-            for i in range(len(self._displayOptions), len(self._validOptions)):
-                self._displayOptions.append(self._validOptions[i])
+            _LOGGER.debug(
+                "Valid options is larger than display options - \
+                           filling up with raw values"
+            )
+            for i in range(len(self._display_options), len(self._valid_options)):
+                self._display_options.append(self._valid_options[i])
 
     @property
     def current_option(self) -> str:
         """Return the current value."""
-        return self._stateFriendly
+        return self._state_friendly
 
     @property
     def options(self) -> list:
         """Return the list of values."""
-        return self._displayOptions
+        return self._display_options
 
     @property
     def device_class(self):
@@ -83,14 +89,14 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Update the current value."""
-        optionValue = self._validOptions[self._displayOptions.index(option)]
-        _LOGGER.debug("Sending Option: " + option + " -> " + optionValue)
-        await self._device.set_dp(optionValue, self._dp_id)
+        option_value = self._valid_options[self._display_options.index(option)]
+        _LOGGER.debug("Sending Option: " + option + " -> " + option_value)
+        await self._device.set_dp(option_value, self._dp_id)
 
     def status_updated(self):
         """Device status was updated."""
         state = self.dps(self._dp_id)
-        self._stateFriendly = self._displayOptions[self._validOptions.index(state)]
+        self._state_friendly = self._display_options[self._valid_options.index(state)]
         self._state = state
 
 
