@@ -215,14 +215,13 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
                 if self._color_temp_reverse
                 else self._color_temp
             )
-            color_temp_scaled = int(
+            return int(
                 self._max_mired
                 - (
                     ((self._max_mired - self._min_mired) / self._upper_color_temp)
                     * color_temp_value
                 )
             )
-            return color_temp_scaled
         return None
 
     @property
@@ -381,21 +380,20 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
         if ATTR_COLOR_TEMP in kwargs and (features & SUPPORT_COLOR_TEMP):
             if brightness is None:
                 brightness = self._brightness
-
             color_temp_value = (
                 (self._max_mired - self._min_mired)
                 - (int(kwargs[ATTR_COLOR_TEMP]) - self._min_mired)
                 if self._color_temp_reverse
                 else (int(kwargs[ATTR_COLOR_TEMP]) - self._min_mired)
             )
-            color_temp_scaled = int(
+            color_temp = int(
                 self._upper_color_temp
                 - (self._upper_color_temp / (self._max_mired - self._min_mired))
                 * color_temp_value
             )
             states[self._config.get(CONF_COLOR_MODE)] = MODE_WHITE
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
-            states[self._config.get(CONF_COLOR_TEMP)] = color_temp_scaled
+            states[self._config.get(CONF_COLOR_TEMP)] = color_temp
         await self._device.set_dps(states)
 
     async def async_turn_off(self, **kwargs):
