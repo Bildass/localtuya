@@ -154,7 +154,7 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         return self._battery_level
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Return the specific state attributes of this vacuum cleaner."""
         return self._attrs
 
