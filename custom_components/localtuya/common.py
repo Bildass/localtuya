@@ -119,6 +119,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         self.dps_to_request = {}
         self._is_closing = False
         self._connect_task = None
+        self._disconnect_task = None
         self._unsub_interval = None
         self.set_logger(_LOGGER, config_entry[CONF_DEVICE_ID])
 
@@ -137,6 +138,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             self._connect_task = asyncio.create_task(self._make_connection())
 
     async def _make_connection(self):
+        """Subscribe localtuya entity events."""
         self.debug("Connecting to %s", self._config_entry[CONF_HOST])
 
         try:
@@ -155,6 +157,20 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                 raise Exception("Failed to retrieve status")
 
             self.status_updated(status)
+
+            def _new_entity_handler(entity_id):
+                self.debug(
+                    "New entity %s was added to %s",
+                    entity_id,
+                    self._config_entry[CONF_HOST],
+                )
+                self._dispatch_status()
+
+            signal = f"localtuya_entity_{self._config_entry[CONF_DEVICE_ID]}"
+            self._disconnect_task = async_dispatcher_connect(
+                self._hass, signal, _new_entity_handler
+            )
+
             if (
                 CONF_SCAN_INTERVAL in self._config_entry
                 and self._config_entry[CONF_SCAN_INTERVAL] > 0
@@ -183,6 +199,8 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             await self._connect_task
         if self._interface is not None:
             await self._interface.close()
+        if self._disconnect_task is not None:
+            self._disconnect_task()
 
     async def set_dp(self, state, dp_index):
         """Change value of a DP of the Tuya device."""
@@ -212,7 +230,9 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
     def status_updated(self, status):
         """Device updated status."""
         self._status.update(status)
+        self._dispatch_status()
 
+    def _dispatch_status(self):
         signal = f"localtuya_{self._config_entry[CONF_DEVICE_ID]}"
         async_dispatcher_send(self._hass, signal, self._status)
 
@@ -262,9 +282,13 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
                 self.schedule_update_ha_state()
 
         signal = f"localtuya_{self._config_entry.data[CONF_DEVICE_ID]}"
+
         self.async_on_remove(
             async_dispatcher_connect(self.hass, signal, _update_handler)
         )
+
+        signal = f"localtuya_entity_{self._config_entry.data[CONF_DEVICE_ID]}"
+        async_dispatcher_send(self.hass, signal, self.entity_id)
 
     @property
     def device_info(self):
