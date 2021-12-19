@@ -105,7 +105,7 @@ Setting the scan interval is optional, only needed if energy/power values are no
 
 Once you press "Submit", the connection is tested to check that everything works.
 
-![image](https://user-images.githubusercontent.com/1082213/146663895-41e1902b-4f09-4b21-b9d7-067d9cd67069.png)
+![image](https://user-images.githubusercontent.com/1082213/146664103-ac40319e-f934-4933-90cf-2beaff1e6bac.png)
 
 Then, it's time to add the entities: this step will take place several times. Select the entity type from the drop-down menu to set it up.
 After you have defined all the needed entities leave the "Do not add more entities" checkbox checked: this will complete the procedure.
