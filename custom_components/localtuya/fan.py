@@ -107,6 +107,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
 
     async def async_turn_on(
         self,
+        speed: str = None,
         percentage: int = None,
         preset_mode: str = None,
         **kwargs,
@@ -116,8 +117,11 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         await self._device.set_dp(True, self._dp_id)
         if percentage is not None:
             await self.async_set_percentage(percentage)
+        elif preset_mode is not None:
+            _LOGGER.debug("Preset_mode not supported yet")
         else:
             self.schedule_update_ha_state()
+
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn off the entity."""
@@ -133,7 +137,7 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         if percentage is not None:
             if percentage == 0:
                 return await self.async_turn_off()
-            elif not self.is_on:
+            if not self.is_on:
                 await self.async_turn_on()
             if self._use_ordered_list:
                 await self._device.set_dp(
