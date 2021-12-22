@@ -1,6 +1,6 @@
 name: Tox PR CI
 
-on: [push, pull_request, workflow_dispatch]
+on: [pull_request]
 
 jobs:
   build:
