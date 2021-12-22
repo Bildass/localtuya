@@ -120,7 +120,6 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         else:
             self.schedule_update_ha_state()
 
-
     async def async_turn_off(self, **kwargs) -> None:
         """Turn off the entity."""
         _LOGGER.debug("Fan async_turn_off")
