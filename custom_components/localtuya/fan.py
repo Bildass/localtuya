@@ -117,8 +117,6 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         await self._device.set_dp(True, self._dp_id)
         if percentage is not None:
             await self.async_set_percentage(percentage)
-        elif preset_mode is not None:
-            _LOGGER.debug("Preset_mode not supported yet")
         else:
             self.schedule_update_ha_state()
 
