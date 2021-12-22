@@ -111,7 +111,6 @@ class LocaltuyaFan(LocalTuyaEntity, FanEntity):
         preset_mode: str = None,
         **kwargs,
     ) -> None:
-
         """Turn on the entity."""
         _LOGGER.debug("Fan async_turn_on")
         await self._device.set_dp(True, self._dp_id)
