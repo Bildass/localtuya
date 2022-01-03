@@ -72,15 +72,14 @@
                     "color_temp_max_kelvin": "Maximum Color Temperature in K",
                     "music_mode": "Music mode available",
                     "scene": "Scene",
-                    "fan_speed_control": "Fan Speed Control",
-                    "fan_oscillating_control": "Fan Oscillating Control",
-                    "fan_speed_low": "Fan Low Speed Setting",
-                    "fan_speed_medium": "Fan Medium Speed Setting",
-                    "fan_speed_high": "Fan High Speed Setting",
-                    "max_value": "Maximum Value",
-                    "min_value": "Minimum Value",
-                    "select_options": "Valid entries, separate entries by a ;",
-                    "select_options_friendly": "User Friendly options, separate entries by a ;"
+                    "fan_speed_control": "Fan Speed Control dps",
+                    "fan_oscillating_control": "Fan Oscillating Control dps",
+                    "fan_speed_min": "minimum fan speed integer",
+                    "fan_speed_max": "maximum fan speed integer",
+                    "fan_speed_ordered_list": "Fan speed modes list (overrides speed min/max)",
+                    "fan_direction":"fan direction dps",
+                    "fan_direction_forward": "forward dps string",
+                    "fan_direction_reverse": "reverse dps string"
                 }
             }
         }
@@ -130,15 +129,14 @@
                     "color_temp_max_kelvin": "Maximum Color Temperature in K",
                     "music_mode": "Music mode available",
                     "scene": "Scene",
-                    "fan_speed_control": "Fan Speed Control",
-                    "fan_oscillating_control": "Fan Oscillating Control",
-                    "fan_speed_low": "Fan Low Speed Setting",
-                    "fan_speed_medium": "Fan Medium Speed Setting",
-                    "fan_speed_high": "Fan High Speed Setting",
-                    "max_value": "Maximum Value",
-                    "min_value": "Minimum Value",
-                    "select_options": "Valid entries, separate entries by a ;",
-                    "select_options_friendly": "User Friendly options, separate entries by a ;"
+                    "fan_speed_control": "Fan Speed Control dps",
+                    "fan_oscillating_control": "Fan Oscillating Control dps",
+                    "fan_speed_min": "minimum fan speed integer",
+                    "fan_speed_max": "maximum fan speed integer",
+                    "fan_speed_ordered_list": "Fan speed modes list (overrides speed min/max)",
+                    "fan_direction":"fan direction dps",
+                    "fan_direction_forward": "forward dps string",
+                    "fan_direction_reverse": "reverse dps string"
                 }
             },
             "yaml_import": {
