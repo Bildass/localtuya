@@ -29,7 +29,8 @@
                     "host": "Host",
                     "device_id": "Device ID",
                     "local_key": "Local key",
-                    "protocol_version": "Protocol Version"
+                    "protocol_version": "Protocol Version",
+                    "scan_interval": "Scan interval (seconds, only when not updating automatically)"
                 }
             },
             "pick_entity_type": {
@@ -64,6 +65,7 @@
                     "brightness_lower": "Brightness Lower Value",
                     "brightness_upper": "Brightness Upper Value",
                     "color_temp": "Color Temperature",
+                    "color_temp_reverse": "Color Temperature Reverse",
                     "color": "Color",
                     "color_mode": "Color Mode",
                     "color_temp_min_kelvin": "Minimum Color Temperature in K",
@@ -92,6 +94,7 @@
                     "host": "Host",
                     "local_key": "Local key",
                     "protocol_version": "Protocol Version",
+                    "scan_interval": "Scan interval (seconds, only when not updating automatically)",
                     "entities": "Entities (uncheck an entity to remove it)"
                 }
             },
@@ -119,6 +122,7 @@
                     "brightness_lower": "Brightness Lower Value",
                     "brightness_upper": "Brightness Upper Value",
                     "color_temp": "Color Temperature",
+                    "color_temp_reverse": "Color Temperature Reverse",
                     "color": "Color",
                     "color_mode": "Color Mode",
                     "color_temp_min_kelvin": "Minimum Color Temperature in K",
