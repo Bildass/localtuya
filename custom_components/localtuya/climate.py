@@ -17,7 +17,7 @@ from homeassistant.components.climate.const import (
     SUPPORT_PRESET_MODE,
     SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
-    CURRENT_HVAC_OFF,
+    CURRENT_HVAC_IDLE,
     CURRENT_HVAC_HEAT,
     PRESET_NONE,
     PRESET_ECO,
@@ -72,19 +72,19 @@ HVAC_MODE_SETS = {
 HVAC_ACTION_SETS = {
     "True/False": {
         CURRENT_HVAC_HEAT: True,
-        CURRENT_HVAC_OFF: False,
+        CURRENT_HVAC_IDLE: False,
     },
     "open/close": {
         CURRENT_HVAC_HEAT: "open",
-        CURRENT_HVAC_OFF: "close",
+        CURRENT_HVAC_IDLE: "close",
     },
     "heating/no_heating": {
         CURRENT_HVAC_HEAT: "heating",
-        CURRENT_HVAC_OFF: "no_heating",
+        CURRENT_HVAC_IDLE: "no_heating",
     },
     "Heat/Warming": {
         CURRENT_HVAC_HEAT: "Heat",
-        CURRENT_HVAC_OFF: "Warming",
+        CURRENT_HVAC_IDLE: "Warming",
     },
 }
 PRESET_SETS = {
@@ -235,12 +235,12 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
                 ):
                     if self._hvac_action == CURRENT_HVAC_HEAT:
                         self._hvac_action = CURRENT_HVAC_HEAT
-                    if self._hvac_action == CURRENT_HVAC_OFF:
-                        self._hvac_action = CURRENT_HVAC_OFF
+                    if self._hvac_action == CURRENT_HVAC_IDLE:
+                        self._hvac_action = CURRENT_HVAC_IDLE
                 if (
                     self._current_temperature + self._precision
                 ) > self._target_temperature:
-                    self._hvac_action = CURRENT_HVAC_OFF
+                    self._hvac_action = CURRENT_HVAC_IDLE
             return self._hvac_action
         return self._hvac_action
 
