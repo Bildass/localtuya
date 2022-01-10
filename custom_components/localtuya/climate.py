@@ -82,6 +82,10 @@ HVAC_ACTION_SETS = {
         CURRENT_HVAC_HEAT: "heating",
         CURRENT_HVAC_OFF: "no_heating",
     },
+    "Heat/Warming": {
+        CURRENT_HVAC_HEAT: "Heat",
+        CURRENT_HVAC_OFF: "Warming",
+    },
 }
 PRESET_SETS = {
     "Manual/Holiday/Program": {
