@@ -44,6 +44,8 @@ localtuya:
     local_key: xxxxx
     friendly_name: Tuya Device
     protocol_version: "3.3"
+    scan_interval: # optional, only needed if energy monitoring values are not updating
+      seconds: 30 # Values less than 10 seconds may cause stability issues
     entities:
       - platform: binary_sensor
         friendly_name: Plug Status
@@ -63,7 +65,16 @@ localtuya:
 
       - platform: fan
         friendly_name: Device Fan
-        id: 3
+        id: 3 # dps for on/off state
+        fan_direction: 4 # Optional, dps for fan direction
+        fan_direction_fwd: forward # String for the forward direction
+        fan_direction_rev: reverse # String for the reverse direction
+        fan_ordered_list: low,medium,high,auto # Optional, If this is used it will not use the min and max integers.
+        fan_oscilating_control: 4 # Optional, dps for fan osciallation
+        fan_speed_control: 3 # Optional, if ordered list not used, dps for speed control
+        fan_speed_min: 1 # Optional, if ordered list not used, minimum integer for speed range
+        fan_speed_max: 10 # Optional, if ordered list not used, maximum integer for speed range
+
 
       - platform: light
         friendly_name: Device Light
@@ -71,6 +82,7 @@ localtuya:
         color_mode: 21 # Optional, usually 2 or 21, default: "none"
         brightness: 22 # Optional, usually 3 or 22, default: "none"
         color_temp: 23 # Optional, usually 4 or 23, default: "none"
+        color_temp_reverse: false # Optional, default: false
         color: 24 # Optional, usually 5 (RGB_HSV) or 24 (HSV), default: "none"
         brightness_lower: 29 # Optional, usually 0 or 29, default: 29
         brightness_upper: 1000 # Optional, usually 255 or 1000, default: 1000
@@ -78,7 +90,6 @@ localtuya:
         color_temp_max_kelvin: 6500 # Optional, default: 6500
         scene: 25 # Optional, usually 6 (RGB_HSV) or 25 (HSV), default: "none"
         music_mode: False # Optional, some use internal mic, others, phone mic. Only internal mic is supported, default: "False"
-
 
       - platform: sensor
         friendly_name: Plug Voltage
@@ -112,9 +123,13 @@ select one of these, or manually input all the parameters.
 ![discovery](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/1-discovery.png)
 
 If you have selected one entry, you only need to input the device's Friendly Name and the localKey.
+
+Setting the scan interval is optional, only needed if energy/power values are not updating frequently enough by default. Values less than 10 seconds may cause stability issues.
+
 Once you press "Submit", the connection is tested to check that everything works.
 
-![device](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/2-device.png)
+![image](https://user-images.githubusercontent.com/1082213/146664103-ac40319e-f934-4933-90cf-2beaff1e6bac.png)
+
 
 Then, it's time to add the entities: this step will take place several times. First, select the entity type from the drop-down menu to set it up.
 After you have defined all the needed entities, leave the "Do not add more entities" checkbox checked: this will complete the procedure.
@@ -140,6 +155,7 @@ You can obtain Energy monitoring (voltage, current) in two different ways:
   Note: Voltage and Consumption usually include the first decimal. You will need to scale the parament by 0.1 to get the correct values.
 1) Access the voltage/current/current_consumption attributes of a switch, and define template sensors
   Note:  these values are already divided by 10 for Voltage and Consumption
+1) On some devices, you may find that the energy values are not updating frequently enough by default. If so, set the scan interval (see above) to an appropriate value. Settings below 10 seconds may cause stability issues, 30 seconds is recommended.
 
 ```
        sensor:
