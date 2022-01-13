@@ -313,6 +313,14 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
             self._conf_hvac_mode_set[hvac_mode], self._conf_hvac_mode_dp
         )
 
+    async def async_turn_on(self) -> None:
+        """Turn the entity on."""
+        await self._device.set_dp(True, self._dp_id)
+
+    async def async_turn_off(self) -> None:
+        """Turn the entity off."""
+        await self._device.set_dp(False, self._dp_id)
+
     async def async_set_preset_mode(self, preset_mode):
         """Set new target preset mode."""
         if preset_mode == PRESET_ECO:
