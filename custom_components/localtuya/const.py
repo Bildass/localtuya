@@ -97,7 +97,7 @@ PLATFORMS = [
     "select",
     "sensor",
     "switch",
-    "vacuum"
+    "vacuum",
 ]
 
 TUYA_DEVICE = "tuya_device"
