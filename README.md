@@ -26,7 +26,7 @@ Alternatively, you can install localtuya through [HACS](https://hacs.xyz/) by ad
 
 # Usage:
 
-**NOTE: You must have your Tuya device's Key and ID in order to use localtuya. There are several ways to obtain the localKey depending on your environment and the devices you own. A good place to start getting info is https://github.com/codetheweb/tuyapi/blob/master/docs/SETUP.md .**
+**NOTE: You must have your Tuya device's Key and ID in order to use localtuya. There are several ways to obtain the localKey depending on your environment and the devices you own. A good place to start getting info is https://github.com/codetheweb/tuyapi/blob/master/docs/SETUP.md or https://pypi.org/project/tinytuya/.**
 
 
 **NOTE - Nov 2020: If you plan to integrate these devices on a network that has internet and blocking their internet access, you must also block DNS requests (to the local DNS server, e.g. 192.168.1.1). If you only block outbound internet, then the device will sit in a zombie state; it will refuse / not respond to any connections with the localkey. Therefore, you must first connect the devices with an active internet connection, grab each device localkey, and implement the block.**
@@ -114,7 +114,7 @@ Restart Home Assistant when finished editing.
 
 # Option two: Using config flow
 
-Start by going to Configuration - Integration and pressing the "+" button to create a new Integration, then select LocalTuya in the drop-down menu.
+Start by going to Configuration - Devices & Services - Integration and pressing the "+ Add integration" button to create a new Integration, then select LocalTuya in the drop-down menu.
 Wait for 6 seconds for the scanning of the devices in your LAN. Then, a drop-down menu will appear containing the list of detected devices: you can
 select one of these, or manually input all the parameters.
 
@@ -157,7 +157,7 @@ You can obtain Energy monitoring (voltage, current) in two different ways:
   Note:  these values are already divided by 10 for Voltage and Consumption
 1) On some devices, you may find that the energy values are not updating frequently enough by default. If so, set the scan interval (see above) to an appropriate value. Settings below 10 seconds may cause stability issues, 30 seconds is recommended.
 
-```
+```yaml
        sensor:
          - platform: template
            sensors:
