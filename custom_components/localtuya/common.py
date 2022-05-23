@@ -74,6 +74,10 @@ async def async_setup_entry(
 
         if len(entities_to_setup) > 0:
 
+            if dev_id not in hass.data[DOMAIN][TUYA_DEVICES]:
+                print("STRANO: {}".format(hass.data[DOMAIN][TUYA_DEVICES]))
+                return
+
             tuyainterface = hass.data[DOMAIN][TUYA_DEVICES][dev_id]
 
             dps_config_fields = list(get_dps_for_platform(flow_schema))
@@ -127,7 +131,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         super().__init__()
         self._hass = hass
         self._config_entry = config_entry
-        self._dev_config_entry = config_entry.data[CONF_DEVICES][dev_id]
+        self._dev_config_entry = config_entry.data[CONF_DEVICES][dev_id].copy()
         self._interface = None
         self._status = {}
         self.dps_to_request = {}
@@ -205,9 +209,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
         except Exception as e:  # pylint: disable=broad-except
             self.exception(f"Connect to {self._dev_config_entry[CONF_HOST]} failed")
-            self.error("BBBB: %s", type(type(e)))
             if 'json.decode' in str(type(e)):
-                self.error("BBBB2")
                 await self.update_local_key()
 
             if self._interface is not None:
@@ -220,7 +222,6 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         await self._hass.data[DOMAIN][DATA_CLOUD].async_get_devices_list()
         cloud_devs = self._hass.data[DOMAIN][DATA_CLOUD]._device_list
         if dev_id in cloud_devs:
-            old_key = self._local_key
             self._local_key = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
             new_data = self._config_entry.data.copy()
             new_data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY] = self._local_key
@@ -229,10 +230,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                 self._config_entry,
                 data=new_data,
             )
-            self.debug(
-                "New local key for %s: from %s to %s",
-                dev_id, old_key, self._local_key
-            )
+            self.info("local_key updated for device %s.", dev_id)
 
     async def _async_refresh(self, _now):
         if self._interface is not None:
