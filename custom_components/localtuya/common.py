@@ -1,8 +1,8 @@
 """Code shared between all platforms."""
 import asyncio
 import logging
-from datetime import timedelta
 import time
+from datetime import timedelta
 
 from homeassistant.const import (
     CONF_DEVICE_ID,
@@ -16,11 +16,11 @@ from homeassistant.const import (
     CONF_SCAN_INTERVAL,
 )
 from homeassistant.core import callback
-from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
 )
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import pytuya
@@ -28,8 +28,8 @@ from .const import (
     ATTR_UPDATED_AT,
     CONF_LOCAL_KEY,
     CONF_PROTOCOL_VERSION,
-    DOMAIN,
     DATA_CLOUD,
+    DOMAIN,
     TUYA_DEVICES,
 )
 
@@ -209,7 +209,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
         except Exception as e:  # pylint: disable=broad-except
             self.exception(f"Connect to {self._dev_config_entry[CONF_HOST]} failed")
-            if 'json.decode' in str(type(e)):
+            if "json.decode" in str(type(e)):
                 await self.update_local_key()
 
             if self._interface is not None:
@@ -248,7 +248,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             self._disconnect_task()
         self.debug(
             "Closed connection with device %s.",
-            self._dev_config_entry[CONF_FRIENDLY_NAME]
+            self._dev_config_entry[CONF_FRIENDLY_NAME],
         )
 
     async def set_dp(self, state, dp_index):

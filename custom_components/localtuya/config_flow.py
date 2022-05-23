@@ -9,6 +9,8 @@ import homeassistant.helpers.entity_registry as er
 import voluptuous as vol
 from homeassistant import config_entries, core, exceptions
 from homeassistant.const import (
+    CONF_CLIENT_ID,
+    CONF_CLIENT_SECRET,
     CONF_DEVICE_ID,
     CONF_DEVICES,
     CONF_ENTITIES,
@@ -18,10 +20,8 @@ from homeassistant.const import (
     CONF_MODEL,
     CONF_NAME,
     CONF_PLATFORM,
-    CONF_SCAN_INTERVAL,
-    CONF_CLIENT_ID,
-    CONF_CLIENT_SECRET,
     CONF_REGION,
+    CONF_SCAN_INTERVAL,
     CONF_USERNAME,
 )
 from homeassistant.core import callback
@@ -29,18 +29,18 @@ from homeassistant.core import callback
 from .cloud_api import TuyaCloudApi
 from .common import pytuya
 from .const import (
+    ATTR_UPDATED_AT,
     CONF_ACTION,
     CONF_ADD_DEVICE,
+    CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
-    CONF_SETUP_CLOUD,
     CONF_LOCAL_KEY,
     CONF_PRODUCT_NAME,
     CONF_PROTOCOL_VERSION,
+    CONF_SETUP_CLOUD,
     CONF_USER_ID,
-    CONF_DPS_STRINGS,
-    ATTR_UPDATED_AT,
-    DATA_DISCOVERY,
     DATA_CLOUD,
+    DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
 )

@@ -1,24 +1,14 @@
 """Diagnostics support for LocalTuya."""
 from __future__ import annotations
+
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_DEVICES
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
-
-from homeassistant.const import (
-    CONF_CLIENT_ID,
-    CONF_CLIENT_SECRET,
-    CONF_DEVICES,
-)
-
-from .const import (
-    DOMAIN,
-    DATA_CLOUD,
-    CONF_USER_ID,
-    CONF_LOCAL_KEY,
-)
+from .const import CONF_LOCAL_KEY, CONF_USER_ID, DATA_CLOUD, DOMAIN
 
 CLOUD_DEVICES = "cloud_devices"
 DEVICE_CONFIG = "device_config"

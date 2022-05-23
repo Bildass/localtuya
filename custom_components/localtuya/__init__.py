@@ -5,27 +5,26 @@ import time
 from datetime import timedelta
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.device_registry import DeviceEntry
 import homeassistant.helpers.entity_registry as er
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_CLIENT_ID,
     CONF_CLIENT_SECRET,
-    CONF_REGION,
     CONF_DEVICE_ID,
     CONF_DEVICES,
     CONF_ENTITIES,
     CONF_HOST,
     CONF_ID,
     CONF_PLATFORM,
+    CONF_REGION,
     CONF_USERNAME,
     EVENT_HOMEASSISTANT_STOP,
     SERVICE_RELOAD,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.event import async_track_time_interval
 
 from .cloud_api import TuyaCloudApi
@@ -133,13 +132,11 @@ async def async_setup(hass: HomeAssistant, config: dict):
         # settings triggers a reload of the config entry, which tears down the device
         # so no need to connect in that case.
         if updated:
-            _LOGGER.debug("Updating keys for device %s: %s %s",
-                          device_id, device_ip, product_key
-                          )
-            new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
-            hass.config_entries.async_update_entry(
-                entry, data=new_data
+            _LOGGER.debug(
+                "Updating keys for device %s: %s %s", device_id, device_ip, product_key
             )
+            new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
+            hass.config_entries.async_update_entry(entry, data=new_data)
             device = hass.data[DOMAIN][TUYA_DEVICES][device_id]
             if not device.connected:
                 device.async_connect()
