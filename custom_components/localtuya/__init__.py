@@ -70,7 +70,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
     async def _handle_reload(service):
         """Handle reload service call."""
-        _LOGGER.debug("Service %s.reload called: reloading integration", DOMAIN)
+        _LOGGER.info("Service %s.reload called: reloading integration", DOMAIN)
 
         current_entries = hass.config_entries.async_entries(DOMAIN)
 

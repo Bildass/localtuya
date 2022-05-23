@@ -43,7 +43,7 @@ async def async_get_device_diagnostics(
     """Return diagnostics for a device entry."""
     data = {}
     dev_id = list(device.identifiers)[0][1].split("_")[-1]
-    data[DEVICE_CONFIG] = entry.data[CONF_DEVICES][dev_id]
+    data[DEVICE_CONFIG] = entry.data[CONF_DEVICES][dev_id].copy()
     local_key = data[DEVICE_CONFIG][CONF_LOCAL_KEY]
     data[DEVICE_CONFIG][CONF_LOCAL_KEY] = f"{local_key[0:3]}...{local_key[-3:]}"
 
