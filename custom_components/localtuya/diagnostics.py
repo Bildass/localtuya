@@ -29,7 +29,7 @@ async def async_get_config_entry_diagnostics(
         local_key = data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY]
         local_key_obfuscated = f"{local_key[0:3]}...{local_key[-3:]}"
         data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY] = local_key_obfuscated
-    data[CLOUD_DEVICES] = tuya_api._device_list
+    data[CLOUD_DEVICES] = tuya_api.device_list
     for dev_id, dev in data[CLOUD_DEVICES].items():
         local_key = data[CLOUD_DEVICES][dev_id][CONF_LOCAL_KEY]
         local_key_obfuscated = f"{local_key[0:3]}...{local_key[-3:]}"
@@ -48,8 +48,8 @@ async def async_get_device_diagnostics(
     data[DEVICE_CONFIG][CONF_LOCAL_KEY] = f"{local_key[0:3]}...{local_key[-3:]}"
 
     tuya_api = hass.data[DOMAIN][DATA_CLOUD]
-    if dev_id in tuya_api._device_list:
-        data[DEVICE_CLOUD_INFO] = tuya_api._device_list[dev_id]
+    if dev_id in tuya_api.device_list:
+        data[DEVICE_CLOUD_INFO] = tuya_api.device_list[dev_id]
         local_key = data[DEVICE_CLOUD_INFO][CONF_LOCAL_KEY]
         data[DEVICE_CLOUD_INFO][CONF_LOCAL_KEY] = f"{local_key[0:3]}...{local_key[-3:]}"
     # data["log"] = hass.data[DOMAIN][CONF_DEVICES][dev_id].logger.retrieve_log()

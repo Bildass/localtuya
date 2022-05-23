@@ -34,11 +34,11 @@ class TuyaCloudApi:
         self._secret = secret
         self._user_id = user_id
         self._access_token = ""
-        self._device_list = {}
+        self.device_list = {}
 
-    def generate_payload(self, method, t, url, headers, body=None):
+    def generate_payload(self, method, timestamp, url, headers, body=None):
         """Generate signed payload for requests."""
-        payload = self._client_id + self._access_token + t
+        payload = self._client_id + self._access_token + timestamp
 
         payload += method + "\n"
         # Content-SHA256
@@ -60,13 +60,13 @@ class TuyaCloudApi:
 
     async def async_make_request(self, method, url, body=None, headers={}):
         """Perform requests."""
-        t = str(int(time.time() * 1000))
-        payload = self.generate_payload(method, t, url, headers, body)
+        timestamp = str(int(time.time() * 1000))
+        payload = self.generate_payload(method, timestamp, url, headers, body)
         default_par = {
             "client_id": self._client_id,
             "access_token": self._access_token,
             "sign": calc_sign(payload, self._secret),
-            "t": t,
+            "t": timestamp,
             "sign_method": "HMAC-SHA256",
         }
         full_url = self._base_url + url
@@ -92,34 +92,34 @@ class TuyaCloudApi:
                 data=json.dumps(body),
             )
 
-        r = await self._hass.async_add_executor_job(func)
+        resp = await self._hass.async_add_executor_job(func)
         # r = json.dumps(r.json(), indent=2, ensure_ascii=False) # Beautify the format
-        return r
+        return resp
 
     async def async_get_access_token(self):
         """Obtain a valid access token."""
-        r = await self.async_make_request("GET", "/v1.0/token?grant_type=1")
+        resp = await self.async_make_request("GET", "/v1.0/token?grant_type=1")
 
-        if not r.ok:
-            return "Request failed, status " + str(r.status)
+        if not resp.ok:
+            return "Request failed, status " + str(resp.status)
 
-        r_json = r.json()
+        r_json = resp.json()
         if not r_json["success"]:
             return f"Error {r_json['code']}: {r_json['msg']}"
 
-        self._access_token = r.json()["result"]["access_token"]
+        self._access_token = resp.json()["result"]["access_token"]
         return "ok"
 
     async def async_get_devices_list(self):
         """Obtain the list of devices associated to a user."""
-        r = await self.async_make_request(
+        resp = await self.async_make_request(
             "GET", url=f"/v1.0/users/{self._user_id}/devices"
         )
 
-        if not r.ok:
-            return "Request failed, status " + str(r.status)
+        if not resp.ok:
+            return "Request failed, status " + str(resp.status)
 
-        r_json = r.json()
+        r_json = resp.json()
         if not r_json["success"]:
             # print(
             #     "Request failed, reply is {}".format(
@@ -128,7 +128,7 @@ class TuyaCloudApi:
             # )
             return f"Error {r_json['code']}: {r_json['msg']}"
 
-        self._device_list = {dev["id"]: dev for dev in r_json["result"]}
-        # print("DEV__LIST: {}".format(self._device_list))
+        self.device_list = {dev["id"]: dev for dev in r_json["result"]}
+        # print("DEV__LIST: {}".format(self.device_list))
 
         return "ok"

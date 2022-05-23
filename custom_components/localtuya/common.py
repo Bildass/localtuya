@@ -11,7 +11,6 @@ from homeassistant.const import (
     CONF_FRIENDLY_NAME,
     CONF_HOST,
     CONF_ID,
-    CONF_MODEL,
     CONF_PLATFORM,
     CONF_SCAN_INTERVAL,
 )
@@ -27,6 +26,7 @@ from . import pytuya
 from .const import (
     ATTR_UPDATED_AT,
     CONF_LOCAL_KEY,
+    CONF_MODEL,
     CONF_PROTOCOL_VERSION,
     DATA_CLOUD,
     DOMAIN,
@@ -221,7 +221,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         """Retrieve updated local_key from Cloud API and update the config_entry."""
         dev_id = self._dev_config_entry[CONF_DEVICE_ID]
         await self._hass.data[DOMAIN][DATA_CLOUD].async_get_devices_list()
-        cloud_devs = self._hass.data[DOMAIN][DATA_CLOUD]._device_list
+        cloud_devs = self._hass.data[DOMAIN][DATA_CLOUD].device_list
         if dev_id in cloud_devs:
             self._local_key = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
             new_data = self._config_entry.data.copy()

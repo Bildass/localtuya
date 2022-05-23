@@ -17,7 +17,6 @@ from homeassistant.const import (
     CONF_FRIENDLY_NAME,
     CONF_HOST,
     CONF_ID,
-    CONF_MODEL,
     CONF_NAME,
     CONF_PLATFORM,
     CONF_REGION,
@@ -35,6 +34,7 @@ from .const import (
     CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
     CONF_LOCAL_KEY,
+    CONF_MODEL,
     CONF_PRODUCT_NAME,
     CONF_PROTOCOL_VERSION,
     CONF_SETUP_CLOUD,
@@ -375,7 +375,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             if len(res) == 0:
                 new_data = self.config_entry.data.copy()
                 new_data.update(user_input)
-                cloud_devs = cloud_api._device_list
+                cloud_devs = cloud_api.device_list
                 for dev_id, dev in new_data[CONF_DEVICES].items():
                     if CONF_MODEL not in dev and dev_id in cloud_devs:
                         model = cloud_devs[dev_id].get(CONF_PRODUCT_NAME)
@@ -438,7 +438,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="add_device",
             data_schema=devices_schema(
-                devices, self.hass.data[DOMAIN][DATA_CLOUD]._device_list
+                devices, self.hass.data[DOMAIN][DATA_CLOUD].device_list
             ),
             errors=errors,
         )
@@ -463,7 +463,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="edit_device",
             data_schema=devices_schema(
-                devices, self.hass.data[DOMAIN][DATA_CLOUD]._device_list, False
+                devices, self.hass.data[DOMAIN][DATA_CLOUD].device_list, False
             ),
             errors=errors,
         )
@@ -479,7 +479,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                     # self.device_data[CONF_PRODUCT_KEY] = self.devices[
                     #     self.selected_device
                     # ]["productKey"]
-                    cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD]._device_list
+                    cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
                     if dev_id in cloud_devs:
                         self.device_data[CONF_MODEL] = cloud_devs[dev_id].get(
                             CONF_PRODUCT_NAME
@@ -530,7 +530,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             defaults[CONF_HOST] = device.get("ip")
             defaults[CONF_DEVICE_ID] = device.get("gwId")
             defaults[CONF_PROTOCOL_VERSION] = device.get("version")
-            cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD]._device_list
+            cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
             if dev_id in cloud_devs:
                 defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
                 defaults[CONF_FRIENDLY_NAME] = cloud_devs[dev_id].get(CONF_NAME)
@@ -577,7 +577,6 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                     data=new_data,
                 )
                 return self.async_create_entry(title="", data={})
-                self.async_create_entry(title="", data={})
 
             self.selected_platform = user_input[PLATFORM_TO_ADD]
             return await self.async_step_configure_entity()
