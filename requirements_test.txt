@@ -6,4 +6,4 @@ pydocstyle==6.1.1
 cryptography==3.3.2
 pylint==2.8.2
 pylint-strict-informational==0.1
-homeassistant==2022.5.1
+homeassistant==2021.12.10
