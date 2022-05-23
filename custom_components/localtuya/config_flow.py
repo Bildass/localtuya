@@ -593,6 +593,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(step_id="pick_entity_type", data_schema=schema)
 
     def available_dps_strings(self):
+        """Return list of DPs use by the device's entities."""
         available_dps = []
         used_dps = [str(entity[CONF_ID]) for entity in self.entities]
         for dp_string in self.dps_strings:

@@ -10,6 +10,7 @@ import requests
 
 # Signature algorithm.
 def calc_sign(msg, key):
+    """Calculate signature for request."""
     sign = (
         hmac.new(
             msg=bytes(msg, "latin-1"),
@@ -36,6 +37,7 @@ class TuyaCloudApi:
         self._device_list = {}
 
     def generate_payload(self, method, t, url, headers, body=None):
+        """Generate signed payload for requests."""
         payload = self._client_id + self._access_token + t
 
         payload += method + "\n"
