@@ -52,7 +52,7 @@ async def async_get_device_diagnostics(
     if dev_id in tuya_api.device_list:
         data[DEVICE_CLOUD_INFO] = tuya_api.device_list[dev_id]
         local_key = data[DEVICE_CLOUD_INFO][CONF_LOCAL_KEY]
-        local_key_obfuscated = "{local_key[0:3]}...{local_key[-3:]}"
+        # local_key_obfuscated = "{local_key[0:3]}...{local_key[-3:]}"
         # data[DEVICE_CLOUD_INFO][CONF_LOCAL_KEY] = local_key_obfuscated
-     # data["log"] = hass.data[DOMAIN][CONF_DEVICES][dev_id].logger.retrieve_log()
+    # data["log"] = hass.data[DOMAIN][CONF_DEVICES][dev_id].logger.retrieve_log()
     return data
