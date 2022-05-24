@@ -22,7 +22,7 @@ async def async_get_config_entry_diagnostics(
     data = {}
     data = entry.data.copy()
     tuya_api = hass.data[DOMAIN][DATA_CLOUD]
-    # censoring private information
+    # censoring private information on integration diagnostic data
     for field in [CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_USER_ID]:
         data[field] = f"{data[field][0:3]}...{data[field][-3:]}"
     for dev_id, dev in data[CONF_DEVICES].items():
@@ -44,13 +44,14 @@ async def async_get_device_diagnostics(
     data = {}
     dev_id = list(device.identifiers)[0][1].split("_")[-1]
     data[DEVICE_CONFIG] = entry.data[CONF_DEVICES][dev_id].copy()
+    # NOT censoring private information on device diagnostic data
     local_key = data[DEVICE_CONFIG][CONF_LOCAL_KEY]
-    data[DEVICE_CONFIG][CONF_LOCAL_KEY] = f"{local_key[0:3]}...{local_key[-3:]}"
+    # data[DEVICE_CONFIG][CONF_LOCAL_KEY] = f"{local_key[0:3]}...{local_key[-3:]}"
 
     tuya_api = hass.data[DOMAIN][DATA_CLOUD]
     if dev_id in tuya_api.device_list:
         data[DEVICE_CLOUD_INFO] = tuya_api.device_list[dev_id]
         local_key = data[DEVICE_CLOUD_INFO][CONF_LOCAL_KEY]
-        data[DEVICE_CLOUD_INFO][CONF_LOCAL_KEY] = f"{local_key[0:3]}...{local_key[-3:]}"
+        # data[DEVICE_CLOUD_INFO][CONF_LOCAL_KEY] = f"{local_key[0:3]}...{local_key[-3:]}"
     # data["log"] = hass.data[DOMAIN][CONF_DEVICES][dev_id].logger.retrieve_log()
     return data
