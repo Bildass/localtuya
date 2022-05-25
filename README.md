@@ -19,22 +19,24 @@ The following Tuya device types are currently supported:
 
 Energy monitoring (voltage, current, watts, etc.) is supported for compatible devices.
 
+> **Currently, only Tuya protocols 3.1 and 3.3 are supported (3.4 is not).**
+
 This repository's development began as code from [@NameLessJedi](https://github.com/NameLessJedi), [@mileperhour](https://github.com/mileperhour) and [@TradeFace](https://github.com/TradeFace). Their code was then deeply refactored to provide proper integration with Home Assistant environment, adding config flow and other features. Refer to the "Thanks to" section below.
 
 
 # Installation:
 
-The easiest way, if you are using [HACS](https://hacs.xyz/), is to install localtuya through HACS.
+The easiest way, if you are using [HACS](https://hacs.xyz/), is to install LocalTuya through HACS.
 
 For manual installation, copy the localtuya folder and all of its contents into your Home Assistant's custom_components folder. This folder is usually inside your `/config` folder. If you are running Hass.io, use SAMBA to copy the folder over. If you are running Home Assistant Supervised, the custom_components folder might be located at `/usr/share/hassio/homeassistant`. You may need to create the `custom_components` folder and then copy the localtuya folder and all of its contents into it.
 
 
 # Usage:
 
-**NOTE: You must have your Tuya device's Key and ID in order to use localtuya. The easiest way is to configure the Cloud API account in the integration. If you choose not to do it, there are several ways to obtain the local_keys depending on your environment and the devices you own. A good place to start getting info is https://github.com/codetheweb/tuyapi/blob/master/docs/SETUP.md .**
+**NOTE: You must have your Tuya device's Key and ID in order to use LocalTuya. The easiest way is to configure the Cloud API account in the integration. If you choose not to do it, there are several ways to obtain the local_keys depending on your environment and the devices you own. A good place to start getting info is https://github.com/codetheweb/tuyapi/blob/master/docs/SETUP.md .**
 
 
-**NOTE - Nov 2020: If you plan to integrate these devices on a network that has internet and blocking their internet access, you must also block DNS requests (to the local DNS server, e.g. 192.168.1.1). If you only block outbound internet, then the device will sit in a zombie state; it will refuse / not respond to any connections with the localkey. Therefore, you must first connect the devices with an active internet connection, grab each device localkey, and implement the block.**
+**NOTE 2: If you plan to integrate these devices on a network that has internet and blocking their internet access, you must also block DNS requests (to the local DNS server, e.g. 192.168.1.1). If you only block outbound internet, then the device will sit in a zombie state; it will refuse / not respond to any connections with the localkey. Therefore, you must first connect the devices with an active internet connection, grab each device localkey, and implement the block.**
 
 
 # Adding the Integration
@@ -43,15 +45,18 @@ For manual installation, copy the localtuya folder and all of its contents into 
 **NOTE: starting from v.4.0.0, configuration using YAML files is no longer supported. The integration can be configured only using the config flow.**
 
 
-To start configuring the integration, just press the "+ADD INTEGRATION" button in the Settings - Integrations page, and select localtuya from the drop-down menu.
+To start configuring the integration, just press the "+ADD INTEGRATION" button in the Settings - Integrations page, and select LocalTuya from the drop-down menu.
 The Cloud API configuration page will appear, requesting to input your Tuya IoT Platform account credentials:
 
 ![cloud_setup](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/9-cloud_setup.png)
 
 To setup a Tuya IoT Platform account and setup a project in it, refer to the instructions for the official Tuya integration:
 https://www.home-assistant.io/integrations/tuya/
+The place to find the Client ID and Secret is described in this link (in the ["Get Authorization Key"](https://www.home-assistant.io/integrations/tuya/#get-authorization-key) paragraph), while the User ID can be found in the "Link Tuya App Account" subtab within the Cloud project:
 
-> **Note: as stated in the above page, if you already have an account and an IoT project, make sure that it was created after May 25, 2021 (due to changes introduced in the cloud for Tuya 2.0). Otherwise, you need to create a new project. See the following screenshot for where to check your project creation date:**
+![user_id.png](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/8-user_id.png.png)
+
+> **Note: as stated in the above link, if you already have an account and an IoT project, make sure that it was created after May 25, 2021 (due to changes introduced in the cloud for Tuya 2.0). Otherwise, you need to create a new project. See the following screenshot for where to check your project creation date:**
 
 ![project_date](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/6-project_date.png)
 
@@ -110,7 +115,10 @@ Once you configure the entities, the procedure is complete. You can now associat
 
 # Migration from LocalTuya v.3.x.x
 
-Automatically migrates... you can delete...
+If you upgrade LocalTuya from v3.x.x or older, the config entry will automatically be migrated to the new setup. Everything should work as it did before the upgrade, apart from the fact that in the Integration tab you will see just one LocalTuya integration (showing the number of devices and entities configured) instead of several Integrations grouped within the LocalTuya Box. This will happen both if the old configuration was done using YAML files and with the config flow. Once migrated, you can just input your Tuya IoT account credentials to enable the support for the Cloud API (and benefit from the local_key retrieval and auto-update): see https://github.com/rospogrigio/localtuya/edit/localtuya_4.0/README.md#integration-configuration-menu.
+
+If you had configured LocalTuya using YAML files, you can delete all its references from within the YAML files because they will no longer be considered so they might bring confusion (only the logger configuration part needs to be kept, of course, see https://github.com/rospogrigio/localtuya/edit/localtuya_4.0/README.md#debugging).
+
 
 # Energy monitoring values
 
@@ -161,6 +169,8 @@ logger:
       Ideas: Use: https://www.home-assistant.io/components/integration/ and https://www.home-assistant.io/components/utility_meter/
 
 * Everything listed in https://github.com/rospogrigio/localtuya-homeassistant/issues/15
+
+* Support devices that use Tuya protocol v.3.4
 
 # Thanks to:
 
