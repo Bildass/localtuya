@@ -1,5 +1,7 @@
 """Diagnostics support for LocalTuya."""
 from __future__ import annotations
+import logging
+import copy
 
 from typing import Any
 
@@ -14,21 +16,24 @@ CLOUD_DEVICES = "cloud_devices"
 DEVICE_CONFIG = "device_config"
 DEVICE_CLOUD_INFO = "device_cloud_info"
 
+_LOGGER = logging.getLogger(__name__)
+
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     data = {}
-    data = entry.data.copy()
+    data = dict(entry.data)
     tuya_api = hass.data[DOMAIN][DATA_CLOUD]
     # censoring private information on integration diagnostic data
     for field in [CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_USER_ID]:
         data[field] = f"{data[field][0:3]}...{data[field][-3:]}"
+    data[CONF_DEVICES] = copy.deepcopy(entry.data[CONF_DEVICES])
     for dev_id, dev in data[CONF_DEVICES].items():
-        local_key = data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY]
+        local_key = dev[CONF_LOCAL_KEY]
         local_key_obfuscated = f"{local_key[0:3]}...{local_key[-3:]}"
-        data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY] = local_key_obfuscated
+        dev[CONF_LOCAL_KEY] = local_key_obfuscated
     data[CLOUD_DEVICES] = tuya_api.device_list
     for dev_id, dev in data[CLOUD_DEVICES].items():
         local_key = data[CLOUD_DEVICES][dev_id][CONF_LOCAL_KEY]
