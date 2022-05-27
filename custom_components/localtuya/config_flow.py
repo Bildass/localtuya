@@ -674,8 +674,6 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                     user_input = {NO_ADDITIONAL_ENTITIES: True}
                 return await self.async_step_pick_entity_type(user_input)
 
-            errors["base"] = "entity_already_configured"
-
         if self.editing_device:
             schema = platform_schema(
                 self.current_entity[CONF_PLATFORM], self.dps_strings, allow_id=False
