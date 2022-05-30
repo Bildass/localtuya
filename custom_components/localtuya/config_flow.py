@@ -406,10 +406,12 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         """Handle adding a new device."""
         # Use cache if available or fallback to manual discovery
         self.editing_device = False
+        self.selected_device = None
         errors = {}
         if user_input is not None:
             if user_input[SELECTED_DEVICE] != CUSTOM_DEVICE:
                 self.selected_device = user_input[SELECTED_DEVICE]
+
             return await self.async_step_configure_device()
 
         self.discovered_devices = {}
@@ -524,19 +526,25 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             defaults = self.config_entry.data[CONF_DEVICES][dev_id].copy()
             schema = schema_defaults(options_schema(self.entities), **defaults)
             placeholders = {"for_device": f" for device `{dev_id}`"}
-        elif dev_id is not None:
-            # Insert default values from discovery and cloud if present
-            device = self.discovered_devices[dev_id]
-            defaults[CONF_HOST] = device.get("ip")
-            defaults[CONF_DEVICE_ID] = device.get("gwId")
-            defaults[CONF_PROTOCOL_VERSION] = device.get("version")
-            cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
-            if dev_id in cloud_devs:
-                defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
-                defaults[CONF_FRIENDLY_NAME] = cloud_devs[dev_id].get(CONF_NAME)
+        else:
+            defaults[CONF_PROTOCOL_VERSION] = "3.3"
+            defaults[CONF_HOST] = ""
+            defaults[CONF_DEVICE_ID] = ""
+            defaults[CONF_LOCAL_KEY] = ""
+            defaults[CONF_FRIENDLY_NAME] = ""
+            if dev_id is not None:
+                # Insert default values from discovery and cloud if present
+                device = self.discovered_devices[dev_id]
+                defaults[CONF_HOST] = device.get("ip")
+                defaults[CONF_DEVICE_ID] = device.get("gwId")
+                defaults[CONF_PROTOCOL_VERSION] = device.get("version")
+                cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
+                if dev_id in cloud_devs:
+                    defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
+                    defaults[CONF_FRIENDLY_NAME] = cloud_devs[dev_id].get(CONF_NAME)
             schema = schema_defaults(CONFIGURE_DEVICE_SCHEMA, **defaults)
+
             placeholders = {"for_device": ""}
-        defaults.update(user_input or {})
 
         return self.async_show_form(
             step_id="configure_device",
