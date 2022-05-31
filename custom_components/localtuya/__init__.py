@@ -303,7 +303,7 @@ async def async_remove_config_entry_device(
     """Remove a config entry from a device."""
     dev_id = list(device_entry.identifiers)[0][1].split("_")[-1]
 
-    ent_reg = await er.async_get_registry(hass)
+    ent_reg = er.async_get(hass)
     entities = {
         ent.unique_id: ent.entity_id
         for ent in er.async_entries_for_config_entry(ent_reg, config_entry.entry_id)
@@ -337,7 +337,7 @@ async def async_remove_config_entry_device(
 async def async_remove_orphan_entities(hass, entry):
     """Remove entities associated with config entry that has been removed."""
     return
-    ent_reg = await er.async_get_registry(hass)
+    ent_reg = er.async_get(hass)
     entities = {
         ent.unique_id: ent.entity_id
         for ent in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
