@@ -65,6 +65,7 @@ SERVICE_SET_DP_SCHEMA = vol.Schema(
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the LocalTuya integration component."""
     hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][TUYA_DEVICES] = {}
 
     device_cache = {}
 
@@ -193,9 +194,9 @@ async def async_migrate_entry(hass, config_entry: ConfigEntry):
             )
             new_data = {}
             new_data[CONF_REGION] = "eu"
-            new_data[CONF_CLIENT_ID] = "xxx"
-            new_data[CONF_CLIENT_SECRET] = "xxx"
-            new_data[CONF_USER_ID] = "xxx"
+            new_data[CONF_CLIENT_ID] = ""
+            new_data[CONF_CLIENT_SECRET] = ""
+            new_data[CONF_USER_ID] = ""
             new_data[CONF_USERNAME] = DOMAIN
             new_data[CONF_DEVICES] = {
                 config_entry.data[CONF_DEVICE_ID]: config_entry.data.copy()
@@ -229,7 +230,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up LocalTuya integration from a config entry."""
     unsub_listener = entry.add_update_listener(update_listener)
     hass.data[DOMAIN][UNSUB_LISTENER] = unsub_listener
-    hass.data[DOMAIN][TUYA_DEVICES] = {}
 
     region = entry.data[CONF_REGION]
     client_id = entry.data[CONF_CLIENT_ID]
