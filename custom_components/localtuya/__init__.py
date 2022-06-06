@@ -29,7 +29,7 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from .cloud_api import TuyaCloudApi
 from .common import TuyaDevice, async_config_entry_by_device_id
-from .config_flow import config_schema, ENTRIES_VERSION
+from .config_flow import ENTRIES_VERSION, config_schema
 from .const import (
     ATTR_UPDATED_AT,
     CONF_NO_CLOUD,
