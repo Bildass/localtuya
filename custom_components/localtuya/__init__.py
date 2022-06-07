@@ -239,8 +239,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
         return
 
-    _LOGGER.debug("ASE: %s %s", entry.entry_id, entry.data)
-
     region = entry.data[CONF_REGION]
     client_id = entry.data[CONF_CLIENT_ID]
     secret = entry.data[CONF_CLIENT_SECRET]
@@ -249,7 +247,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     no_cloud = True
     if CONF_NO_CLOUD in entry.data:
         no_cloud = entry.data.get(CONF_NO_CLOUD)
-    _LOGGER.debug("ASE DC: %s", no_cloud)
     if no_cloud:
         _LOGGER.info("Cloud API account not configured.")
         # wait 1 second to make sure possible migration has finished
