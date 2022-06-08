@@ -288,11 +288,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload a config entry."""
     platforms = {}
 
-    hass.data[DOMAIN][entry.entry_id][UNSUB_LISTENER]()
-    for dev_id, device in hass.data[DOMAIN][TUYA_DEVICES].items():
-        if device.connected:
-            await device.close()
-
     for dev_id, dev_entry in entry.data[CONF_DEVICES].items():
         for entity in dev_entry[CONF_ENTITIES]:
             platforms[entity[CONF_PLATFORM]] = True
@@ -305,6 +300,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
             ]
         )
     )
+
+    hass.data[DOMAIN][entry.entry_id][UNSUB_LISTENER]()
+    for dev_id, device in hass.data[DOMAIN][TUYA_DEVICES].items():
+        if device.connected:
+            await device.close()
+
     if unload_ok:
         hass.data[DOMAIN][TUYA_DEVICES] = {}
 
