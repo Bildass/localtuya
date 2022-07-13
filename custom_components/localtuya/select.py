@@ -11,8 +11,6 @@ from homeassistant.const import (
 
 from .common import LocalTuyaEntity, async_setup_entry
 
-_LOGGER = logging.getLogger(__name__)
-
 from .const import (
     CONF_OPTIONS,
     CONF_OPTIONS_FRIENDLY,
@@ -29,6 +27,9 @@ def flow_schema(dps):
         vol.Optional(CONF_DEFAULT_VALUE): str,
         vol.Required(CONF_RESTORE_ON_RECONNECT): bool,
     }
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
@@ -100,8 +101,9 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
         await self._device.set_dp(option_value, self._dp_id)
 
     def status_updated(self):
-        super().status_updated()
         """Device status was updated."""
+        super().status_updated()
+
         state = self.dps(self._dp_id)
 
         # Check that received status update for this entity.
@@ -116,6 +118,7 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
 
     # Default value is the first option
     def entity_default_value(self):
+        """Return the first option as the default value for this entity type."""
         return self._valid_options[0]
 
 

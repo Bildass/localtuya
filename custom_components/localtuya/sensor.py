@@ -68,7 +68,7 @@ class LocaltuyaSensor(LocalTuyaEntity):
 
     # No need to restore state for a sensor
     async def restore_state_when_connected(self):
-        """Do nothing for a sensor"""
+        """Do nothing for a sensor."""
         return
 
 

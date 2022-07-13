@@ -82,6 +82,7 @@ class LocaltuyaSwitch(LocalTuyaEntity, SwitchEntity):
 
     # Default value is the "OFF" state
     def entity_default_value(self):
+        """Return False as the defaualt value for this entity type."""
         return False
 
 

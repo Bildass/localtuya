@@ -8,16 +8,15 @@ from homeassistant.const import CONF_DEVICE_CLASS, STATE_UNKNOWN
 
 from .common import LocalTuyaEntity, async_setup_entry
 
-_LOGGER = logging.getLogger(__name__)
-
 from .const import (
-    CONF_DEFAULT_VALUE,
     CONF_MIN_VALUE,
     CONF_MAX_VALUE,
     CONF_DEFAULT_VALUE,
     CONF_RESTORE_ON_RECONNECT,
     CONF_STEPSIZE_VALUE,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 DEFAULT_MIN = 0
 DEFAULT_MAX = 100000
@@ -66,16 +65,14 @@ class LocaltuyaNumber(LocalTuyaEntity, NumberEntity):
         if CONF_MAX_VALUE in self._config:
             self._max_value = self._config.get(CONF_MAX_VALUE)
 
-
         self._step_size = DEFAULT_STEP
         if CONF_STEPSIZE_VALUE in self._config:
             self._step_size = self._config.get(CONF_STEPSIZE_VALUE)
 
-        #Override standard default value handling to cast to a float
+        # Override standard default value handling to cast to a float
         default_value = self._config.get(CONF_DEFAULT_VALUE)
         if default_value is not None:
             self._default_value = float(default_value)
-        
 
     @property
     def native_value(self) -> float:
@@ -108,6 +105,7 @@ class LocaltuyaNumber(LocalTuyaEntity, NumberEntity):
 
     # Default value is the minimum value
     def entity_default_value(self):
+        """Return the minimum value as the default for this entity type."""
         return self._min_value
 
 

@@ -95,7 +95,7 @@ async def async_setup_entry(
                         entity_config[CONF_ID],
                     )
                 )
-    #Once the entities have been created, add to the TuyaDevice instance
+    # Once the entities have been created, add to the TuyaDevice instance
     tuyainterface.add_entities(entities)
     async_add_entities(entities)
 
@@ -150,8 +150,13 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             self.dps_to_request[entity[CONF_ID]] = None
 
     def add_entities(self, entities):
-        """Set the entities associated with this device"""
+        """Set the entities associated with this device."""
         self._entities.extend(entities)
+
+    @property
+    def is_connecting(self):
+        """Return whether device is currently connecting."""
+        return self._connect_task is not None
 
     @property
     def connected(self):
@@ -184,7 +189,8 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
             self.status_updated(status)
 
-            # Attempt to restore status for all entites that need to first set the DPS value before the device will respond with status.
+            # Attempt to restore status for all entites that need to first set
+            # the DPS value before the device will respond with status.
             for entity in self._entities:
                 await entity.restore_state_when_connected()
 
@@ -326,7 +332,8 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         # Default value is available to be provided by Platform entities if required
         self._default_value = self._config.get(CONF_DEFAULT_VALUE)
 
-        # Restore on connect setting is available to be provided by Platform entities if required
+        """ Restore on connect setting is available to be provided by Platform entities
+        if required"""
         self._restore_on_reconnect = (
             self._config.get(CONF_RESTORE_ON_RECONNECT) or False
         )
@@ -365,8 +372,10 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
     @property
     def extra_state_attributes(self):
-        """Return entity specific state attributes to be saved & then available for restore
-        when the entity is restored at startup.
+        """Return entity specific state attributes to be saved.
+
+        These attributes are then available for restore when the
+        entity is restored at startup.
         """
         attributes = {}
         if self._state is not None:
@@ -454,7 +463,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
         # Keep record in last_state as long as not during connection/re-connection,
         # as last state will be used to restore the previous state
-        if (state is not None) and (self._device._connect_task is None):
+        if (state is not None) and (not self._device.is_connecting):
             self._last_state = state
 
     def status_restored(self, stored_state):
@@ -464,8 +473,6 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         """
         raw_state = stored_state.attributes.get(ATTR_STATE)
         if raw_state is not None:
-            #    (stored_state.state == "unavailable") | (stored_state.state == "unknown")
-            # ):
             self._last_state = raw_state
             self.debug(
                 "Restoring state for entity: %s - state: %s",
@@ -474,7 +481,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
             )
 
     def default_value(self):
-        """Default value of this entity
+        """Return default value of this entity.
 
         Override in subclasses to specify the default value for the entity.
         """
@@ -484,8 +491,8 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
         return self._default_value
 
-    def entity_default_value(self):
-        """Default value of the entity type
+    def entity_default_value(self):  # pylint: disable=no-self-use
+        """Return default value of the entity type.
 
         Override in subclasses to specify the default value for the entity.
         """
@@ -493,14 +500,22 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
     @property
     def restore_on_reconnect(self):
-        """Returns whether the last state should be restored on a reconnect - useful where the device loses settings if powered off"""
+        """Return whether the last state should be restored on a reconnect.
+
+        Useful where the device loses settings if powered off
+        """
         return self._restore_on_reconnect
 
     async def restore_state_when_connected(self):
-        """Restore if restore_on_reconnect is set, or if no status has been yet found - which indicates a DPS that needs to be set before it starts returning status"""
+        """Restore if restore_on_reconnect is set, or if no status has been yet found.
+
+        Which indicates a DPS that needs to be set before it starts returning
+        status.
+        """
         if not self.restore_on_reconnect and (str(self._dp_id) in self._status):
             self.debug(
-                "Entity %s (DP %d) - Not restoring as restore on reconnect is disabled for this entity and the entity has an initial status",
+                "Entity %s (DP %d) - Not restoring as restore on reconnect is  \
+                disabled for this entity and the entity has an initial status",
                 self.name,
                 self._dp_id,
             )
