@@ -44,6 +44,7 @@ from .const import (
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
+    CONF_MANUAL_DPS,
 )
 from .discovery import discover
 
@@ -88,6 +89,7 @@ CONFIGURE_DEVICE_SCHEMA = vol.Schema(
         vol.Required(CONF_DEVICE_ID): str,
         vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(["3.1", "3.3"]),
         vol.Optional(CONF_SCAN_INTERVAL): int,
+        vol.Optional(CONF_MANUAL_DPS): str,
     }
 )
 
@@ -99,6 +101,7 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Required(CONF_FRIENDLY_NAME): cv.string,
         vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(["3.1", "3.3"]),
         vol.Optional(CONF_SCAN_INTERVAL): int,
+        vol.Optional(CONF_MANUAL_DPS): cv.string,
     }
 )
 
@@ -140,6 +143,7 @@ def options_schema(entities):
             vol.Required(CONF_LOCAL_KEY): str,
             vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(["3.1", "3.3"]),
             vol.Optional(CONF_SCAN_INTERVAL): int,
+            vol.Optional(CONF_MANUAL_DPS): str,
             vol.Required(
                 CONF_ENTITIES, description={"suggested_value": entity_names}
             ): cv.multi_select(entity_names),
@@ -240,6 +244,22 @@ async def validate_input(hass: core.HomeAssistant, data):
         )
 
         detected_dps = await interface.detect_available_dps()
+
+        # if manual DPs are set, merge these.
+        _LOGGER.debug("Detected DPS: %s", detected_dps)
+        if CONF_MANUAL_DPS in data:
+
+            manual_dps_list = data[CONF_MANUAL_DPS].split(",")
+            _LOGGER.debug(
+                "Manual DPS Setting: %s (%s)", data[CONF_MANUAL_DPS], manual_dps_list
+            )
+            # merge the lists
+            for new_dps in manual_dps_list:
+                # trim off any whitespace
+                new_dps = new_dps.strip()
+                if new_dps not in detected_dps:
+                    detected_dps[new_dps] = -1
+
     except (ConnectionRefusedError, ConnectionResetError) as ex:
         raise CannotConnect from ex
     except ValueError as ex:
@@ -252,6 +272,8 @@ async def validate_input(hass: core.HomeAssistant, data):
     # won't work in this case
     if not detected_dps:
         raise EmptyDpsList
+
+    _LOGGER.debug("Total DPS: %s", detected_dps)
 
     return dps_string_list(detected_dps)
 
