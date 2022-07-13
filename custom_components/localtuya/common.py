@@ -323,10 +323,10 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         self._state = None
         self._last_state = None
 
-        #Default value is available to be provided by Platform entities if required
+        # Default value is available to be provided by Platform entities if required
         self._default_value = self._config.get(CONF_DEFAULT_VALUE)
 
-        #Restore on connect setting is available to be provided by Platform entities if required
+        # Restore on connect setting is available to be provided by Platform entities if required
         self._restore_on_reconnect = (
             self._config.get(CONF_RESTORE_ON_RECONNECT) or False
         )
@@ -366,7 +366,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     @property
     def extra_state_attributes(self):
         """Return entity specific state attributes to be saved & then available for restore
-           when the entity is restored at startup.
+        when the entity is restored at startup.
         """
         attributes = {}
         if self._state is not None:
