@@ -189,7 +189,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
             self.status_updated(status)
 
-            # Attempt to restore status for all entites that need to first set
+            # Attempt to restore status for all entities that need to first set
             # the DPS value before the device will respond with status.
             for entity in self._entities:
                 await entity.restore_state_when_connected()
