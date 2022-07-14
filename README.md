@@ -96,7 +96,7 @@ Setting the 'Manual DPS To Add' is optional, it is only needed if the device doe
 
 Once you press "Submit", the connection is tested to check that everything works.
 
-![image](https://user-images.githubusercontent.com/1082213/146664103-ac40319e-f934-4933-90cf-2beaff1e6bac.png)
+![image](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/2-device.png)
 
 
 Then, it's time to add the entities: this step will take place several times. First, select the entity type from the drop-down menu to set it up.
