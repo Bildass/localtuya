@@ -92,6 +92,8 @@ If you have selected one entry, you only need to input the device's Friendly Nam
 
 Setting the scan interval is optional, it is only needed if energy/power values are not updating frequently enough by default. Values less than 10 seconds may cause stability issues.
 
+Setting the 'Manual DPS To Add' is optional, it is only needed if the device doesn't advertise the DPS correctly until the entity has been properly initiailised. This setting can often be avoided by first connecting/initialising the device with the Tuya App, then closing the app and then adding the device in the integration.
+
 Once you press "Submit", the connection is tested to check that everything works.
 
 ![image](https://user-images.githubusercontent.com/1082213/146664103-ac40319e-f934-4933-90cf-2beaff1e6bac.png)
