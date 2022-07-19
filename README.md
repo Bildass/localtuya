@@ -94,6 +94,8 @@ Setting the scan interval is optional, it is only needed if energy/power values 
 
 Setting the 'Manual DPS To Add' is optional, it is only needed if the device doesn't advertise the DPS correctly until the entity has been properly initiailised. This setting can often be avoided by first connecting/initialising the device with the Tuya App, then closing the app and then adding the device in the integration.
 
+Setting the 'DPIDs to send in RESET command' is optional. It is used when a device doesn't respond to any Tuya commands after a power cycle, but can be connected to (zombie state). The DPids will vary between devices, but typically "18,19,20" is used (and will be the default if none specified). If the wrong entries are added here, then the device may not come out of the zombie state. Typically only sensor DPIDs entered here.
+
 Once you press "Submit", the connection is tested to check that everything works.
 
 ![image](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/2-device.png)

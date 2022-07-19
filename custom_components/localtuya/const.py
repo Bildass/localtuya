@@ -43,6 +43,7 @@ CONF_SETUP_CLOUD = "setup_cloud"
 CONF_NO_CLOUD = "no_cloud"
 CONF_MANUAL_DPS = "manual_dps_strings"
 CONF_DEFAULT_VALUE = "dps_default_value"
+CONF_RESET_DPIDS = "reset_dpids"
 
 # light
 CONF_BRIGHTNESS_LOWER = "brightness_lower"

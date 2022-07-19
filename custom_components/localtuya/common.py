@@ -35,6 +35,7 @@ from .const import (
     CONF_DEFAULT_VALUE,
     ATTR_STATE,
     CONF_RESTORE_ON_RECONNECT,
+    CONF_RESET_DPIDS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -143,6 +144,14 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         self._unsub_interval = None
         self._entities = []
         self._local_key = self._dev_config_entry[CONF_LOCAL_KEY]
+        self._default_reset_dpids = None
+        if CONF_RESET_DPIDS in self._dev_config_entry:
+            reset_ids_str = self._dev_config_entry[CONF_RESET_DPIDS].split(",")
+
+            self._default_reset_dpids = []
+            for reset_id in reset_ids_str:
+                self._default_reset_dpids.append(int(reset_id.strip()))
+
         self.set_logger(_LOGGER, self._dev_config_entry[CONF_DEVICE_ID])
 
         # This has to be done in case the device type is type_0d
@@ -181,14 +190,60 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                 self,
             )
             self._interface.add_dps_to_request(self.dps_to_request)
+        except Exception:  # pylint: disable=broad-except
+            self.exception(f"Connect to {self._dev_config_entry[CONF_HOST]} failed")
+            if self._interface is not None:
+                await self._interface.close()
+                self._interface = None
 
-            self.debug("Retrieving initial state")
-            status = await self._interface.status()
-            if status is None:
-                raise Exception("Failed to retrieve status")
+        if self._interface is not None:
+            try:
+                self.debug("Retrieving initial state")
+                status = await self._interface.status()
+                if status is None:
+                    raise Exception("Failed to retrieve status")
 
-            self.status_updated(status)
+                self._interface.start_heartbeat()
+                self.status_updated(status)
 
+            except Exception as ex:  # pylint: disable=broad-except
+                try:
+                    self.debug(
+                        "Initial state update failed, trying reset command "
+                        + "for DP IDs: %s",
+                        self._default_reset_dpids,
+                    )
+                    await self._interface.reset(self._default_reset_dpids)
+
+                    self.debug("Update completed, retrying initial state")
+                    status = await self._interface.status()
+                    if status is None or not status:
+                        raise Exception("Failed to retrieve status") from ex
+
+                    self._interface.start_heartbeat()
+                    self.status_updated(status)
+
+                except UnicodeDecodeError as e:  # pylint: disable=broad-except
+                    self.exception(
+                        f"Connect to {self._dev_config_entry[CONF_HOST]} failed: %s",
+                        type(e),
+                    )
+                    if self._interface is not None:
+                        await self._interface.close()
+                        self._interface = None
+
+                except Exception as e:  # pylint: disable=broad-except
+                    self.exception(
+                        f"Connect to {self._dev_config_entry[CONF_HOST]} failed"
+                    )
+                    if "json.decode" in str(type(e)):
+                        await self.update_local_key()
+
+                    if self._interface is not None:
+                        await self._interface.close()
+                        self._interface = None
+
+        if self._interface is not None:
             # Attempt to restore status for all entities that need to first set
             # the DPS value before the device will respond with status.
             for entity in self._entities:
@@ -216,22 +271,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                     self._async_refresh,
                     timedelta(seconds=self._dev_config_entry[CONF_SCAN_INTERVAL]),
                 )
-        except UnicodeDecodeError as e:  # pylint: disable=broad-except
-            self.exception(
-                f"Connect to {self._dev_config_entry[CONF_HOST]} failed: %s", type(e)
-            )
-            if self._interface is not None:
-                await self._interface.close()
-                self._interface = None
 
-        except Exception as e:  # pylint: disable=broad-except
-            self.exception(f"Connect to {self._dev_config_entry[CONF_HOST]} failed")
-            if "json.decode" in str(type(e)):
-                await self.update_local_key()
-
-            if self._interface is not None:
-                await self._interface.close()
-                self._interface = None
         self._connect_task = None
 
     async def update_local_key(self):
