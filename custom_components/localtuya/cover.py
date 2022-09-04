@@ -190,7 +190,6 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
 
     def status_updated(self):
         """Device status was updated."""
-        super().status_updated()
 
         self._previous_state = self._state
         self._state = self.dps(self._dp_id)
@@ -229,6 +228,11 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
 
             # store the time of the last movement change
             self._timer_start = time.time()
+
+        # Keep record in last_state as long as not during connection/re-connection,
+        # as last state will be used to restore the previous state
+        if (self._state is not None) and (not self._device.is_connecting):
+            self._last_state = self._state
 
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocaltuyaCover, flow_schema)
