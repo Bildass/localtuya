@@ -49,7 +49,7 @@ def flow_schema(dps):
         vol.Optional(CONF_FAN_SPEED_MIN, default=1): cv.positive_int,
         vol.Optional(CONF_FAN_SPEED_MAX, default=9): cv.positive_int,
         vol.Optional(CONF_FAN_ORDERED_LIST, default="disabled"): cv.string,
-        vol.Optional(CONF_FAN_DPS_TYPE, default='str'): vol.In(["str", "int"]), 
+        vol.Optional(CONF_FAN_DPS_TYPE, default='str'): vol.In(["str", "int"]),
     }
 
 
