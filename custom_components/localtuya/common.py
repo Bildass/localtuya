@@ -208,20 +208,23 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
             except Exception as ex:  # pylint: disable=broad-except
                 try:
-                    self.debug(
-                        "Initial state update failed, trying reset command "
-                        + "for DP IDs: %s",
-                        self._default_reset_dpids,
-                    )
-                    await self._interface.reset(self._default_reset_dpids)
+                    if (self._default_reset_dpids is not None) and (
+                        len(self._default_reset_dpids) > 0
+                    ):
+                        self.debug(
+                            "Initial state update failed, trying reset command "
+                            + "for DP IDs: %s",
+                            self._default_reset_dpids,
+                        )
+                        await self._interface.reset(self._default_reset_dpids)
 
-                    self.debug("Update completed, retrying initial state")
-                    status = await self._interface.status()
-                    if status is None or not status:
-                        raise Exception("Failed to retrieve status") from ex
+                        self.debug("Update completed, retrying initial state")
+                        status = await self._interface.status()
+                        if status is None or not status:
+                            raise Exception("Failed to retrieve status") from ex
 
-                    self._interface.start_heartbeat()
-                    self.status_updated(status)
+                        self._interface.start_heartbeat()
+                        self.status_updated(status)
 
                 except UnicodeDecodeError as e:  # pylint: disable=broad-except
                     self.exception(
@@ -552,10 +555,10 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         Which indicates a DPS that needs to be set before it starts returning
         status.
         """
-        if not self.restore_on_reconnect and (str(self._dp_id) in self._status):
+        if (not self.restore_on_reconnect) and (str(self._dp_id) in self._status):
             self.debug(
-                "Entity %s (DP %d) - Not restoring as restore on reconnect is  \
-                disabled for this entity and the entity has an initial status",
+                "Entity %s (DP %d) - Not restoring as restore on reconnect is "
+                + "disabled for this entity and the entity has an initial status",
                 self.name,
                 self._dp_id,
             )
