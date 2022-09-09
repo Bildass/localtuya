@@ -36,6 +36,7 @@ from .const import (
     ATTR_STATE,
     CONF_RESTORE_ON_RECONNECT,
     CONF_RESET_DPIDS,
+    CONF_PASSIVE_ENTITY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -375,6 +376,9 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         # Default value is available to be provided by Platform entities if required
         self._default_value = self._config.get(CONF_DEFAULT_VALUE)
 
+        # Determine whether is a passive entity
+        self._is_passive_entity = self._config.get(CONF_PASSIVE_ENTITY) or False
+
         """ Restore on connect setting is available to be provided by Platform entities
         if required"""
         self._restore_on_reconnect = (
@@ -555,10 +559,13 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         Which indicates a DPS that needs to be set before it starts returning
         status.
         """
-        if (not self.restore_on_reconnect) and (str(self._dp_id) in self._status):
+        if (not self.restore_on_reconnect) and (
+            (str(self._dp_id) in self._status) or (not self._is_passive_entity)
+        ):
             self.debug(
                 "Entity %s (DP %d) - Not restoring as restore on reconnect is "
-                + "disabled for this entity and the entity has an initial status",
+                + "disabled for this entity and the entity has an initial status "
+                + "or it is not a passive entity",
                 self.name,
                 self._dp_id,
             )
@@ -575,8 +582,12 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
         # If no current or saved state, then use the default value
         if restore_state is None:
-            self.debug("No last restored state - using default")
-            restore_state = self.default_value()
+            if self._is_passive_entity:
+                self.debug("No last restored state - using default")
+                restore_state = self.default_value()
+            else:
+                self.debug("Not a passive entity and no state found - aborting restore")
+                return
 
         self.debug(
             "Entity %s (DP %d) - Restoring state: %s",
