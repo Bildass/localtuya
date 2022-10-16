@@ -303,8 +303,11 @@ class MessageDispatcher(ContextualLogger):
         if msg.seqno in self.listeners:
             self.debug("Dispatching sequence number %d", msg.seqno)
             sem = self.listeners[msg.seqno]
-            self.listeners[msg.seqno] = msg
-            sem.release()
+            if isinstance(sem, asyncio.Semaphore):
+                self.listeners[msg.seqno] = msg
+                sem.release()
+            else:
+                self.debug("Got additional message without request - skipping: %s", sem)
         elif msg.cmd == 0x09:
             self.debug("Got heartbeat response")
             if self.HEARTBEAT_SEQNO in self.listeners:
