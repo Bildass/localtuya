@@ -1052,7 +1052,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             payload = json.dumps(json_data)
         # if spaces are not removed device does not respond!
         payload = payload.replace(" ", "").encode("utf-8")
-        # self.debug("Sending payload: %s", payload)
+        self.debug("Sending payload: %s", payload)
 
         return MessagePayload(command_override, payload)
 
