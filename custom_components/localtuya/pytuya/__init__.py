@@ -99,12 +99,6 @@ error_codes = {
     None: "Unknown Error",
 }
 
-SET = "set"
-STATUS = "status"
-HEARTBEAT = "heartbeat"
-RESET = "reset"
-UPDATEDPS = "updatedps"  # Request refresh of DPS
-
 # Tuya Command Types
 # Reference: https://github.com/tuya/tuya-iotos-embeded-sdk-wifi-ble-bk7231n/blob/master/sdk/include/lan_protocol.h
 AP_CONFIG       = 0x01  # FRM_TP_CFG_WF      # only used for ap 3.0 network config
@@ -697,9 +691,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         # Wait for special sequence number if heartbeat or reset
         seqno = self.seqno
 
-        if payload.cmd == HEARTBEAT:
+        if payload.cmd == HEART_BEAT:
             seqno = MessageDispatcher.HEARTBEAT_SEQNO
-        elif payload.cmd == RESET:
+        elif payload.cmd == UPDATEDPS:
             seqno = MessageDispatcher.RESET_SEQNO
 
         enc_payload = self._encode_message(payload)
@@ -737,14 +731,14 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     async def heartbeat(self):
         """Send a heartbeat message."""
-        return await self.exchange(HEARTBEAT)
+        return await self.exchange(HEART_BEAT)
 
     async def reset(self, dpIds=None):
         """Send a reset message (3.3 only)."""
         if self.version == 3.3:
             self.dev_type = "type_0a"
             self.debug("reset switching to dev_type %s", self.dev_type)
-            return await self.exchange(RESET, dpIds)
+            return await self.exchange(UPDATEDPS, dpIds)
 
         return True
 
