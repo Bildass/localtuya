@@ -704,7 +704,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             return None
 
         # TODO: Verify stuff, e.g. CRC sequence number?
-        if real_cmd == CONTROL_NEW and len(msg.payload) == 0:
+        if real_cmd in [HEART_BEAT, CONTROL_NEW] and len(msg.payload) == 0:
             # device may send one or two messages with empty payload in response
             # to a CONTROL_NEW command, consider it an ACK
             self.debug("ACK received for command %d: ignoring it", real_cmd)
@@ -860,8 +860,6 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                     return self.error_json(ERR_JSON, payload)
             if "data unvalid" in payload:
                 self.dev_type = "type_0d"
-                # set at least one DPS
-                self.dps_to_request = {"1": None}
                 self.debug(
                     "'data unvalid' error detected: switching to dev_type %r",
                     self.dev_type,
