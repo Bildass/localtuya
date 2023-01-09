@@ -366,8 +366,9 @@ class AESCipher:
 class MessageDispatcher(ContextualLogger):
     """Buffer and dispatcher for Tuya messages."""
 
-    # Heartbeats always respond with sequence number 0, so they can't be waited for like
-    # other messages. This is a hack to allow waiting for heartbeats.
+    # Heartbeats on protocols < 3.3 respond with sequence number 0,
+    # so they can't be waited for like other messages.
+    # This is a hack to allow waiting for heartbeats.
     HEARTBEAT_SEQNO = -100
     RESET_SEQNO = -101
     SESS_KEY_SEQNO = -102
@@ -418,7 +419,7 @@ class MessageDispatcher(ContextualLogger):
                 break
 
             header = parse_header(self.buffer)
-            hmac_key = self.local_key if self.version == '3.4' else None
+            hmac_key = self.local_key if self.version == 3.4 else None
             msg = unpack_message(self.buffer, header=header, hmac_key=hmac_key, logger=self);
             self.buffer = self.buffer[header_len - 4 + header.length :]
             self._dispatch(msg)
@@ -561,6 +562,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     def _setup_dispatcher(self):
         def _status_update(msg):
+            if self.seqno > 0:
+                self.seqno = msg.seqno + 1
             decoded_message = self._decode_payload(msg.payload)
             if "dps" in decoded_message:
                 self.dps_cache.update(decoded_message["dps"])
