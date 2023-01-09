@@ -562,7 +562,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     def _setup_dispatcher(self):
         def _status_update(msg):
-            if self.seqno > 0:
+            if msg.seqno > 0:
                 self.seqno = msg.seqno + 1
             decoded_message = self._decode_payload(msg.payload)
             if "dps" in decoded_message:
@@ -707,9 +707,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             return None
 
         # TODO: Verify stuff, e.g. CRC sequence number?
-        if real_cmd in [HEART_BEAT, CONTROL_NEW] and len(msg.payload) == 0:
-            # device may send one or two messages with empty payload in response
-            # to a CONTROL_NEW command, consider it an ACK
+        if real_cmd in [HEART_BEAT, CONTROL, CONTROL_NEW] and len(msg.payload) == 0:
+            # device may send messages with empty payload in response
+            # to a HEART_BEAT or CONTROL or CONTROL_NEW command: consider them an ACK
             self.debug("ACK received for command %d: ignoring it", real_cmd)
             return None
         payload = self._decode_payload(msg.payload)
