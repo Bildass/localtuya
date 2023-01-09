@@ -34,6 +34,7 @@ from .const import (
     CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
     CONF_LOCAL_KEY,
+    CONF_MANUAL_DPS,
     CONF_MODEL,
     CONF_NO_CLOUD,
     CONF_PRODUCT_NAME,
@@ -45,7 +46,6 @@ from .const import (
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
-    CONF_MANUAL_DPS,
 )
 from .discovery import discover
 
@@ -88,7 +88,9 @@ CONFIGURE_DEVICE_SCHEMA = vol.Schema(
         vol.Required(CONF_LOCAL_KEY): str,
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_DEVICE_ID): str,
-        vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(["3.1", "3.2", "3.3", "3.4"]),
+        vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
+            ["3.1", "3.2", "3.3", "3.4"]
+        ),
         vol.Optional(CONF_SCAN_INTERVAL): int,
         vol.Optional(CONF_MANUAL_DPS): str,
         vol.Optional(CONF_RESET_DPIDS): str,
@@ -101,7 +103,9 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Required(CONF_DEVICE_ID): cv.string,
         vol.Required(CONF_LOCAL_KEY): cv.string,
         vol.Required(CONF_FRIENDLY_NAME): cv.string,
-        vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(["3.1", "3.2", "3.3", "3.4"]),
+        vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
+            ["3.1", "3.2", "3.3", "3.4"]
+        ),
         vol.Optional(CONF_SCAN_INTERVAL): int,
         vol.Optional(CONF_MANUAL_DPS): cv.string,
         vol.Optional(CONF_RESET_DPIDS): str,
@@ -144,7 +148,9 @@ def options_schema(entities):
             vol.Required(CONF_FRIENDLY_NAME): str,
             vol.Required(CONF_HOST): str,
             vol.Required(CONF_LOCAL_KEY): str,
-            vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(["3.1", "3.2", "3.3", "3.4"]),
+            vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
+                ["3.1", "3.2", "3.3", "3.4"]
+            ),
             vol.Optional(CONF_SCAN_INTERVAL): int,
             vol.Optional(CONF_MANUAL_DPS): str,
             vol.Optional(CONF_RESET_DPIDS): str,
