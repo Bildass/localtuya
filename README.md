@@ -164,7 +164,10 @@ logger:
   default: warning
   logs:
     custom_components.localtuya: debug
+    custom_components.localtuya.pytuya: debug
 ```
+
+Then, edit the device that is showing problems and check the "Enable debugging for this device" button.
 
 # Notes:
 
