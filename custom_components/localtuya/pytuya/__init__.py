@@ -233,13 +233,17 @@ class ContextualLogger:
     def __init__(self):
         """Initialize a new ContextualLogger."""
         self._logger = None
+        self._enable_debug = False
 
-    def set_logger(self, logger, device_id):
+    def set_logger(self, logger, device_id, enable_debug=False):
         """Set base logger to use."""
+        self._enable_debug = enable_debug
         self._logger = TuyaLoggingAdapter(logger, {"device_id": device_id})
 
     def debug(self, msg, *args):
         """Debug level log."""
+        if not self._enable_debug:
+            return
         return self._logger.log(logging.DEBUG, msg, *args)
 
     def info(self, msg, *args):
@@ -415,7 +419,7 @@ class MessageDispatcher(ContextualLogger):
     RESET_SEQNO = -101
     SESS_KEY_SEQNO = -102
 
-    def __init__(self, dev_id, listener, protocol_version, local_key):
+    def __init__(self, dev_id, listener, protocol_version, local_key, enable_debug):
         """Initialize a new MessageBuffer."""
         super().__init__()
         self.buffer = b""
@@ -423,7 +427,7 @@ class MessageDispatcher(ContextualLogger):
         self.listener = listener
         self.version = protocol_version
         self.local_key = local_key
-        self.set_logger(_LOGGER, dev_id)
+        self.set_logger(_LOGGER, dev_id, enable_debug)
 
     def abort(self):
         """Abort all waiting clients."""
@@ -540,7 +544,9 @@ class EmptyListener(TuyaListener):
 class TuyaProtocol(asyncio.Protocol, ContextualLogger):
     """Implementation of the Tuya protocol."""
 
-    def __init__(self, dev_id, local_key, protocol_version, on_connected, listener):
+    def __init__(
+        self, dev_id, local_key, protocol_version, enable_debug, on_connected, listener
+    ):
         """
         Initialize a new TuyaInterface.
 
@@ -554,7 +560,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         """
         super().__init__()
         self.loop = asyncio.get_running_loop()
-        self.set_logger(_LOGGER, dev_id)
+        self.set_logger(_LOGGER, dev_id, enable_debug)
         self.id = dev_id
         self.local_key = local_key.encode("latin1")
         self.real_local_key = self.local_key
@@ -572,7 +578,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.seqno = 1
         self.transport = None
         self.listener = weakref.ref(listener)
-        self.dispatcher = self._setup_dispatcher()
+        self.dispatcher = self._setup_dispatcher(enable_debug)
         self.on_connected = on_connected
         self.heartbeater = None
         self.dps_cache = {}
@@ -603,7 +609,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         return json.loads('{ "Error":"%s", "Err":"%s", "Payload":%s }' % vals)
 
-    def _setup_dispatcher(self):
+    def _setup_dispatcher(self, enable_debug):
         def _status_update(msg):
             if msg.seqno > 0:
                 self.seqno = msg.seqno + 1
@@ -615,7 +621,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             if listener is not None:
                 listener.status_updated(self.dps_cache)
 
-        return MessageDispatcher(self.id, _status_update, self.version, self.local_key)
+        return MessageDispatcher(
+            self.id, _status_update, self.version, self.local_key, enable_debug
+        )
 
     def connection_made(self, transport):
         """Did connect to the device."""
@@ -1145,6 +1153,7 @@ async def connect(
     device_id,
     local_key,
     protocol_version,
+    enable_debug,
     listener=None,
     port=6668,
     timeout=5,
@@ -1157,6 +1166,7 @@ async def connect(
             device_id,
             local_key,
             protocol_version,
+            enable_debug,
             on_connected,
             listener or EmptyListener(),
         ),

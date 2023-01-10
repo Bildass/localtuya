@@ -95,6 +95,7 @@
                     "device_id": "ID del dispositivo",
                     "local_key": "Chiave locale",
                     "protocol_version": "Versione del protocollo",
+                    "enable_debug": "Abilita il debugging per questo device (il debug va abilitato anche in configuration.yaml)",
                     "scan_interval": "Intervallo di scansione (secondi, solo quando non si aggiorna automaticamente)",
                     "entities": "Entities (deseleziona un'entity per rimuoverla)"
                 }
