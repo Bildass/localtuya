@@ -996,7 +996,6 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             )
 
         # self.debug("session local nonce: %r remote nonce: %r", self.local_nonce, self.remote_nonce)
-
         rkey_hmac = hmac.new(self.local_key, self.remote_nonce, sha256).digest()
         await self.exchange_quick(MessagePayload(SESS_KEY_NEG_FINISH, rkey_hmac), None)
 

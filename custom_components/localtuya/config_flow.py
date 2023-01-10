@@ -83,6 +83,7 @@ CLOUD_SETUP_SCHEMA = vol.Schema(
     }
 )
 
+
 DEVICE_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_FRIENDLY_NAME): cv.string,
