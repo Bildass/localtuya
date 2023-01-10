@@ -560,6 +560,14 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.real_local_key = self.local_key
         self.dev_type = "type_0a"
         self.dps_to_request = {}
+
+        if protocol_version:
+            self.set_version(float(protocol_version))
+        else:
+            # make sure we call our set_version() and not a subclass since some of
+            # them (such as BulbDevice) make connections when called
+            TuyaProtocol.set_version(self, 3.1)
+
         self.cipher = AESCipher(self.local_key)
         self.seqno = 1
         self.transport = None
@@ -571,13 +579,6 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.local_nonce = b"0123456789abcdef"  # not-so-random random key
         self.remote_nonce = b""
 
-        if protocol_version:
-            self.set_version(float(protocol_version))
-        else:
-            # make sure we call our set_version() and not a subclass since some of
-            # them (such as BulbDevice) make connections when called
-            TuyaProtocol.set_version(self, 3.1)
-
     def set_version(self, protocol_version):
         """Set the device version and eventually start available DPs detection."""
         self.version = protocol_version
@@ -586,12 +587,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         if protocol_version == 3.2:  # 3.2 behaves like 3.3 with type_0d
             # self.version = 3.3
             self.dev_type = "type_0d"
-            if self.dps_to_request == {}:
-                self.detect_available_dps()
         elif protocol_version == 3.4:
             self.dev_type = "v3.4"
-        elif self.dev_type == "v3.4":
-            self.dev_type = "default"
 
     def error_json(self, number=None, payload=None):
         """Return error details in JSON."""
@@ -806,7 +803,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         Args:
             dps([int]): list of dps to update, default=detected&whitelisted
         """
-        if self.version == 3.3:
+        if self.version in [3.2, 3.3]:  # 3.2 behaves like 3.3 with type_0d
             if dps is None:
                 if not self.dps_cache:
                     await self.detect_available_dps()
