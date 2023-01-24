@@ -196,7 +196,9 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             )
             self._interface.add_dps_to_request(self.dps_to_request)
         except Exception:  # pylint: disable=broad-except
-            self.warning(f"Connect to {self._dev_config_entry[CONF_HOST]} failed attempting to connect")
+            self.warning(
+                f"Connect to {self._dev_config_entry[CONF_HOST]} failed attempting to connect"
+            )
             if self._interface is not None:
                 await self._interface.close()
                 self._interface = None
@@ -231,14 +233,10 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                         self._interface.start_heartbeat()
                         self.status_updated(status)
                     else:
-                        self.error(
-                            f"Initial state update failed, giving up: %r", ex
-                        )
+                        self.error(f"Initial state update failed, giving up: %r", ex)
                         # return
             except (UnicodeDecodeError, json.decoder.JSONDecodeError) as ex:
-                self.exception(
-                    f"Initial state update failed, trying key update"
-                )
+                self.exception(f"Initial state update failed, trying key update")
                 await self.update_local_key()
 
                 if self._interface is not None:

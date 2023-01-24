@@ -449,7 +449,9 @@ class MessageDispatcher(ContextualLogger):
         try:
             await asyncio.wait_for(self.listeners[seqno].acquire(), timeout=timeout)
         except asyncio.TimeoutError:
-            self.warning("Command %d timed out waiting for sequence number %d", cmd, seqno)
+            self.warning(
+                "Command %d timed out waiting for sequence number %d", cmd, seqno
+            )
             del self.listeners[seqno]
             raise
 
@@ -479,8 +481,11 @@ class MessageDispatcher(ContextualLogger):
         if msg.seqno in self.listeners:
             # self.debug("Dispatching sequence number %d", msg.seqno)
             sem = self.listeners[msg.seqno]
-            self.listeners[msg.seqno] = msg
-            sem.release()
+            if isinstance(sem, asyncio.Semaphore):
+                self.listeners[msg.seqno] = msg
+                sem.release()
+            else:
+                self.debug("Got additional message without request - skipping: %s", sem)
         elif msg.cmd == HEART_BEAT:
             self.debug("Got heartbeat response")
             if self.HEARTBEAT_SEQNO in self.listeners:
