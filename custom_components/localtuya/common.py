@@ -1,5 +1,6 @@
 """Code shared between all platforms."""
 import asyncio
+import json.decoder
 import logging
 import time
 from datetime import timedelta
@@ -176,12 +177,13 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
     def async_connect(self):
         """Connect to device if not already connected."""
+        # self.debug("async_connect: %d %r %r", self._is_closing, self._connect_task, self._interface)
         if not self._is_closing and self._connect_task is None and not self._interface:
             self._connect_task = asyncio.create_task(self._make_connection())
 
     async def _make_connection(self):
         """Subscribe localtuya entity events."""
-        self.debug("Connecting to %s", self._dev_config_entry[CONF_HOST])
+        self.info("Trying to connect to %s...", self._dev_config_entry[CONF_HOST])
 
         try:
             self._interface = await pytuya.connect(
@@ -194,23 +196,23 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             )
             self._interface.add_dps_to_request(self.dps_to_request)
         except Exception:  # pylint: disable=broad-except
-            self.exception(f"Connect to {self._dev_config_entry[CONF_HOST]} failed")
+            self.warning(f"Connect to {self._dev_config_entry[CONF_HOST]} failed attempting to connect")
             if self._interface is not None:
                 await self._interface.close()
                 self._interface = None
 
         if self._interface is not None:
             try:
-                self.debug("Retrieving initial state")
-                status = await self._interface.status()
-                if status is None:
-                    raise Exception("Failed to retrieve status")
-
-                self._interface.start_heartbeat()
-                self.status_updated(status)
-
-            except Exception as ex:  # pylint: disable=broad-except
                 try:
+                    self.debug("Retrieving initial state")
+                    status = await self._interface.status()
+                    if status is None:
+                        raise Exception("Failed to retrieve status")
+
+                    self._interface.start_heartbeat()
+                    self.status_updated(status)
+
+                except Exception as ex:  # pylint: disable=broad-except
                     if (self._default_reset_dpids is not None) and (
                         len(self._default_reset_dpids) > 0
                     ):
@@ -228,26 +230,20 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
                         self._interface.start_heartbeat()
                         self.status_updated(status)
+                    else:
+                        self.error(
+                            f"Initial state update failed, giving up: %r", ex
+                        )
+                        # return
+            except (UnicodeDecodeError, json.decoder.JSONDecodeError) as ex:
+                self.exception(
+                    f"Initial state update failed, trying key update"
+                )
+                await self.update_local_key()
 
-                except UnicodeDecodeError as e:  # pylint: disable=broad-except
-                    self.exception(
-                        f"Connect to {self._dev_config_entry[CONF_HOST]} failed: %s",
-                        type(e),
-                    )
-                    if self._interface is not None:
-                        await self._interface.close()
-                        self._interface = None
-
-                except Exception as e:  # pylint: disable=broad-except
-                    self.exception(
-                        f"Connect to {self._dev_config_entry[CONF_HOST]} failed"
-                    )
-                    if "json.decode" in str(type(e)):
-                        await self.update_local_key()
-
-                    if self._interface is not None:
-                        await self._interface.close()
-                        self._interface = None
+                if self._interface is not None:
+                    await self._interface.close()
+                    self._interface = None
 
         if self._interface is not None:
             # Attempt to restore status for all entities that need to first set
@@ -277,6 +273,8 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                     self._async_refresh,
                     timedelta(seconds=self._dev_config_entry[CONF_SCAN_INTERVAL]),
                 )
+
+            self.info(f"Successfully connected to {self._dev_config_entry[CONF_HOST]}")
 
         self._connect_task = None
 
@@ -310,7 +308,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             await self._interface.close()
         if self._disconnect_task is not None:
             self._disconnect_task()
-        self.debug(
+        self.info(
             "Closed connection with device %s.",
             self._dev_config_entry[CONF_FRIENDLY_NAME],
         )
@@ -358,7 +356,11 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             self._unsub_interval()
             self._unsub_interval = None
         self._interface = None
-        self.debug("Disconnected - waiting for discovery broadcast")
+
+        if self._connect_task is not None:
+            self._connect_task.cancel()
+            self._connect_task = None
+        self.warning("Disconnected - waiting for discovery broadcast")
 
 
 class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
