@@ -444,11 +444,12 @@ class MessageDispatcher(ContextualLogger):
         if seqno in self.listeners:
             raise Exception(f"listener exists for {seqno}")
 
-        self.debug("Command %d waiting for sequence number %d", cmd, seqno)
+        self.debug("Command %d waiting for seq. number %d", cmd, seqno)
         self.listeners[seqno] = asyncio.Semaphore(0)
         try:
             await asyncio.wait_for(self.listeners[seqno].acquire(), timeout=timeout)
         except asyncio.TimeoutError:
+            self.warning("Command %d timed out waiting for sequence number %d", cmd, seqno)
             del self.listeners[seqno]
             raise
 
@@ -511,7 +512,7 @@ class MessageDispatcher(ContextualLogger):
             if msg.cmd == CONTROL_NEW:
                 self.debug("Got ACK message for command %d: will ignore it", msg.cmd)
             else:
-                self.error(
+                self.debug(
                     "Got message type %d for unknown listener %d: %s",
                     msg.cmd,
                     msg.seqno,
