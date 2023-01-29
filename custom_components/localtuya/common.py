@@ -266,12 +266,12 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
 
             if (
                 CONF_SCAN_INTERVAL in self._dev_config_entry
-                and self._dev_config_entry[CONF_SCAN_INTERVAL] > 0
+                and int(self._dev_config_entry[CONF_SCAN_INTERVAL]) > 0
             ):
                 self._unsub_interval = async_track_time_interval(
                     self._hass,
                     self._async_refresh,
-                    timedelta(seconds=self._dev_config_entry[CONF_SCAN_INTERVAL]),
+                    timedelta(seconds=int(self._dev_config_entry[CONF_SCAN_INTERVAL])),
                 )
 
             self.info(f"Successfully connected to {self._dev_config_entry[CONF_HOST]}")
