@@ -81,7 +81,6 @@ async def async_setup_entry(
         ]
 
         if entities_to_setup:
-
             tuyainterface = hass.data[DOMAIN][TUYA_DEVICES][dev_id]
 
             dps_config_fields = list(get_dps_for_platform(flow_schema))
