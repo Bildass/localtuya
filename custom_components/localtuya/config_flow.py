@@ -594,8 +594,18 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         if self.editing_device:
             # If selected device exists as a config entry, load config from it
             defaults = self.config_entry.data[CONF_DEVICES][dev_id].copy()
-            schema = schema_defaults(options_schema(self.entities), **defaults)
+            cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
             placeholders = {"for_device": f" for device `{dev_id}`"}
+            if dev_id in cloud_devs:
+                cloud_local_key = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
+                if defaults[CONF_LOCAL_KEY] != cloud_local_key:
+                    _LOGGER.info("New local_key detected: new %s vs old %s",
+                        cloud_local_key,
+                        defaults[CONF_LOCAL_KEY]
+                    )
+                    defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
+                    placeholders = {"for_device": f" for device `{dev_id}`.\nNOTE: a new local_key has been retrieved using cloud API"}
+            schema = schema_defaults(options_schema(self.entities), **defaults)
         else:
             defaults[CONF_PROTOCOL_VERSION] = "3.3"
             defaults[CONF_HOST] = ""
