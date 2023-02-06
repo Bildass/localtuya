@@ -140,7 +140,7 @@ def options_schema(entities):
                 ["3.1", "3.2", "3.3", "3.4"]
             ),
             vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
-            vol.Optional(CONF_SCAN_INTERVAL): cv.string,
+            vol.Optional(CONF_SCAN_INTERVAL): int,
             vol.Optional(CONF_MANUAL_DPS): cv.string,
             vol.Optional(CONF_RESET_DPIDS): cv.string,
             vol.Required(
@@ -269,7 +269,6 @@ async def validate_input(hass: core.HomeAssistant, data):
         # if manual DPs are set, merge these.
         _LOGGER.debug("Detected DPS: %s", detected_dps)
         if CONF_MANUAL_DPS in data:
-
             manual_dps_list = [dps.strip() for dps in data[CONF_MANUAL_DPS].split(",")]
             _LOGGER.debug(
                 "Manual DPS Setting: %s (%s)", data[CONF_MANUAL_DPS], manual_dps_list
@@ -599,12 +598,15 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             if dev_id in cloud_devs:
                 cloud_local_key = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
                 if defaults[CONF_LOCAL_KEY] != cloud_local_key:
-                    _LOGGER.info("New local_key detected: new %s vs old %s",
+                    _LOGGER.info(
+                        "New local_key detected: new %s vs old %s",
                         cloud_local_key,
-                        defaults[CONF_LOCAL_KEY]
+                        defaults[CONF_LOCAL_KEY],
                     )
                     defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
-                    placeholders = {"for_device": f" for device `{dev_id}`.\nNOTE: a new local_key has been retrieved using cloud API"}
+                    placeholders = {
+                        "for_device": f" for device `{dev_id}`.\nNOTE: a new local_key has been retrieved using cloud API"
+                    }
             schema = schema_defaults(options_schema(self.entities), **defaults)
         else:
             defaults[CONF_PROTOCOL_VERSION] = "3.3"

@@ -449,7 +449,9 @@ class MessageDispatcher(ContextualLogger):
         try:
             await asyncio.wait_for(self.listeners[seqno].acquire(), timeout=timeout)
         except asyncio.TimeoutError:
-            self.warning("Command %d timed out waiting for sequence number %d", cmd, seqno)
+            self.warning(
+                "Command %d timed out waiting for sequence number %d", cmd, seqno
+            )
             del self.listeners[seqno]
             raise
 
