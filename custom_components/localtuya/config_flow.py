@@ -256,14 +256,14 @@ async def validate_input(hass: core.HomeAssistant, data):
             )
         try:
             detected_dps = await interface.detect_available_dps()
-        except Exception:  # pylint: disable=broad-except
+        except Exception as ex:
             try:
-                _LOGGER.debug("Initial state update failed, trying reset command")
+                _LOGGER.debug("Initial state update failed (%s), trying reset command", ex)
                 if len(reset_ids) > 0:
                     await interface.reset(reset_ids)
                     detected_dps = await interface.detect_available_dps()
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.debug("No DPS able to be detected")
+            except Exception as ex:
+                _LOGGER.debug("No DPS able to be detected: %s", ex)
                 detected_dps = {}
 
         # if manual DPs are set, merge these.
@@ -493,7 +493,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                     errors["base"] = "address_in_use"
                 else:
                     errors["base"] = "discovery_failed"
-            except Exception:  # pylint: disable= broad-except
+            except Exception as ex:
                 _LOGGER.exception("discovery failed")
                 errors["base"] = "discovery_failed"
 
@@ -586,8 +586,8 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                 errors["base"] = "invalid_auth"
             except EmptyDpsList:
                 errors["base"] = "empty_dps"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
+            except Exception as ex:
+                _LOGGER.exception("Unexpected exception: %s", ex)
                 errors["base"] = "unknown"
 
         defaults = {}
