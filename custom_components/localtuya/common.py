@@ -234,7 +234,10 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                         self.status_updated(status)
                     else:
                         self.error("Initial state update failed, giving up: %r", ex)
-                        # return
+                        if self._interface is not None:
+                            await self._interface.close()
+                            self._interface = None
+
             except (UnicodeDecodeError, json.decoder.JSONDecodeError) as ex:
                 self.warning("Initial state update failed (%s), trying key update", ex)
                 await self.update_local_key()
