@@ -81,6 +81,7 @@ async def async_setup_entry(
         ]
 
         if entities_to_setup:
+
             tuyainterface = hass.data[DOMAIN][TUYA_DEVICES][dev_id]
 
             dps_config_fields = list(get_dps_for_platform(flow_schema))
@@ -213,7 +214,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                     self._interface.start_heartbeat()
                     self.status_updated(status)
 
-                except Exception as ex:  # pylint: disable=broad-except
+                except Exception as ex:
                     if (self._default_reset_dpids is not None) and (
                         len(self._default_reset_dpids) > 0
                     ):
@@ -232,10 +233,10 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                         self._interface.start_heartbeat()
                         self.status_updated(status)
                     else:
-                        self.error(f"Initial state update failed, giving up: %r", ex)
+                        self.error("Initial state update failed, giving up: %r", ex)
                         # return
             except (UnicodeDecodeError, json.decoder.JSONDecodeError) as ex:
-                self.exception(f"Initial state update failed, trying key update")
+                self.warning("Initial state update failed (%s), trying key update", ex)
                 await self.update_local_key()
 
                 if self._interface is not None:

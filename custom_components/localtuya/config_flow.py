@@ -258,7 +258,9 @@ async def validate_input(hass: core.HomeAssistant, data):
             detected_dps = await interface.detect_available_dps()
         except Exception as ex:
             try:
-                _LOGGER.debug("Initial state update failed (%s), trying reset command", ex)
+                _LOGGER.debug(
+                    "Initial state update failed (%s), trying reset command", ex
+                )
                 if len(reset_ids) > 0:
                     await interface.reset(reset_ids)
                     detected_dps = await interface.detect_available_dps()
@@ -493,7 +495,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                 else:
                     errors["base"] = "discovery_failed"
             except Exception as ex:
-                _LOGGER.exception("discovery failed")
+                _LOGGER.exception("discovery failed: %s", ex)
                 errors["base"] = "discovery_failed"
 
         devices = {
@@ -604,9 +606,8 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                         defaults[CONF_LOCAL_KEY],
                     )
                     defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
-                    placeholders = {
-                        "for_device": f" for device `{dev_id}`.\nNOTE: a new local_key has been retrieved using cloud API"
-                    }
+                    note = "\nNOTE: a new local_key has been retrieved using cloud API"
+                    placeholders = {"for_device": f" for device `{dev_id}`.{note}"}
             schema = schema_defaults(options_schema(self.entities), **defaults)
         else:
             defaults[CONF_PROTOCOL_VERSION] = "3.3"

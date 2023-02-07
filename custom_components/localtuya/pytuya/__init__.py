@@ -923,9 +923,11 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             if not isinstance(payload, str):
                 try:
                     payload = payload.decode()
-                except Exception:
+                except Exception as ex:
                     self.debug("payload was not string type and decoding failed")
-                    return self.error_json(ERR_JSON, payload)
+                    raise DecodeError("payload was not a string: %s", ex)
+                    # return self.error_json(ERR_JSON, payload)
+
             if "data unvalid" in payload:
                 self.dev_type = "type_0d"
                 self.debug(
@@ -943,7 +945,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         try:
             json_payload = json.loads(payload)
         except Exception:
-            json_payload = self.error_json(ERR_JSON, payload)
+            raise DecodeError("could not decrypt data: wrong local_key?")
+            # json_payload = self.error_json(ERR_JSON, payload)
 
         # v3.4 stuffs it into {"data":{"dps":{"1":true}}, ...}
         if (
