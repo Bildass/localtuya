@@ -566,31 +566,31 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                             }
                         )
                         return await self.async_step_pick_entity_type()
-                    else:
-                        self.device_data.update(
-                            {
-                                CONF_DEVICE_ID: dev_id,
-                                CONF_DPS_STRINGS: self.dps_strings,
-                                CONF_ENTITIES: [],
-                            }
+
+                    self.device_data.update(
+                        {
+                            CONF_DEVICE_ID: dev_id,
+                            CONF_DPS_STRINGS: self.dps_strings,
+                            CONF_ENTITIES: [],
+                        }
+                    )
+                    if len(user_input[CONF_ENTITIES]) == 0:
+                        return self.async_abort(
+                            reason="no_entities",
+                            description_placeholders={},
                         )
-                        if len(user_input[CONF_ENTITIES]) == 0:
-                            return self.async_abort(
-                                reason="no_entities",
-                                description_placeholders={},
-                            )
-                        if user_input[CONF_ENTITIES]:
-                            entity_ids = [
-                                int(entity.split(":")[0])
-                                for entity in user_input[CONF_ENTITIES]
-                            ]
-                            device_config = self.config_entry.data[CONF_DEVICES][dev_id]
-                            self.entities = [
-                                entity
-                                for entity in device_config[CONF_ENTITIES]
-                                if entity[CONF_ID] in entity_ids
-                            ]
-                            return await self.async_step_configure_entity()
+                    if user_input[CONF_ENTITIES]:
+                        entity_ids = [
+                            int(entity.split(":")[0])
+                            for entity in user_input[CONF_ENTITIES]
+                        ]
+                        device_config = self.config_entry.data[CONF_DEVICES][dev_id]
+                        self.entities = [
+                            entity
+                            for entity in device_config[CONF_ENTITIES]
+                            if entity[CONF_ID] in entity_ids
+                        ]
+                        return await self.async_step_configure_entity()
 
                 self.dps_strings = await validate_input(self.hass, user_input)
                 return await self.async_step_pick_entity_type()

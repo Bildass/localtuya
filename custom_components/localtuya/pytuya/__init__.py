@@ -769,7 +769,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         try:
             msg = await self.dispatcher.wait_for(seqno, payload.cmd)
         except Exception as ex:
-            self.debug("Wait was aborted for seqno %d", seqno)
+            self.debug("Wait was aborted for seqno %d (%s)", seqno, ex)
             return None
 
         # TODO: Verify stuff, e.g. CRC sequence number?
@@ -889,7 +889,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                 # self.debug("decrypting=%r", payload)
                 payload = cipher.decrypt(payload, False, decode_text=False)
             except Exception as ex:
-                self.debug("incomplete payload=%r (len:%d)", payload, len(payload))
+                self.debug(
+                    "incomplete payload=%r with len:%d (%s)", payload, len(payload), ex
+                )
                 return self.error_json(ERR_PAYLOAD)
 
             # self.debug("decrypted 3.x payload=%r", payload)
@@ -915,7 +917,12 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                     # self.debug("decrypting=%r", payload)
                     payload = cipher.decrypt(payload, False)
                 except Exception as ex:
-                    self.debug("incomplete payload=%r (len:%d)", payload, len(payload))
+                    self.debug(
+                        "incomplete payload=%r with len:%d (%s)",
+                        payload,
+                        len(payload),
+                        ex,
+                    )
                     return self.error_json(ERR_PAYLOAD)
 
                 # self.debug("decrypted 3.x payload=%r", payload)
@@ -946,7 +953,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         try:
             json_payload = json.loads(payload)
         except Exception as ex:
-            raise DecodeError("could not decrypt data: wrong local_key?")
+            raise DecodeError(
+                "could not decrypt data: wrong local_key? (exception %s)", ex
+            )
             # json_payload = self.error_json(ERR_JSON, payload)
 
         # v3.4 stuffs it into {"data":{"dps":{"1":true}}, ...}
@@ -983,9 +992,10 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             payload = cipher.decrypt(payload, False, decode_text=False)
         except Exception as ex:
             self.debug(
-                "session key step 2 decrypt failed, payload=%r (len:%d)",
+                "session key step 2 decrypt failed, payload=%r with len:%d (%s)",
                 payload,
                 len(payload),
+                ex,
             )
             return False
 
