@@ -953,7 +953,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             json_payload = json.loads(payload)
         except Exception as ex:
             raise DecodeError(
-                "could not decrypt data: wrong local_key? (exception %s)", ex
+                "could not decrypt data: wrong local_key? (exception: %s)" % ex
             )
             # json_payload = self.error_json(ERR_JSON, payload)
 
