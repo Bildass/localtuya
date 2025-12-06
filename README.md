@@ -1,9 +1,19 @@
 ![logo](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/logo-small.png)
 
+# LocalTuya - BildaSystem Fork
+
+> **This is an actively developed fork by [BildaSystem.cz](https://bildassystem.cz)**
+>
+> This fork is continuously being improved with new features and fixes. The main enhancement is **QR code authentication** - no more need for Tuya Developer Portal credentials!
+>
+> Original project: [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya)
+
+---
+
 A Home Assistant custom Integration for local handling of Tuya-based devices.
 
 This custom integration updates device status via pushing updates instead of polling, so status updates are fast (even when manually operated).
-The integration also supports the Tuya IoT Cloud APIs, for the retrieval of info and of the local_keys of the devices. 
+The integration also supports the Tuya IoT Cloud APIs, for the retrieval of info and of the local_keys of the devices.
 
 
 **NOTE: The Cloud API account configuration is not mandatory (LocalTuya can work also without it) but is strongly suggested for easy retrieval (and auto-update after re-pairing a device) of local_keys. Cloud API calls are performed only at startup, and when a local_key update is needed.**
@@ -46,6 +56,33 @@ For manual installation, copy the localtuya folder and all of its contents into 
 
 
 To start configuring the integration, just press the "+ADD INTEGRATION" button in the Settings - Integrations page, and select LocalTuya from the drop-down menu.
+
+## Authentication Methods (NEW in v5.3.0)
+
+This fork introduces a much easier way to authenticate with Tuya Cloud - **QR Code Authentication**!
+
+### Option 1: QR Code Authentication (Recommended)
+
+This is the easiest method - no Tuya Developer Portal account needed!
+
+1. Select "Scan QR code with Smart Life app" when prompted
+2. Open your **Smart Life** or **Tuya Smart** app on your phone
+3. Go to **Me** (bottom right) → **Settings** (gear icon) → **Scan QR Code**
+4. Scan the displayed QR code
+5. Confirm the authorization in the app
+6. Click **Submit** - LocalTuya will automatically retrieve all your devices with their local keys!
+
+**Benefits:**
+- No need to create a Tuya IoT developer account
+- No need to link your Smart Life app via QR code on the developer portal
+- No need to subscribe to IoT Core services
+- Local keys are fetched automatically for all devices
+- Works with both Smart Life and Tuya Smart apps
+
+### Option 2: Tuya Developer Portal (Legacy)
+
+If you prefer or need to use the traditional method with Tuya IoT Platform credentials:
+
 The Cloud API configuration page will appear, requesting to input your Tuya IoT Platform account credentials:
 
 ![cloud_setup](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/9-cloud_setup.png)
@@ -220,3 +257,32 @@ postlund, for the ideas, for coding 95% of the refactoring and boosting the qual
 
 <a href="https://www.buymeacoffee.com/rospogrigio" target="_blank"><img src="https://bmc-cdn.nyc3.digitaloceanspaces.com/BMC-button-images/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 <a href="https://paypal.me/rospogrigio" target="_blank"><img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" border="0" alt="PayPal Logo" style="height: auto !important;width: auto !important;"></a>
+
+---
+
+# BildaSystem Fork - Changelog
+
+This fork by [BildaSystem.cz](https://bildassystem.cz) is actively maintained and includes the following enhancements:
+
+## v5.3.0 (Current)
+- **QR Code Authentication** - New authentication method using Smart Life/Tuya Smart app
+  - No Tuya Developer Portal account required
+  - Automatic local key retrieval for all devices
+  - Uses the `tuya-sharing` library
+- Backward compatible with existing Developer Portal authentication
+- Improved config flow with authentication method selection
+
+## Planned Features
+- Automatic device discovery improvements
+- Better error handling and user feedback
+- Czech language support
+- Integration with other BildaSystem projects
+
+## Contact
+- Website: [bildassystem.cz](https://bildassystem.cz)
+- Email: info@bildassystem.cz
+- GitHub: [Bildass/localtuya](https://github.com/Bildass/localtuya)
+
+---
+
+*This fork is provided as-is. For issues specific to this fork, please open an issue on the [Bildass/localtuya](https://github.com/Bildass/localtuya/issues) repository.*
