@@ -4,26 +4,6 @@ DOMAIN = "localtuya_bildass"
 
 DATA_DISCOVERY = "discovery"
 DATA_CLOUD = "cloud_data"
-DATA_CLOUD_SHARING = "cloud_sharing"
-
-# Tuya Sharing API constants (for QR code authentication)
-TUYA_CLIENT_ID = "HA_3y9q4ak7g4ephrvke"
-TUYA_SCHEMA = "tuyaSmart"
-TUYA_RESPONSE_SUCCESS = "success"
-TUYA_RESPONSE_RESULT = "result"
-TUYA_RESPONSE_QR_CODE = "qrcode"
-TUYA_RESPONSE_CODE = "code"
-TUYA_RESPONSE_MSG = "msg"
-
-# Config flow - QR authentication
-CONF_QR_CODE = "qr_code"
-CONF_USER_CODE = "user_code"
-CONF_TERMINAL_ID = "terminal_id"
-CONF_ENDPOINT = "endpoint"
-CONF_AUTH_TYPE = "auth_type"
-AUTH_TYPE_QR = "qr_code"
-AUTH_TYPE_CLOUD = "cloud_api"
-CONF_DEVICE_CID = "cid"
 
 # Hub categories that don't have local keys
 HUB_CATEGORIES = [
