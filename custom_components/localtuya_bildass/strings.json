@@ -24,6 +24,13 @@
                     "username": "Configuration name"
                 }
             },
+            "user_code": {
+                "title": "Enter User Code",
+                "description": "Enter your **User Code** from the Smart Life or Tuya Smart app.\n\n**How to find it:**\n1. Open the **Smart Life** or **Tuya Smart** app\n2. Go to **Me** (bottom right) → **Settings** (gear icon)\n3. Tap **Account and Security**\n4. Find **User Code** at the bottom\n\nThis code links your app account to Home Assistant.",
+                "data": {
+                    "user_code": "User Code"
+                }
+            },
             "qr_code": {
                 "title": "Scan QR Code",
                 "description": "**Instructions:**\n\n1. Open the **Smart Life** or **Tuya Smart** app on your phone\n2. Go to **Me** (bottom right) → **Settings** (gear icon) → **Scan QR Code**\n3. Scan this QR code: `{qr_code}`\n4. Confirm the authorization in the app\n5. Click **Submit** below\n\n_Note: The QR code is a text string. In some browsers, you may need to copy it and generate an actual QR image to scan._",
