@@ -378,7 +378,7 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not qr_available:
                     errors["base"] = "qr_not_available"
                 else:
-                    return await self.async_step_qr_code()
+                    return await self.async_step_user_code()
             else:
                 return await self.async_step_cloud_credentials()
 
@@ -395,14 +395,31 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
+    async def async_step_user_code(self, user_input=None):
+        """Handle user code input step - get user code from Smart Life app."""
+        errors = {}
+
+        if user_input is not None:
+            self._user_code = user_input.get(CONF_USER_CODE, "").strip()
+            if self._user_code:
+                return await self.async_step_qr_code()
+            else:
+                errors["base"] = "invalid_auth"
+
+        return self.async_show_form(
+            step_id="user_code",
+            data_schema=vol.Schema({
+                vol.Required(CONF_USER_CODE): str,
+            }),
+            errors=errors,
+        )
+
     async def async_step_qr_code(self, user_input=None):
         """Handle QR code authentication step."""
         errors = {}
 
         if self._cloud_sharing is None:
             self._cloud_sharing = TuyaCloudSharing(self.hass)
-            # Generate unique user code for this session
-            self._user_code = f"localtuya_{uuid.uuid4().hex[:8]}"
 
         # Generate QR code if we don't have one
         if self._qr_code is None:
