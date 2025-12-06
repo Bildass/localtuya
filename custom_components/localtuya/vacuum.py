@@ -105,7 +105,7 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         _LOGGER.debug("Initialized vacuum [%s]", self.name)
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> VacuumEntityFeature:
         """Flag supported features."""
         supported_features = (
             VacuumEntityFeature.START

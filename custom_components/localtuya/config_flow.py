@@ -513,10 +513,16 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for LocalTuya integration."""
 
     def __init__(self, config_entry):
-        """Initialize localtuya options flow."""
-        self.config_entry = config_entry
-        # self.dps_strings = config_entry.data.get(CONF_DPS_STRINGS, gen_dps_strings())
-        # self.entities = config_entry.data[CONF_ENTITIES]
+        """Initialize localtuya options flow.
+
+        Note: In HA 2025.12+, config_entry is automatically set by parent class.
+        For backwards compatibility with older HA versions, we only set it
+        if not already set by the parent class.
+        """
+        # For backwards compatibility: only set if parent didn't set it
+        # HA 2025.12+ sets self.config_entry automatically
+        if not hasattr(self, "config_entry"):
+            self.config_entry = config_entry
         self.selected_device = None
         self.editing_device = False
         self.device_data = None

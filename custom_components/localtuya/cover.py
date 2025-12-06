@@ -74,7 +74,7 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
         _LOGGER.debug("Initialized cover [%s]", self.name)
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> CoverEntityFeature:
         """Flag supported features."""
         supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
         if self._config[CONF_POSITIONING_MODE] != COVER_MODE_NONE:
