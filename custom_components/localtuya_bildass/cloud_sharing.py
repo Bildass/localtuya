@@ -21,6 +21,12 @@ try:
     TUYA_SHARING_AVAILABLE = True
 except ImportError:
     TUYA_SHARING_AVAILABLE = False
+    # Define dummy base classes when tuya_sharing is not available
+    SharingDeviceListener = object
+    SharingTokenListener = object
+    CustomerDevice = None
+    LoginControl = None
+    Manager = None
 
 from .const import (
     CONF_DEVICE_CID,

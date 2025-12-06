@@ -9,6 +9,6 @@
   "documentation": "https://github.com/Bildass/localtuya/",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/Bildass/localtuya/issues",
-  "requirements": ["tuya-sharing==0.3.5"],
+  "requirements": [],
   "version": "5.4.0"
 }
