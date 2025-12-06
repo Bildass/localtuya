@@ -1,6 +1,6 @@
-"""Constants for localtuya integration."""
+"""Constants for localtuya_bildass integration (BildaSystem fork)."""
 
-DOMAIN = "localtuya"
+DOMAIN = "localtuya_bildass"
 
 DATA_DISCOVERY = "discovery"
 DATA_CLOUD = "cloud_data"

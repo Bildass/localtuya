@@ -264,7 +264,14 @@ postlund, for the ideas, for coding 95% of the refactoring and boosting the qual
 
 This fork by [BildaSystem.cz](https://bildassystem.cz) is actively maintained and includes the following enhancements:
 
-## v5.3.1 (Current)
+## v5.4.0 (Current)
+- **Parallel Installation Support** - Can now run alongside original LocalTuya
+  - Changed domain from `localtuya` to `localtuya_bildass`
+  - Renamed integration folder to `localtuya_bildass`
+  - Updated integration name to "LocalTuya BildaSystem"
+  - This allows testing the fork while keeping original LocalTuya for production
+
+## v5.3.1
 - **Home Assistant 2025.x Compatibility Fixes**
   - Fixed deprecated `config_entry` explicit assignment in options flow (HA 2025.12+)
   - Added proper type annotations to `supported_features` properties
