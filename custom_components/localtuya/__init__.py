@@ -29,14 +29,18 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.service import async_register_admin_service
 
 from .cloud_api import TuyaCloudApi
+from .cloud_sharing import TuyaCloudSharing, is_tuya_sharing_available
 from .common import TuyaDevice, async_config_entry_by_device_id
 from .config_flow import ENTRIES_VERSION, config_schema
 from .const import (
     ATTR_UPDATED_AT,
+    AUTH_TYPE_QR,
+    CONF_AUTH_TYPE,
     CONF_NO_CLOUD,
     CONF_PRODUCT_KEY,
     CONF_USER_ID,
     DATA_CLOUD,
+    DATA_CLOUD_SHARING,
     DATA_DISCOVERY,
     DOMAIN,
     TUYA_DEVICES,
@@ -242,26 +246,50 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
         return
 
-    region = entry.data[CONF_REGION]
-    client_id = entry.data[CONF_CLIENT_ID]
-    secret = entry.data[CONF_CLIENT_SECRET]
-    user_id = entry.data[CONF_USER_ID]
-    tuya_api = TuyaCloudApi(hass, region, client_id, secret, user_id)
-    no_cloud = True
-    if CONF_NO_CLOUD in entry.data:
-        no_cloud = entry.data.get(CONF_NO_CLOUD)
-    if no_cloud:
-        _LOGGER.info("Cloud API account not configured.")
-        # wait 1 second to make sure possible migration has finished
-        await asyncio.sleep(1)
-    else:
-        res = await tuya_api.async_get_access_token()
-        if res != "ok":
-            _LOGGER.error("Cloud API connection failed: %s", res)
+    # Check authentication type
+    auth_type = entry.data.get(CONF_AUTH_TYPE)
+    no_cloud = entry.data.get(CONF_NO_CLOUD, True)
+
+    if auth_type == AUTH_TYPE_QR and is_tuya_sharing_available():
+        # Use QR code authentication (tuya_sharing)
+        _LOGGER.info("Using QR code authentication (tuya_sharing)")
+        cloud_sharing = TuyaCloudSharing(hass)
+
+        if cloud_sharing.is_authenticated:
+            res = await cloud_sharing.async_get_devices_list()
+            if res != "ok":
+                _LOGGER.error("Cloud Sharing API failed to get devices: %s", res)
+            else:
+                _LOGGER.info("Cloud Sharing API: retrieved %d devices", len(cloud_sharing.device_list))
         else:
-            _LOGGER.info("Cloud API connection succeeded.")
-            res = await tuya_api.async_get_devices_list()
-    hass.data[DOMAIN][DATA_CLOUD] = tuya_api
+            _LOGGER.info("Cloud Sharing API: not authenticated (QR code scan required)")
+
+        hass.data[DOMAIN][DATA_CLOUD_SHARING] = cloud_sharing
+        # Create a dummy TuyaCloudApi for compatibility
+        tuya_api = TuyaCloudApi(hass, "eu", "", "", "")
+        # Copy device list from cloud_sharing to tuya_api for compatibility
+        tuya_api.device_list = cloud_sharing.device_list
+        hass.data[DOMAIN][DATA_CLOUD] = tuya_api
+    else:
+        # Use legacy cloud API authentication
+        region = entry.data.get(CONF_REGION, "eu")
+        client_id = entry.data.get(CONF_CLIENT_ID, "")
+        secret = entry.data.get(CONF_CLIENT_SECRET, "")
+        user_id = entry.data.get(CONF_USER_ID, "")
+        tuya_api = TuyaCloudApi(hass, region, client_id, secret, user_id)
+
+        if no_cloud:
+            _LOGGER.info("Cloud API account not configured.")
+            # wait 1 second to make sure possible migration has finished
+            await asyncio.sleep(1)
+        else:
+            res = await tuya_api.async_get_access_token()
+            if res != "ok":
+                _LOGGER.error("Cloud API connection failed: %s", res)
+            else:
+                _LOGGER.info("Cloud API connection succeeded.")
+                res = await tuya_api.async_get_devices_list()
+        hass.data[DOMAIN][DATA_CLOUD] = tuya_api
 
     platforms = set()
     for dev_id in entry.data[CONF_DEVICES].keys():

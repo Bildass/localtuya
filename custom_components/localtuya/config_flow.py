@@ -2,6 +2,7 @@
 import errno
 import logging
 import time
+import uuid
 from importlib import import_module
 
 import homeassistant.helpers.config_validation as cv
@@ -26,11 +27,15 @@ from homeassistant.const import (
 from homeassistant.core import callback
 
 from .cloud_api import TuyaCloudApi
+from .cloud_sharing import TuyaCloudSharing, is_tuya_sharing_available
 from .common import pytuya
 from .const import (
     ATTR_UPDATED_AT,
+    AUTH_TYPE_CLOUD,
+    AUTH_TYPE_QR,
     CONF_ACTION,
     CONF_ADD_DEVICE,
+    CONF_AUTH_TYPE,
     CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
     CONF_ENABLE_DEBUG,
@@ -45,6 +50,7 @@ from .const import (
     CONF_USER_ID,
     CONF_ENABLE_ADD_ENTITIES,
     DATA_CLOUD,
+    DATA_CLOUD_SHARING,
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
@@ -70,6 +76,19 @@ CONF_ACTIONS = {
 CONFIGURE_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_ACTION, default=CONF_ADD_DEVICE): vol.In(CONF_ACTIONS),
+    }
+)
+
+# Auth type selection schema - QR code is recommended (easier)
+AUTH_TYPE_OPTIONS = {
+    AUTH_TYPE_QR: "Scan QR code with Smart Life app (recommended)",
+    AUTH_TYPE_CLOUD: "Enter Tuya Developer Portal credentials (advanced)",
+}
+
+AUTH_TYPE_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_AUTH_TYPE, default=AUTH_TYPE_QR): vol.In(AUTH_TYPE_OPTIONS),
+        vol.Optional(CONF_USERNAME, default=DOMAIN): cv.string,
     }
 )
 
@@ -340,20 +359,122 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize a new LocaltuyaConfigFlow."""
+        self._cloud_sharing = None
+        self._qr_code = None
+        self._user_code = None
+        self._username = DOMAIN
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
+        """Handle the initial step - select authentication type."""
+        errors = {}
+
+        # Check if tuya_sharing is available for QR code auth
+        qr_available = is_tuya_sharing_available()
+
+        if user_input is not None:
+            self._username = user_input.get(CONF_USERNAME, DOMAIN)
+
+            if user_input.get(CONF_AUTH_TYPE) == AUTH_TYPE_QR:
+                if not qr_available:
+                    errors["base"] = "qr_not_available"
+                else:
+                    return await self.async_step_qr_code()
+            else:
+                return await self.async_step_cloud_credentials()
+
+        # If QR not available, go directly to cloud credentials
+        if not qr_available:
+            return await self.async_step_cloud_credentials()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=AUTH_TYPE_SCHEMA,
+            errors=errors,
+            description_placeholders={
+                "qr_status": "available" if qr_available else "not available"
+            },
+        )
+
+    async def async_step_qr_code(self, user_input=None):
+        """Handle QR code authentication step."""
+        errors = {}
+
+        if self._cloud_sharing is None:
+            self._cloud_sharing = TuyaCloudSharing(self.hass)
+            # Generate unique user code for this session
+            self._user_code = f"localtuya_{uuid.uuid4().hex[:8]}"
+
+        # Generate QR code if we don't have one
+        if self._qr_code is None:
+            qr_result = await self._cloud_sharing.async_get_qr_code(self._user_code)
+            if qr_result:
+                self._qr_code = qr_result
+            else:
+                error = self._cloud_sharing.last_error
+                errors["base"] = "qr_generation_failed"
+                return self.async_show_form(
+                    step_id="qr_code",
+                    errors=errors,
+                    description_placeholders={
+                        "error": error.get("msg", "Unknown error") if error else "Unknown error"
+                    },
+                )
+
+        # Check if user clicked "I scanned the code"
+        if user_input is not None:
+            # Check if login was successful
+            if await self._cloud_sharing.async_check_login():
+                # Get devices list
+                result = await self._cloud_sharing.async_get_devices_list()
+                if result == "ok":
+                    # Store cloud sharing instance for later use
+                    if DOMAIN not in self.hass.data:
+                        self.hass.data[DOMAIN] = {}
+                    self.hass.data[DOMAIN][DATA_CLOUD_SHARING] = self._cloud_sharing
+
+                    # Create entry with QR auth type
+                    return await self._create_entry({
+                        CONF_AUTH_TYPE: AUTH_TYPE_QR,
+                        CONF_USERNAME: self._username,
+                        CONF_NO_CLOUD: False,
+                        CONF_CLIENT_ID: "",
+                        CONF_CLIENT_SECRET: "",
+                        CONF_USER_ID: self._user_code,
+                        CONF_REGION: "eu",  # Region is auto-detected with QR auth
+                    })
+                else:
+                    errors["base"] = "device_list_failed"
+            else:
+                errors["base"] = "qr_not_scanned"
+
+        # Show QR code to user
+        return self.async_show_form(
+            step_id="qr_code",
+            errors=errors,
+            description_placeholders={
+                "qr_code": self._qr_code,
+                "instructions": "Open Smart Life or Tuya Smart app, go to Me > Settings (gear icon) > "
+                               "Scan QR Code, and scan this code. Then click 'I scanned the code' below.",
+            },
+        )
+
+    async def async_step_cloud_credentials(self, user_input=None):
+        """Handle the cloud credentials step (legacy method)."""
         errors = {}
         placeholders = {}
         if user_input is not None:
             if user_input.get(CONF_NO_CLOUD):
                 for i in [CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_USER_ID]:
                     user_input[i] = ""
+                user_input[CONF_AUTH_TYPE] = AUTH_TYPE_CLOUD
+                user_input[CONF_USERNAME] = self._username
                 return await self._create_entry(user_input)
 
             cloud_api, res = await attempt_cloud_connection(self.hass, user_input)
 
             if not res:
+                user_input[CONF_AUTH_TYPE] = AUTH_TYPE_CLOUD
+                user_input[CONF_USERNAME] = self._username
                 return await self._create_entry(user_input)
             errors["base"] = res["reason"]
             placeholders = {"msg": res["msg"]}
@@ -362,7 +483,7 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         defaults.update(user_input or {})
 
         return self.async_show_form(
-            step_id="user",
+            step_id="cloud_credentials",
             data_schema=schema_defaults(CLOUD_SETUP_SCHEMA, **defaults),
             errors=errors,
             description_placeholders=placeholders,

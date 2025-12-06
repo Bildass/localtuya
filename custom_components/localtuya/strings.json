@@ -8,17 +8,37 @@
             "cannot_connect": "Cannot connect to device. Verify that address is correct.",
             "invalid_auth": "Failed to authenticate with device. Verify that device id and local key are correct.",
             "unknown": "An unknown error occurred. See log for details.",
-            "switch_already_configured": "Switch with this ID has already been configured."
+            "switch_already_configured": "Switch with this ID has already been configured.",
+            "qr_not_available": "QR code authentication is not available. Please install the tuya-sharing package.",
+            "qr_generation_failed": "Failed to generate QR code. Please try again.",
+            "qr_not_scanned": "QR code has not been scanned yet. Please scan the QR code with your Smart Life app and try again.",
+            "device_list_failed": "Failed to retrieve device list from Tuya Cloud.",
+            "authentication_failed": "Authentication failed. Please check your credentials."
         },
         "step": {
             "user": {
-                "title": "Main Configuration",
-                "description": "Input the credentials for Tuya Cloud API.",
+                "title": "Authentication Method",
+                "description": "Choose how you want to authenticate with Tuya Cloud.\n\n**QR Code (Recommended)**: Simply scan a QR code with your Smart Life or Tuya Smart app. No developer account needed!\n\n**Developer Portal**: Use your Tuya IoT Platform credentials (requires creating a developer account).",
+                "data": {
+                    "auth_type": "Authentication method",
+                    "username": "Configuration name"
+                }
+            },
+            "qr_code": {
+                "title": "Scan QR Code",
+                "description": "**Instructions:**\n\n1. Open the **Smart Life** or **Tuya Smart** app on your phone\n2. Go to **Me** (bottom right) → **Settings** (gear icon) → **Scan QR Code**\n3. Scan this QR code: `{qr_code}`\n4. Confirm the authorization in the app\n5. Click **Submit** below\n\n_Note: The QR code is a text string. In some browsers, you may need to copy it and generate an actual QR image to scan._",
+                "data": {}
+            },
+            "cloud_credentials": {
+                "title": "Tuya Developer Portal Credentials",
+                "description": "Enter your credentials from the Tuya IoT Platform (iot.tuya.com).\n\nIf you don't have a developer account, go back and use QR code authentication instead.",
                 "data": {
                     "region": "API server region",
-                    "client_id": "Client ID",
-                    "client_secret": "Secret",
-                    "user_id": "User ID"
+                    "client_id": "Client ID (Access ID)",
+                    "client_secret": "Client Secret (Access Secret)",
+                    "user_id": "User ID",
+                    "username": "Configuration name",
+                    "no_cloud": "Do not use cloud API (manual configuration only)"
                 }
             },
             "power_outlet": {
