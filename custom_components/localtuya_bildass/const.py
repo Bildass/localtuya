@@ -2,8 +2,27 @@
 
 DOMAIN = "localtuya_bildass"
 
+# BildaSystem branding
+VERSION = "6.0.0"
+BILDASYSTEM_URL = "https://bildassystem.cz"
+BILDASYSTEM_NAME = "LocalTuya BildaSystem"
+
+# Data storage keys
 DATA_DISCOVERY = "discovery"
 DATA_CLOUD = "cloud_data"
+DATA_CLOUD_CACHE = "cloud_cache"
+
+# Device action menu options
+CONF_DEVICE_ACTION = "device_action"
+CONF_QUICK_EDIT = "quick_edit"
+CONF_EDIT_ENTITIES = "edit_entities"
+CONF_FULL_EDIT = "full_edit"
+CONF_SYNC_CLOUD = "sync_cloud"
+CONF_DELETE_DEVICE = "delete_device"
+
+# Entity editing
+CONF_SELECTED_ENTITY = "selected_entity"
+CONF_ADD_NEW_ENTITY = "add_new_entity"
 
 # Hub categories that don't have local keys
 HUB_CATEGORIES = [

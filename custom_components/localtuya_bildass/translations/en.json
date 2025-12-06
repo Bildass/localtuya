@@ -2,7 +2,9 @@
     "config": {
         "abort": {
             "already_configured": "Device has already been configured.",
-            "unsupported_device_type": "Unsupported device type!"
+            "unsupported_device_type": "Unsupported device type!",
+            "no_cloud_configured": "Cloud API is not configured. Please configure Cloud API first.",
+            "entity_not_found": "Entity not found."
         },
         "error": {
             "cannot_connect": "Cannot connect to device. Verify that address is correct.",
@@ -10,7 +12,10 @@
             "unknown": "An unknown error occurred. See log for details.",
             "switch_already_configured": "Switch with this ID has already been configured.",
             "device_list_failed": "Failed to retrieve device list from Tuya Cloud.",
-            "authentication_failed": "Authentication failed. Please check your credentials."
+            "authentication_failed": "Authentication failed. Please check your credentials.",
+            "empty_dps": "No datapoints found. Device may be offline or unreachable.",
+            "address_in_use": "Discovery port is already in use.",
+            "discovery_failed": "Device discovery failed."
         },
         "step": {
             "cloud_credentials": {
@@ -24,32 +29,199 @@
                     "username": "Configuration name",
                     "no_cloud": "Do not use cloud API (manual configuration only)"
                 }
-            },
-            "power_outlet": {
-                "title": "Add subswitch",
-                "description": "You are about to add subswitch number `{number}`. If you want to add another, tick `Add another switch` before continuing.",
-                "data": {
-                    "id": "ID",
-                    "name": "Name",
-                    "friendly_name": "Friendly name",
-                    "current": "Current",
-                    "current_consumption": "Current Consumption",
-                    "voltage": "Voltage",
-                    "add_another_switch": "Add another switch"
-                }
             }
         }
     },
     "options": {
+        "abort": {
+            "no_cloud_configured": "Cloud API is not configured. Please configure Cloud API first in 'Reconfigure Cloud API account'.",
+            "entity_not_found": "Entity not found.",
+            "no_entities": "No entities configured for this device."
+        },
         "step": {
             "init": {
-                "title": "LocalTuya Configuration",
-                "description": "Please select the desired action.",
+                "title": "LocalTuya BildaSystem",
+                "description": "Version {version} | {device_count} devices configured\n\nSelect an action:",
                 "data": {
-                    "add_device": "Add a new device",
-                    "edit_device": "Edit a device",
-                    "delete_device": "Delete a device",
-                    "setup_cloud": "Reconfigure Cloud API account"
+                    "action": "Action"
+                }
+            },
+            "cloud_setup": {
+                "title": "Cloud API Configuration",
+                "description": "Configure your Tuya Cloud API credentials.",
+                "data": {
+                    "region": "API server region",
+                    "client_id": "Client ID (Access ID)",
+                    "client_secret": "Client Secret (Access Secret)",
+                    "user_id": "User ID",
+                    "username": "Configuration name",
+                    "no_cloud": "Do not use cloud API"
+                }
+            },
+            "add_device": {
+                "title": "Add Device",
+                "description": "Select a discovered device or choose '...' to enter details manually.",
+                "data": {
+                    "selected_device": "Device"
+                }
+            },
+            "edit_device": {
+                "title": "Edit Device",
+                "description": "Select a device to edit.",
+                "data": {
+                    "selected_device": "Device"
+                }
+            },
+            "device_action": {
+                "title": "Device Actions",
+                "description": "Device: **{device_name}**\nID: `{device_id}`\nEntities: {entity_count}\n\nWhat would you like to do?",
+                "data": {
+                    "device_action": "Action"
+                }
+            },
+            "quick_edit": {
+                "title": "Quick Edit",
+                "description": "Edit connection settings for **{device_name}**\nID: `{device_id}`{cloud_note}\n\nChanges take effect immediately.",
+                "data": {
+                    "host": "IP Address",
+                    "local_key": "Local Key",
+                    "protocol_version": "Protocol Version",
+                    "friendly_name": "Friendly Name",
+                    "enable_debug": "Enable Debug Logging"
+                }
+            },
+            "entity_list": {
+                "title": "Entity List",
+                "description": "Device: **{device_name}** ({entity_count} entities)\n\nSelect an entity to edit or add a new one:",
+                "data": {
+                    "selected_entity": "Entity"
+                }
+            },
+            "edit_single_entity": {
+                "title": "Edit Entity",
+                "description": "Editing **{entity_name}** (DP {entity_id}, {platform})",
+                "data": {
+                    "friendly_name": "Friendly Name"
+                }
+            },
+            "delete_device": {
+                "title": "Delete Device",
+                "description": "Are you sure you want to delete **{device_name}**?\nID: `{device_id}`\n\nThis will remove {entity_count} entities.\n\n**This action cannot be undone!**",
+                "data": {
+                    "confirm_delete": "Yes, delete this device"
+                }
+            },
+            "sync_from_cloud": {
+                "title": "Sync Local Keys from Cloud",
+                "description": "Found {total_devices} configured devices.\n**{changed_count}** have updated keys.\n{not_found} not found in cloud.\n\n{changes_list}",
+                "data": {
+                    "apply_changes": "Apply changes"
+                }
+            },
+            "configure_device": {
+                "title": "Configure Device",
+                "description": "Configure device{for_device}",
+                "data": {
+                    "friendly_name": "Friendly Name",
+                    "host": "IP Address",
+                    "device_id": "Device ID",
+                    "local_key": "Local Key",
+                    "protocol_version": "Protocol Version",
+                    "enable_debug": "Enable Debug Logging",
+                    "scan_interval": "Scan Interval (seconds)",
+                    "manual_dps_strings": "Manual DPS to Add (comma-separated)",
+                    "reset_dpids": "DPIDs to Reset (comma-separated)",
+                    "entities": "Entities to keep",
+                    "add_entities": "Add new entities"
+                }
+            },
+            "pick_entity_type": {
+                "title": "Add Entity",
+                "description": "Select the type of entity to add.",
+                "data": {
+                    "platform_to_add": "Entity Type",
+                    "no_additional_entities": "Do not add more entities"
+                }
+            },
+            "configure_entity": {
+                "title": "Configure Entity",
+                "description": "Configuring {entity} ({platform})",
+                "data": {
+                    "id": "DP ID",
+                    "friendly_name": "Friendly Name",
+                    "current": "Current DP",
+                    "current_consumption": "Current Consumption DP",
+                    "voltage": "Voltage DP",
+                    "commands_set": "Open/Close/Stop Commands Set",
+                    "positioning_mode": "Positioning Mode",
+                    "current_position_dp": "Current Position DP",
+                    "set_position_dp": "Set Position DP",
+                    "position_inverted": "Invert Position",
+                    "span_time": "Span Time (seconds)",
+                    "unit_of_measurement": "Unit of Measurement",
+                    "device_class": "Device Class",
+                    "scaling": "Scaling Factor",
+                    "state_on": "On Value",
+                    "state_off": "Off Value",
+                    "powergo_dp": "Power DP",
+                    "idle_status_value": "Idle Status",
+                    "returning_status_value": "Returning Status",
+                    "docked_status_value": "Docked Status",
+                    "fault_dp": "Fault DP",
+                    "battery_dp": "Battery DP",
+                    "mode_dp": "Mode DP",
+                    "modes": "Modes",
+                    "return_mode": "Return Mode",
+                    "fan_speed_dp": "Fan Speed DP",
+                    "fan_speeds": "Fan Speeds",
+                    "clean_time_dp": "Clean Time DP",
+                    "clean_area_dp": "Clean Area DP",
+                    "clean_record_dp": "Clean Record DP",
+                    "locate_dp": "Locate DP",
+                    "paused_state": "Paused State",
+                    "stop_status": "Stop Status",
+                    "brightness": "Brightness DP",
+                    "brightness_lower": "Brightness Lower",
+                    "brightness_upper": "Brightness Upper",
+                    "color_temp": "Color Temperature DP",
+                    "color_temp_reverse": "Reverse Color Temperature",
+                    "color": "Color DP",
+                    "color_mode": "Color Mode DP",
+                    "color_temp_min_kelvin": "Min Color Temperature (K)",
+                    "color_temp_max_kelvin": "Max Color Temperature (K)",
+                    "music_mode": "Music Mode",
+                    "scene": "Scene DP",
+                    "fan_speed_control": "Fan Speed Control DP",
+                    "fan_oscillating_control": "Oscillating Control DP",
+                    "fan_speed_min": "Min Fan Speed",
+                    "fan_speed_max": "Max Fan Speed",
+                    "fan_speed_ordered_list": "Fan Speed List",
+                    "fan_direction": "Fan Direction DP",
+                    "fan_direction_forward": "Forward Value",
+                    "fan_direction_reverse": "Reverse Value",
+                    "fan_dps_type": "DP Value Type",
+                    "current_temperature_dp": "Current Temperature DP",
+                    "target_temperature_dp": "Target Temperature DP",
+                    "temperature_step": "Temperature Step",
+                    "max_temperature_dp": "Max Temperature DP",
+                    "min_temperature_dp": "Min Temperature DP",
+                    "precision": "Precision",
+                    "target_precision": "Target Precision",
+                    "temperature_unit": "Temperature Unit",
+                    "hvac_mode_dp": "HVAC Mode DP",
+                    "hvac_mode_set": "HVAC Mode Set",
+                    "hvac_action_dp": "HVAC Action DP",
+                    "hvac_action_set": "HVAC Action Set",
+                    "preset_dp": "Preset DP",
+                    "preset_set": "Preset Set",
+                    "eco_dp": "Eco DP",
+                    "eco_value": "Eco Value",
+                    "heuristic_action": "Heuristic Action",
+                    "dps_default_value": "Default Value",
+                    "restore_on_reconnect": "Restore on Reconnect",
+                    "min_value": "Minimum Value",
+                    "max_value": "Maximum Value",
+                    "step_size": "Step Size"
                 }
             },
             "entity": {
@@ -57,80 +229,7 @@
                 "description": "Editing entity with DPS `{id}` and platform `{platform}`.",
                 "data": {
                     "id": "ID",
-                    "friendly_name": "Friendly name",
-                    "current": "Current",
-                    "current_consumption": "Current Consumption",
-                    "voltage": "Voltage",
-                    "commands_set": "Open_Close_Stop Commands Set",
-                    "positioning_mode": "Positioning mode",
-                    "current_position_dp": "Current Position (for *position* mode only)",
-                    "set_position_dp": "Set Position (for *position* mode only)",
-                    "position_inverted": "Invert 0-100 position (for *position* mode only)",
-                    "span_time": "Full opening time, in secs. (for *timed* mode only)",
-                    "unit_of_measurement": "Unit of Measurement",
-                    "device_class": "Device Class",
-                    "scaling": "Scaling Factor",
-                    "state_on": "On Value",
-                    "state_off": "Off Value",
-                    "powergo_dp": "Power DP (Usually 25 or 2)",
-                    "idle_status_value": "Idle Status (comma-separated)",
-                    "returning_status_value": "Returning Status",
-                    "docked_status_value": "Docked Status (comma-separated)",
-                    "fault_dp": "Fault DP (Usually 11)",
-                    "battery_dp": "Battery status DP (Usually 14)",
-                    "mode_dp": "Mode DP (Usually 27)",
-                    "modes": "Modes list",
-                    "return_mode": "Return home mode",
-                    "fan_speed_dp": "Fan speeds DP (Usually 30)",
-                    "fan_speeds": "Fan speeds list (comma-separated)",
-                    "clean_time_dp": "Clean Time DP (Usually 33)",
-                    "clean_area_dp": "Clean Area DP (Usually 32)",
-                    "clean_record_dp": "Clean Record DP (Usually 34)",
-                    "locate_dp": "Locate DP (Usually 31)",
-                    "paused_state": "Pause state (pause, paused, etc)",
-                    "stop_status": "Stop status",
-                    "brightness": "Brightness (only for white color)",
-                    "brightness_lower": "Brightness Lower Value",
-                    "brightness_upper": "Brightness Upper Value",
-                    "color_temp": "Color Temperature",
-                    "color_temp_reverse": "Color Temperature Reverse",
-                    "color": "Color",
-                    "color_mode": "Color Mode",
-                    "color_temp_min_kelvin": "Minimum Color Temperature in K",
-                    "color_temp_max_kelvin": "Maximum Color Temperature in K",
-                    "music_mode": "Music mode available",
-                    "scene": "Scene",
-                    "fan_speed_control": "Fan Speed Control dps",
-                    "fan_oscillating_control": "Fan Oscillating Control dps",
-                    "fan_speed_min": "minimum fan speed integer",
-                    "fan_speed_max": "maximum fan speed integer",
-                    "fan_speed_ordered_list": "Fan speed modes list (overrides speed min/max)",
-                    "fan_direction": "fan direction dps",
-                    "fan_direction_forward": "forward dps string",
-                    "fan_direction_reverse": "reverse dps string",
-                    "fan_dps_type": "DP value type",
-                    "current_temperature_dp": "Current Temperature",
-                    "target_temperature_dp": "Target Temperature",
-                    "temperature_step": "Temperature Step (optional)",
-                    "max_temperature_dp": "Max Temperature (optional)",
-                    "min_temperature_dp": "Min Temperature (optional)",
-                    "precision": "Precision (optional, for DPs values)",
-                    "target_precision": "Target Precision (optional, for DPs values)",
-                    "temperature_unit": "Temperature Unit (optional)",
-                    "hvac_mode_dp": "HVAC Mode DP (optional)",
-                    "hvac_mode_set": "HVAC Mode Set (optional)",
-                    "hvac_action_dp": "HVAC Current Action DP (optional)",
-                    "hvac_action_set": "HVAC Current Action Set (optional)",
-                    "preset_dp": "Presets DP (optional)",
-                    "preset_set": "Presets Set (optional)",
-                    "eco_dp": "Eco DP (optional)",
-                    "eco_value": "Eco value (optional)",
-                    "heuristic_action": "Enable heuristic action (optional)",
-                    "dps_default_value": "Default value when un-initialised (optional)",
-                    "restore_on_reconnect": "Restore the last set value in HomeAssistant after a lost connection",
-                    "min_value": "Minimum Value",
-                    "max_value": "Maximum Value",
-                    "step_size": "Minimum increment between numbers"
+                    "friendly_name": "Friendly name"
                 }
             },
             "yaml_import": {

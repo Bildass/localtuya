@@ -29,25 +29,35 @@ from .cloud_api import TuyaCloudApi
 from .common import pytuya
 from .const import (
     ATTR_UPDATED_AT,
+    BILDASYSTEM_NAME,
     CONF_ACTION,
     CONF_ADD_DEVICE,
+    CONF_ADD_NEW_ENTITY,
+    CONF_DELETE_DEVICE,
+    CONF_DEVICE_ACTION,
     CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
+    CONF_EDIT_ENTITIES,
     CONF_ENABLE_DEBUG,
+    CONF_FULL_EDIT,
     CONF_LOCAL_KEY,
     CONF_MANUAL_DPS,
     CONF_MODEL,
     CONF_NO_CLOUD,
     CONF_PRODUCT_NAME,
     CONF_PROTOCOL_VERSION,
+    CONF_QUICK_EDIT,
     CONF_RESET_DPIDS,
+    CONF_SELECTED_ENTITY,
     CONF_SETUP_CLOUD,
+    CONF_SYNC_CLOUD,
     CONF_USER_ID,
     CONF_ENABLE_ADD_ENTITIES,
     DATA_CLOUD,
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
+    VERSION,
 )
 from .discovery import discover
 
@@ -64,8 +74,29 @@ CUSTOM_DEVICE = "..."
 CONF_ACTIONS = {
     CONF_ADD_DEVICE: "Add a new device",
     CONF_EDIT_DEVICE: "Edit a device",
+    CONF_SYNC_CLOUD: "Sync local keys from cloud",
     CONF_SETUP_CLOUD: "Reconfigure Cloud API account",
 }
+
+# Device action submenu options
+DEVICE_ACTIONS = {
+    CONF_QUICK_EDIT: "Quick edit (host, key, protocol)",
+    CONF_EDIT_ENTITIES: "Edit entities",
+    CONF_FULL_EDIT: "Full configuration",
+    CONF_DELETE_DEVICE: "Delete device",
+}
+
+QUICK_EDIT_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_HOST): cv.string,
+        vol.Required(CONF_LOCAL_KEY): cv.string,
+        vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
+            ["3.1", "3.2", "3.3", "3.4"]
+        ),
+        vol.Optional(CONF_FRIENDLY_NAME): cv.string,
+        vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
+    }
+)
 
 CONFIGURE_SCHEMA = vol.Schema(
     {
@@ -430,18 +461,27 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         """Manage basic options."""
-        # device_id = self.config_entry.data[CONF_DEVICE_ID]
         if user_input is not None:
-            if user_input.get(CONF_ACTION) == CONF_SETUP_CLOUD:
+            action = user_input.get(CONF_ACTION)
+            if action == CONF_SETUP_CLOUD:
                 return await self.async_step_cloud_setup()
-            if user_input.get(CONF_ACTION) == CONF_ADD_DEVICE:
+            if action == CONF_ADD_DEVICE:
                 return await self.async_step_add_device()
-            if user_input.get(CONF_ACTION) == CONF_EDIT_DEVICE:
+            if action == CONF_EDIT_DEVICE:
                 return await self.async_step_edit_device()
+            if action == CONF_SYNC_CLOUD:
+                return await self.async_step_sync_from_cloud()
+
+        # Count configured devices for display
+        device_count = len(self._get_config_entry().data.get(CONF_DEVICES, {}))
 
         return self.async_show_form(
             step_id="init",
             data_schema=CONFIGURE_SCHEMA,
+            description_placeholders={
+                "version": VERSION,
+                "device_count": str(device_count),
+            },
         )
 
     async def async_step_cloud_setup(self, user_input=None):
@@ -539,17 +579,15 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     async def async_step_edit_device(self, user_input=None):
-        """Handle editing a device."""
-        self.editing_device = True
-        # Use cache if available or fallback to manual discovery
+        """Handle selecting a device to edit."""
         errors = {}
         if user_input is not None:
             self.selected_device = user_input[SELECTED_DEVICE]
             dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
             self.dps_strings = dev_conf.get(CONF_DPS_STRINGS, gen_dps_strings())
             self.entities = dev_conf[CONF_ENTITIES]
-
-            return await self.async_step_configure_device()
+            # Go to device action menu instead of directly to configure
+            return await self.async_step_device_action()
 
         devices = {}
         for dev_id, configured_dev in self._get_config_entry().data[CONF_DEVICES].items():
@@ -561,6 +599,300 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                 devices, self.hass.data[DOMAIN][DATA_CLOUD].device_list, False
             ),
             errors=errors,
+        )
+
+    async def async_step_device_action(self, user_input=None):
+        """Handle device action selection (quick edit, edit entities, full edit, delete)."""
+        if user_input is not None:
+            action = user_input.get(CONF_DEVICE_ACTION)
+            if action == CONF_QUICK_EDIT:
+                return await self.async_step_quick_edit()
+            if action == CONF_EDIT_ENTITIES:
+                return await self.async_step_entity_list()
+            if action == CONF_FULL_EDIT:
+                self.editing_device = True
+                return await self.async_step_configure_device()
+            if action == CONF_DELETE_DEVICE:
+                return await self.async_step_delete_device()
+
+        dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
+        device_name = dev_conf.get(CONF_FRIENDLY_NAME, self.selected_device)
+        entity_count = len(dev_conf.get(CONF_ENTITIES, []))
+
+        return self.async_show_form(
+            step_id="device_action",
+            data_schema=vol.Schema({
+                vol.Required(CONF_DEVICE_ACTION, default=CONF_QUICK_EDIT): vol.In(DEVICE_ACTIONS),
+            }),
+            description_placeholders={
+                "device_name": device_name,
+                "device_id": self.selected_device,
+                "entity_count": str(entity_count),
+            },
+        )
+
+    async def async_step_quick_edit(self, user_input=None):
+        """Handle quick edit of device (host, key, protocol only)."""
+        errors = {}
+        if user_input is not None:
+            # Save only connection parameters without touching entities
+            new_data = self._get_config_entry().data.copy()
+            dev_conf = new_data[CONF_DEVICES][self.selected_device]
+
+            # Update only the quick edit fields
+            dev_conf[CONF_HOST] = user_input[CONF_HOST]
+            dev_conf[CONF_LOCAL_KEY] = user_input[CONF_LOCAL_KEY]
+            dev_conf[CONF_PROTOCOL_VERSION] = user_input[CONF_PROTOCOL_VERSION]
+            dev_conf[CONF_ENABLE_DEBUG] = user_input.get(CONF_ENABLE_DEBUG, False)
+            if user_input.get(CONF_FRIENDLY_NAME):
+                dev_conf[CONF_FRIENDLY_NAME] = user_input[CONF_FRIENDLY_NAME]
+
+            new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
+            self.hass.config_entries.async_update_entry(
+                self._get_config_entry(),
+                data=new_data,
+            )
+            return self.async_create_entry(title="", data={})
+
+        # Pre-fill with current values
+        dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
+        defaults = {
+            CONF_HOST: dev_conf.get(CONF_HOST, ""),
+            CONF_LOCAL_KEY: dev_conf.get(CONF_LOCAL_KEY, ""),
+            CONF_PROTOCOL_VERSION: dev_conf.get(CONF_PROTOCOL_VERSION, "3.3"),
+            CONF_FRIENDLY_NAME: dev_conf.get(CONF_FRIENDLY_NAME, ""),
+            CONF_ENABLE_DEBUG: dev_conf.get(CONF_ENABLE_DEBUG, False),
+        }
+
+        # Check if cloud has newer local_key
+        cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
+        cloud_note = ""
+        if self.selected_device in cloud_devs:
+            cloud_key = cloud_devs[self.selected_device].get(CONF_LOCAL_KEY, "")
+            if cloud_key and cloud_key != defaults[CONF_LOCAL_KEY]:
+                defaults[CONF_LOCAL_KEY] = cloud_key
+                cloud_note = "\n\n**Note:** A new local_key was detected from cloud!"
+
+        return self.async_show_form(
+            step_id="quick_edit",
+            data_schema=schema_defaults(QUICK_EDIT_SCHEMA, **defaults),
+            errors=errors,
+            description_placeholders={
+                "device_name": dev_conf.get(CONF_FRIENDLY_NAME, self.selected_device),
+                "device_id": self.selected_device,
+                "cloud_note": cloud_note,
+            },
+        )
+
+    async def async_step_entity_list(self, user_input=None):
+        """Handle entity list for selecting one to edit."""
+        if user_input is not None:
+            selected = user_input.get(CONF_SELECTED_ENTITY)
+            if selected == CONF_ADD_NEW_ENTITY:
+                # Add new entity - go to pick entity type
+                self.editing_device = False
+                dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
+                self.device_data = dev_conf.copy()
+                self.device_data[CONF_DEVICE_ID] = self.selected_device
+                return await self.async_step_pick_entity_type()
+            else:
+                # Edit existing entity
+                entity_id = int(selected.split(":")[0])
+                return await self.async_step_edit_single_entity(entity_id)
+
+        # Build entity list
+        dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
+        entities = dev_conf.get(CONF_ENTITIES, [])
+
+        entity_options = {
+            f"{ent[CONF_ID]}: {ent.get(CONF_FRIENDLY_NAME, 'Unknown')} ({ent.get(CONF_PLATFORM, 'unknown')})": f"{ent[CONF_ID]}: {ent.get(CONF_FRIENDLY_NAME, 'Unknown')}"
+            for ent in entities
+        }
+        entity_options[CONF_ADD_NEW_ENTITY] = "➕ Add new entity"
+
+        return self.async_show_form(
+            step_id="entity_list",
+            data_schema=vol.Schema({
+                vol.Required(CONF_SELECTED_ENTITY): vol.In(entity_options),
+            }),
+            description_placeholders={
+                "device_name": dev_conf.get(CONF_FRIENDLY_NAME, self.selected_device),
+                "entity_count": str(len(entities)),
+            },
+        )
+
+    async def async_step_edit_single_entity(self, entity_id=None, user_input=None):
+        """Handle editing a single entity."""
+        errors = {}
+
+        if user_input is not None:
+            # Save the edited entity
+            new_data = self._get_config_entry().data.copy()
+            dev_conf = new_data[CONF_DEVICES][self.selected_device]
+
+            # Find and update the entity
+            for i, ent in enumerate(dev_conf[CONF_ENTITIES]):
+                if ent[CONF_ID] == self._editing_entity_id:
+                    updated_entity = strip_dps_values(user_input, self.dps_strings)
+                    updated_entity[CONF_ID] = self._editing_entity_id
+                    updated_entity[CONF_PLATFORM] = ent[CONF_PLATFORM]
+                    dev_conf[CONF_ENTITIES][i] = updated_entity
+                    break
+
+            new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
+            self.hass.config_entries.async_update_entry(
+                self._get_config_entry(),
+                data=new_data,
+            )
+            return self.async_create_entry(title="", data={})
+
+        # Store the entity ID being edited
+        if entity_id is not None:
+            self._editing_entity_id = entity_id
+
+        # Find the entity to edit
+        dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
+        current_entity = None
+        for ent in dev_conf.get(CONF_ENTITIES, []):
+            if ent[CONF_ID] == self._editing_entity_id:
+                current_entity = ent
+                break
+
+        if current_entity is None:
+            return self.async_abort(reason="entity_not_found")
+
+        schema = platform_schema(
+            current_entity[CONF_PLATFORM], self.dps_strings, allow_id=False
+        )
+
+        return self.async_show_form(
+            step_id="edit_single_entity",
+            data_schema=schema_defaults(schema, self.dps_strings, **current_entity),
+            errors=errors,
+            description_placeholders={
+                "entity_name": current_entity.get(CONF_FRIENDLY_NAME, "Unknown"),
+                "entity_id": str(self._editing_entity_id),
+                "platform": current_entity.get(CONF_PLATFORM, "unknown"),
+            },
+        )
+
+    async def async_step_delete_device(self, user_input=None):
+        """Handle device deletion confirmation."""
+        if user_input is not None:
+            if user_input.get("confirm_delete"):
+                # Delete the device
+                new_data = self._get_config_entry().data.copy()
+                del new_data[CONF_DEVICES][self.selected_device]
+                new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
+
+                # Remove entities from registry
+                ent_reg = er.async_get(self.hass)
+                entry_id = self._get_config_entry().entry_id
+                reg_entities = {
+                    ent.unique_id: ent.entity_id
+                    for ent in er.async_entries_for_config_entry(ent_reg, entry_id)
+                    if self.selected_device in ent.unique_id
+                }
+                for entity_id in reg_entities.values():
+                    ent_reg.async_remove(entity_id)
+
+                self.hass.config_entries.async_update_entry(
+                    self._get_config_entry(),
+                    data=new_data,
+                )
+                return self.async_create_entry(title="", data={})
+            else:
+                # User cancelled - go back to init
+                return await self.async_step_init()
+
+        dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
+        device_name = dev_conf.get(CONF_FRIENDLY_NAME, self.selected_device)
+        entity_count = len(dev_conf.get(CONF_ENTITIES, []))
+
+        return self.async_show_form(
+            step_id="delete_device",
+            data_schema=vol.Schema({
+                vol.Required("confirm_delete", default=False): bool,
+            }),
+            description_placeholders={
+                "device_name": device_name,
+                "device_id": self.selected_device,
+                "entity_count": str(entity_count),
+            },
+        )
+
+    async def async_step_sync_from_cloud(self, user_input=None):
+        """Handle syncing local keys from cloud."""
+        errors = {}
+
+        cloud_api = self.hass.data[DOMAIN][DATA_CLOUD]
+        no_cloud = self._get_config_entry().data.get(CONF_NO_CLOUD, True)
+
+        if no_cloud:
+            return self.async_abort(
+                reason="no_cloud_configured",
+                description_placeholders={},
+            )
+
+        if user_input is not None:
+            if user_input.get("apply_changes"):
+                # Apply the synced keys
+                new_data = self._get_config_entry().data.copy()
+                sync_result = await cloud_api.async_sync_local_keys(new_data[CONF_DEVICES])
+
+                updated_count = 0
+                for dev_id, info in sync_result.items():
+                    if info["changed"] and info["found"]:
+                        new_data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY] = info["new_key"]
+                        updated_count += 1
+
+                if updated_count > 0:
+                    new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
+                    self.hass.config_entries.async_update_entry(
+                        self._get_config_entry(),
+                        data=new_data,
+                    )
+
+                return self.async_create_entry(title="", data={})
+            else:
+                return await self.async_step_init()
+
+        # Get sync preview
+        configured_devices = self._get_config_entry().data.get(CONF_DEVICES, {})
+        sync_result = await cloud_api.async_sync_local_keys(configured_devices)
+
+        # Count changes
+        total_devices = len(sync_result)
+        changed_count = sum(1 for info in sync_result.values() if info["changed"])
+        not_found = sum(1 for info in sync_result.values() if not info["found"])
+
+        # Build description of changes
+        changes_list = []
+        for dev_id, info in sync_result.items():
+            status = "✅" if info["found"] else "❌"
+            if info["changed"]:
+                changes_list.append(f"{status} **{info['name']}** - new key detected")
+            elif info["found"]:
+                changes_list.append(f"{status} {info['name']} - unchanged")
+            else:
+                changes_list.append(f"{status} {info['name']} - not found in cloud")
+
+        changes_text = "\n".join(changes_list[:10])  # Limit to 10 items
+        if len(changes_list) > 10:
+            changes_text += f"\n... and {len(changes_list) - 10} more"
+
+        return self.async_show_form(
+            step_id="sync_from_cloud",
+            data_schema=vol.Schema({
+                vol.Required("apply_changes", default=changed_count > 0): bool,
+            }),
+            errors=errors,
+            description_placeholders={
+                "total_devices": str(total_devices),
+                "changed_count": str(changed_count),
+                "not_found": str(not_found),
+                "changes_list": changes_text,
+            },
         )
 
     async def async_step_configure_device(self, user_input=None):
