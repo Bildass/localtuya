@@ -240,7 +240,25 @@ postlund, for the ideas, for coding 95% of the refactoring and boosting the qual
 
 This fork by [BildaSystem.cz](https://bildassystem.cz) is actively maintained and includes the following enhancements:
 
-## v5.5.0 (Current)
+## v6.0.0 (Current)
+- **Major Config Flow Overhaul** - Completely redesigned device configuration
+  - **Quick Edit** - Change host/local_key/protocol without iterating through all entities
+  - **Entity List** - Direct entity editing - select one entity to edit instead of going through all
+  - **Sync from Cloud** - One-click sync of local_keys from Tuya Cloud for all devices
+  - **Device Actions Menu** - New submenu when editing devices (Quick Edit, Edit Entities, Full Configure, Delete)
+- **Enhanced Cloud API** - Complete rewrite of cloud_api.py
+  - Native async aiohttp instead of synchronous requests
+  - Token caching with automatic refresh
+  - Pagination support for accounts with 100+ devices
+  - Device specification and functions endpoints
+  - HMAC-SHA256 signature with nonce (ported from domacnost project)
+- **UI Improvements**
+  - Version number displayed in config menu
+  - Device count shown in main menu
+  - Cloud key change notifications
+  - Better error messages and abort reasons
+
+## v5.5.0
 - **Code cleanup** - Removed non-functional QR code authentication
   - QR code authentication was removed as it does not work with current Smart Life / Tuya Smart app versions
   - Simplified config flow - goes directly to cloud credentials setup
@@ -259,11 +277,11 @@ This fork by [BildaSystem.cz](https://bildassystem.cz) is actively maintained an
   - Added proper type annotations to `supported_features` properties
   - Backwards compatible with older HA versions
 
-## Planned Features
-- Automatic device discovery improvements
-- Better error handling and user feedback
-- Czech language support
-- Integration with other BildaSystem projects
+## Features
+- Quick device configuration without entity iteration
+- Automatic local_key sync from Tuya Cloud
+- Direct single-entity editing
+- Enhanced async Cloud API with caching
 
 ## Contact
 - Website: [bildassystem.cz](https://bildassystem.cz)
