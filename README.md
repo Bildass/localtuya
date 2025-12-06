@@ -264,7 +264,13 @@ postlund, for the ideas, for coding 95% of the refactoring and boosting the qual
 
 This fork by [BildaSystem.cz](https://bildassystem.cz) is actively maintained and includes the following enhancements:
 
-## v5.3.0 (Current)
+## v5.3.1 (Current)
+- **Home Assistant 2025.x Compatibility Fixes**
+  - Fixed deprecated `config_entry` explicit assignment in options flow (HA 2025.12+)
+  - Added proper type annotations to `supported_features` properties
+  - Backwards compatible with older HA versions
+
+## v5.3.0
 - **QR Code Authentication** - New authentication method using Smart Life/Tuya Smart app
   - No Tuya Developer Portal account required
   - Automatic local key retrieval for all devices

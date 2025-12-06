@@ -248,7 +248,7 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
         _LOGGER.debug("Initialized climate [%s]", self.name)
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> ClimateEntityFeature:
         """Flag supported features."""
         supported_features = ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
         if self.has_config(CONF_TARGET_TEMPERATURE_DP):
