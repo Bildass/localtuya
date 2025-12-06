@@ -2,7 +2,6 @@
 import errno
 import logging
 import time
-import uuid
 from importlib import import_module
 
 import homeassistant.helpers.config_validation as cv
@@ -27,15 +26,11 @@ from homeassistant.const import (
 from homeassistant.core import callback
 
 from .cloud_api import TuyaCloudApi
-from .cloud_sharing import TuyaCloudSharing, is_tuya_sharing_available
 from .common import pytuya
 from .const import (
     ATTR_UPDATED_AT,
-    AUTH_TYPE_CLOUD,
-    AUTH_TYPE_QR,
     CONF_ACTION,
     CONF_ADD_DEVICE,
-    CONF_AUTH_TYPE,
     CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
     CONF_ENABLE_DEBUG,
@@ -47,11 +42,9 @@ from .const import (
     CONF_PROTOCOL_VERSION,
     CONF_RESET_DPIDS,
     CONF_SETUP_CLOUD,
-    CONF_USER_CODE,
     CONF_USER_ID,
     CONF_ENABLE_ADD_ENTITIES,
     DATA_CLOUD,
-    DATA_CLOUD_SHARING,
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
@@ -77,19 +70,6 @@ CONF_ACTIONS = {
 CONFIGURE_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_ACTION, default=CONF_ADD_DEVICE): vol.In(CONF_ACTIONS),
-    }
-)
-
-# Auth type selection schema - QR code is recommended (easier)
-AUTH_TYPE_OPTIONS = {
-    AUTH_TYPE_QR: "Scan QR code with Smart Life app (recommended)",
-    AUTH_TYPE_CLOUD: "Enter Tuya Developer Portal credentials (advanced)",
-}
-
-AUTH_TYPE_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_AUTH_TYPE, default=AUTH_TYPE_QR): vol.In(AUTH_TYPE_OPTIONS),
-        vol.Optional(CONF_USERNAME, default=DOMAIN): cv.string,
     }
 )
 
@@ -360,138 +340,26 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize a new LocaltuyaConfigFlow."""
-        self._cloud_sharing = None
-        self._qr_code = None
-        self._user_code = None
         self._username = DOMAIN
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step - select authentication type."""
-        errors = {}
-
-        # Check if tuya_sharing is available for QR code auth
-        qr_available = is_tuya_sharing_available()
-
-        if user_input is not None:
-            self._username = user_input.get(CONF_USERNAME, DOMAIN)
-
-            if user_input.get(CONF_AUTH_TYPE) == AUTH_TYPE_QR:
-                if not qr_available:
-                    errors["base"] = "qr_not_available"
-                else:
-                    return await self.async_step_user_code()
-            else:
-                return await self.async_step_cloud_credentials()
-
-        # If QR not available, go directly to cloud credentials
-        if not qr_available:
-            return await self.async_step_cloud_credentials()
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=AUTH_TYPE_SCHEMA,
-            errors=errors,
-            description_placeholders={
-                "qr_status": "available" if qr_available else "not available"
-            },
-        )
-
-    async def async_step_user_code(self, user_input=None):
-        """Handle user code input step - get user code from Smart Life app."""
-        errors = {}
-
-        if user_input is not None:
-            self._user_code = user_input.get(CONF_USER_CODE, "").strip()
-            if self._user_code:
-                return await self.async_step_qr_code()
-            else:
-                errors["base"] = "invalid_auth"
-
-        return self.async_show_form(
-            step_id="user_code",
-            data_schema=vol.Schema({
-                vol.Required(CONF_USER_CODE): str,
-            }),
-            errors=errors,
-        )
-
-    async def async_step_qr_code(self, user_input=None):
-        """Handle QR code authentication step."""
-        errors = {}
-
-        if self._cloud_sharing is None:
-            self._cloud_sharing = TuyaCloudSharing(self.hass)
-
-        # Generate QR code if we don't have one
-        if self._qr_code is None:
-            qr_result = await self._cloud_sharing.async_get_qr_code(self._user_code)
-            if qr_result:
-                self._qr_code = qr_result
-            else:
-                error = self._cloud_sharing.last_error
-                errors["base"] = "qr_generation_failed"
-                return self.async_show_form(
-                    step_id="qr_code",
-                    errors=errors,
-                    description_placeholders={
-                        "error": error.get("msg", "Unknown error") if error else "Unknown error"
-                    },
-                )
-
-        # Check if user clicked "I scanned the code"
-        if user_input is not None:
-            # Check if login was successful
-            if await self._cloud_sharing.async_check_login():
-                # Get devices list
-                result = await self._cloud_sharing.async_get_devices_list()
-                if result == "ok":
-                    # Store cloud sharing instance for later use
-                    if DOMAIN not in self.hass.data:
-                        self.hass.data[DOMAIN] = {}
-                    self.hass.data[DOMAIN][DATA_CLOUD_SHARING] = self._cloud_sharing
-
-                    # Create entry with QR auth type
-                    return await self._create_entry({
-                        CONF_AUTH_TYPE: AUTH_TYPE_QR,
-                        CONF_USERNAME: self._username,
-                        CONF_NO_CLOUD: False,
-                        CONF_CLIENT_ID: "",
-                        CONF_CLIENT_SECRET: "",
-                        CONF_USER_ID: self._user_code,
-                        CONF_REGION: "eu",  # Region is auto-detected with QR auth
-                    })
-                else:
-                    errors["base"] = "device_list_failed"
-            else:
-                errors["base"] = "qr_not_scanned"
-
-        # Show QR code to user
-        return self.async_show_form(
-            step_id="qr_code",
-            errors=errors,
-            description_placeholders={
-                "qr_code": self._qr_code,
-                "instructions": "Open Smart Life or Tuya Smart app, go to Me > Settings (gear icon) > "
-                               "Scan QR Code, and scan this code. Then click 'I scanned the code' below.",
-            },
-        )
+        """Handle the initial step - go directly to cloud credentials."""
+        return await self.async_step_cloud_credentials()
 
     async def async_step_cloud_credentials(self, user_input=None):
-        """Handle the cloud credentials step (legacy method)."""
+        """Handle the cloud credentials step."""
         errors = {}
         placeholders = {}
         if user_input is not None:
             if user_input.get(CONF_NO_CLOUD):
                 for i in [CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_USER_ID]:
                     user_input[i] = ""
-                user_input[CONF_AUTH_TYPE] = AUTH_TYPE_CLOUD
                 user_input[CONF_USERNAME] = self._username
                 return await self._create_entry(user_input)
 
             cloud_api, res = await attempt_cloud_connection(self.hass, user_input)
 
             if not res:
-                user_input[CONF_AUTH_TYPE] = AUTH_TYPE_CLOUD
                 user_input[CONF_USERNAME] = self._username
                 return await self._create_entry(user_input)
             errors["base"] = res["reason"]
@@ -530,17 +398,19 @@ class LocaltuyaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for LocalTuya integration."""
 
-    def __init__(self, config_entry):
+    def __init__(self, config_entry=None):
         """Initialize localtuya options flow.
 
-        Note: In HA 2025.12+, config_entry is automatically set by parent class.
-        For backwards compatibility with older HA versions, we only set it
-        if not already set by the parent class.
+        Note: In HA 2025.x, config_entry is automatically set by parent class
+        AFTER __init__ completes. We must NOT access self.config_entry during
+        __init__ as it raises ValueError.
+
+        For backwards compatibility with older HA versions (<2025.x), we store
+        the parameter and set it later if needed.
         """
-        # For backwards compatibility: only set if parent didn't set it
-        # HA 2025.12+ sets self.config_entry automatically
-        if not hasattr(self, "config_entry"):
-            self.config_entry = config_entry
+        # Store parameter for backwards compatibility with older HA versions
+        # DO NOT access self.config_entry here - it's not available yet in HA 2025.x
+        self._config_entry_param = config_entry
         self.selected_device = None
         self.editing_device = False
         self.device_data = None
@@ -548,6 +418,15 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         self.selected_platform = None
         self.discovered_devices = {}
         self.entities = []
+
+    def _get_config_entry(self):
+        """Get config_entry, handling both old and new HA versions."""
+        try:
+            # HA 2025.x - config_entry is set by parent class
+            return self.config_entry
+        except (AttributeError, ValueError):
+            # Older HA versions - use stored parameter
+            return self._config_entry_param
 
     async def async_step_init(self, user_input=None):
         """Manage basic options."""
@@ -571,12 +450,12 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         placeholders = {}
         if user_input is not None:
             if user_input.get(CONF_NO_CLOUD):
-                new_data = self.config_entry.data.copy()
+                new_data = self._get_config_entry().data.copy()
                 new_data.update(user_input)
                 for i in [CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_USER_ID]:
                     new_data[i] = ""
                 self.hass.config_entries.async_update_entry(
-                    self.config_entry,
+                    self._get_config_entry(),
                     data=new_data,
                 )
                 return self.async_create_entry(
@@ -586,7 +465,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             cloud_api, res = await attempt_cloud_connection(self.hass, user_input)
 
             if not res:
-                new_data = self.config_entry.data.copy()
+                new_data = self._get_config_entry().data.copy()
                 new_data.update(user_input)
                 cloud_devs = cloud_api.device_list
                 for dev_id, dev in new_data[CONF_DEVICES].items():
@@ -596,7 +475,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                 new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
 
                 self.hass.config_entries.async_update_entry(
-                    self.config_entry,
+                    self._get_config_entry(),
                     data=new_data,
                 )
                 return self.async_create_entry(
@@ -605,7 +484,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             errors["base"] = res["reason"]
             placeholders = {"msg": res["msg"]}
 
-        defaults = self.config_entry.data.copy()
+        defaults = self._get_config_entry().data.copy()
         defaults.update(user_input or {})
         defaults[CONF_NO_CLOUD] = False
 
@@ -648,7 +527,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         devices = {
             dev_id: dev["ip"]
             for dev_id, dev in self.discovered_devices.items()
-            if dev["gwId"] not in self.config_entry.data[CONF_DEVICES]
+            if dev["gwId"] not in self._get_config_entry().data[CONF_DEVICES]
         }
 
         return self.async_show_form(
@@ -666,14 +545,14 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         errors = {}
         if user_input is not None:
             self.selected_device = user_input[SELECTED_DEVICE]
-            dev_conf = self.config_entry.data[CONF_DEVICES][self.selected_device]
+            dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
             self.dps_strings = dev_conf.get(CONF_DPS_STRINGS, gen_dps_strings())
             self.entities = dev_conf[CONF_ENTITIES]
 
             return await self.async_step_configure_device()
 
         devices = {}
-        for dev_id, configured_dev in self.config_entry.data[CONF_DEVICES].items():
+        for dev_id, configured_dev in self._get_config_entry().data[CONF_DEVICES].items():
             devices[dev_id] = configured_dev[CONF_HOST]
 
         return self.async_show_form(
@@ -729,7 +608,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                             int(entity.split(":")[0])
                             for entity in user_input[CONF_ENTITIES]
                         ]
-                        device_config = self.config_entry.data[CONF_DEVICES][dev_id]
+                        device_config = self._get_config_entry().data[CONF_DEVICES][dev_id]
                         self.entities = [
                             entity
                             for entity in device_config[CONF_ENTITIES]
@@ -752,7 +631,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         defaults = {}
         if self.editing_device:
             # If selected device exists as a config entry, load config from it
-            defaults = self.config_entry.data[CONF_DEVICES][dev_id].copy()
+            defaults = self._get_config_entry().data[CONF_DEVICES][dev_id].copy()
             cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
             placeholders = {"for_device": f" for device `{dev_id}`"}
             if dev_id in cloud_devs:
@@ -807,12 +686,12 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
 
                 dev_id = self.device_data.get(CONF_DEVICE_ID)
 
-                new_data = self.config_entry.data.copy()
+                new_data = self._get_config_entry().data.copy()
                 new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
                 new_data[CONF_DEVICES].update({dev_id: config})
 
                 self.hass.config_entries.async_update_entry(
-                    self.config_entry,
+                    self._get_config_entry(),
                     data=new_data,
                 )
                 return self.async_create_entry(title="", data={})
@@ -851,7 +730,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
 
             if len(self.entities) == len(self.device_data[CONF_ENTITIES]):
                 self.hass.config_entries.async_update_entry(
-                    self.config_entry,
+                    self._get_config_entry(),
                     title=self.device_data[CONF_FRIENDLY_NAME],
                     data=self.device_data,
                 )
@@ -885,8 +764,8 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                 if len(self.entities) == len(self.device_data[CONF_ENTITIES]):
                     # finished editing device. Let's store the new config entry....
                     dev_id = self.device_data[CONF_DEVICE_ID]
-                    new_data = self.config_entry.data.copy()
-                    entry_id = self.config_entry.entry_id
+                    new_data = self._get_config_entry().data.copy()
+                    entry_id = self._get_config_entry().entry_id
                     # removing entities from registry (they will be recreated)
                     ent_reg = er.async_get(self.hass)
                     reg_entities = {
@@ -900,7 +779,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                     new_data[CONF_DEVICES][dev_id] = self.device_data
                     new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
                     self.hass.config_entries.async_update_entry(
-                        self.config_entry,
+                        self._get_config_entry(),
                         data=new_data,
                     )
                     return self.async_create_entry(title="", data={})

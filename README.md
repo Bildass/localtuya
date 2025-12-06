@@ -4,7 +4,7 @@
 
 > **This is an actively developed fork by [BildaSystem.cz](https://bildassystem.cz)**
 >
-> This fork is continuously being improved with new features and fixes. The main enhancement is **QR code authentication** - no more need for Tuya Developer Portal credentials!
+> This fork is continuously being improved with Home Assistant compatibility fixes. Can run alongside the original LocalTuya integration.
 >
 > Original project: [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya)
 
@@ -57,31 +57,7 @@ For manual installation, copy the localtuya folder and all of its contents into 
 
 To start configuring the integration, just press the "+ADD INTEGRATION" button in the Settings - Integrations page, and select LocalTuya from the drop-down menu.
 
-## Authentication Methods (NEW in v5.3.0)
-
-This fork introduces a much easier way to authenticate with Tuya Cloud - **QR Code Authentication**!
-
-### Option 1: QR Code Authentication (Recommended)
-
-This is the easiest method - no Tuya Developer Portal account needed!
-
-1. Select "Scan QR code with Smart Life app" when prompted
-2. Open your **Smart Life** or **Tuya Smart** app on your phone
-3. Go to **Me** (bottom right) → **Settings** (gear icon) → **Scan QR Code**
-4. Scan the displayed QR code
-5. Confirm the authorization in the app
-6. Click **Submit** - LocalTuya will automatically retrieve all your devices with their local keys!
-
-**Benefits:**
-- No need to create a Tuya IoT developer account
-- No need to link your Smart Life app via QR code on the developer portal
-- No need to subscribe to IoT Core services
-- Local keys are fetched automatically for all devices
-- Works with both Smart Life and Tuya Smart apps
-
-### Option 2: Tuya Developer Portal (Legacy)
-
-If you prefer or need to use the traditional method with Tuya IoT Platform credentials:
+## Cloud API Configuration
 
 The Cloud API configuration page will appear, requesting to input your Tuya IoT Platform account credentials:
 
@@ -264,7 +240,13 @@ postlund, for the ideas, for coding 95% of the refactoring and boosting the qual
 
 This fork by [BildaSystem.cz](https://bildassystem.cz) is actively maintained and includes the following enhancements:
 
-## v5.4.0 (Current)
+## v5.5.0 (Current)
+- **Code cleanup** - Removed non-functional QR code authentication
+  - QR code authentication was removed as it does not work with current Smart Life / Tuya Smart app versions
+  - Simplified config flow - goes directly to cloud credentials setup
+  - Removed unnecessary dependencies (tuya-sharing-sdk, qrcode)
+
+## v5.4.0
 - **Parallel Installation Support** - Can now run alongside original LocalTuya
   - Changed domain from `localtuya` to `localtuya_bildass`
   - Renamed integration folder to `localtuya_bildass`
@@ -276,14 +258,6 @@ This fork by [BildaSystem.cz](https://bildassystem.cz) is actively maintained an
   - Fixed deprecated `config_entry` explicit assignment in options flow (HA 2025.12+)
   - Added proper type annotations to `supported_features` properties
   - Backwards compatible with older HA versions
-
-## v5.3.0
-- **QR Code Authentication** - New authentication method using Smart Life/Tuya Smart app
-  - No Tuya Developer Portal account required
-  - Automatic local key retrieval for all devices
-  - Uses the `tuya-sharing` library
-- Backward compatible with existing Developer Portal authentication
-- Improved config flow with authentication method selection
 
 ## Planned Features
 - Automatic device discovery improvements
