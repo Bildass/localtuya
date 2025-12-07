@@ -199,4 +199,4 @@ Založeno na práci:
 
 ---
 
-*LocalTuya BildaSystem © 2024-2025 [BildaSystem.cz](https://bildassystem.cz)*
+*LocalTuya BildaSystem © 2024-2025 [BildaSystem.cz](https://bildassystem.cz) | Fork of [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) (GPL-3.0)*
