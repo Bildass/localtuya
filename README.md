@@ -161,6 +161,35 @@ Pak v editaci zařízení zaškrtni **Enable debugging for this device**.
 
 ---
 
+## Development
+
+### Vydání nové verze (Release Workflow)
+
+HACS používá Git tagy pro zobrazení verzí. Bez tagů ukazuje commit hashe.
+
+```bash
+cd /home/core/projects/localtuya
+
+# 1. Uprav verzi v manifest.json
+#    custom_components/localtuya_bildass/manifest.json
+#    "version": "6.1.0"
+
+# 2. Commitni změny
+git add .
+git commit -m "v6.1.0: Popis změn"
+
+# 3. Vytvoř tag (musí odpovídat verzi v manifestu)
+git tag v6.1.0 -m "v6.1.0: Popis změn"
+
+# 4. Pushni vše
+git push origin master
+git push origin v6.1.0
+```
+
+**Volitelně:** Na GitHub vytvoř Release z tagu pro hezčí release notes.
+
+---
+
 ## Credits
 
 Založeno na práci:
