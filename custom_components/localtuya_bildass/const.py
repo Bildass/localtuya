@@ -5,7 +5,7 @@ DOMAIN = "localtuya_bildass"
 # BildaSystem branding
 VERSION = "6.0.0"
 BILDASYSTEM_URL = "https://bildassystem.cz"
-BILDASYSTEM_NAME = "LocalTuya BildaSystem"
+BILDASYSTEM_NAME = "LocalTuya 2.0"
 
 # Data storage keys
 DATA_DISCOVERY = "discovery"

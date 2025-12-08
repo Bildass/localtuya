@@ -1,9 +1,10 @@
 <p align="center">
-  <img src="img/logo.png" alt="LocalTuya BildaSystem" width="500">
+  <img src="img/logo.png" alt="LocalTuya 2.0" width="500">
 </p>
 
 <p align="center">
-  <strong>Vylepšený LocalTuya pro Home Assistant</strong>
+  <strong>LocalTuya 2.0 — Nová generace lokálního ovládání Tuya</strong><br>
+  <sub>Spravuje <a href="https://bildassystem.cz">BildaSystem.cz</a></sub>
 </p>
 
 <p align="center">
@@ -29,9 +30,9 @@
 
 ## 🤔 Proč tento fork?
 
-Původní [LocalTuya](https://github.com/rospogrigio/localtuya) je skvělá integrace, ale vývoj se zpomalil. **LocalTuya BildaSystem** pokračuje tam, kde původní skončil:
+Původní [LocalTuya](https://github.com/rospogrigio/localtuya) je skvělá integrace, ale vývoj se zpomalil. **LocalTuya 2.0** pokračuje tam, kde původní skončil:
 
-| Problém | Původní LocalTuya | BildaSystem řešení |
+| Problém | Původní LocalTuya | LocalTuya 2.0 řešení |
 |---------|-------------------|-------------------|
 | 😤 **Změna IP/klíče zařízení** | Proklikávat VŠECHNY entity jednu po druhé | ✅ **Quick Edit** - jedno okno, hotovo za sekundy |
 | 😤 **Editace jedné entity** | Musíš projít celé zařízení | ✅ **Entity List** - skok přímo na konkrétní entitu |
@@ -49,7 +50,7 @@ Původní [LocalTuya](https://github.com/rospogrigio/localtuya) je skvělá inte
 Změň host, local_key nebo verzi protokolu **bez** překonfigurování všech entit:
 
 ```
-Nastavení → Zařízení → LocalTuya BildaSystem → Konfigurovat
+Nastavení → Zařízení → LocalTuya 2.0 → Konfigurovat
 → Vyber zařízení → Quick edit (host, key, protocol)
 → Změň co potřebuješ → Hotovo!
 ```
@@ -82,7 +83,7 @@ Běží vedle původního LocalTuya:
 2. Klikni **⋮** (tři tečky) → **Custom repositories**
 3. Přidej: `https://github.com/Bildass/localtuya`
 4. Kategorie: **Integration**
-5. Najdi **LocalTuya BildaSystem** a klikni **Download**
+5. Najdi **LocalTuya 2.0** a klikni **Download**
 6. **Restartuj Home Assistant**
 
 ### Manuální instalace
@@ -103,8 +104,8 @@ rm -rf temp_localtuya
 
 **Dobrá zpráva:** Můžeš spustit obě verze současně!
 
-1. **Nainstaluj BildaSystem** přes HACS (zatím neodstraňuj původní)
-2. **Přidej integraci:** Nastavení → Zařízení a služby → Přidat → **LocalTuya BildaSystem**
+1. **Nainstaluj LocalTuya 2.0** přes HACS (zatím neodstraňuj původní)
+2. **Přidej integraci:** Nastavení → Zařízení a služby → Přidat → **LocalTuya 2.0**
 3. **Nakonfiguruj Cloud API** (volitelné, ale doporučené)
 4. **Znovu přidej zařízení** - s Cloud Sync je to rychlé!
 5. **Otestuj že vše funguje**
@@ -112,7 +113,7 @@ rm -rf temp_localtuya
 
 ### Entity se změní
 
-| Původní | BildaSystem |
+| Původní | LocalTuya 2.0 |
 |---------|-------------|
 | `switch.localtuya_xxx` | `switch.localtuya_bildass_xxx` |
 | `light.localtuya_xxx` | `light.localtuya_bildass_xxx` |
@@ -125,7 +126,7 @@ rm -rf temp_localtuya
 
 ### Úvodní nastavení
 
-1. **Přidej integraci:** Nastavení → Zařízení a služby → Přidat integraci → **LocalTuya BildaSystem**
+1. **Přidej integraci:** Nastavení → Zařízení a služby → Přidat integraci → **LocalTuya 2.0**
 
 2. **Nakonfiguruj Cloud API** (doporučeno):
    - Získej přihlašovací údaje z [Tuya IoT Platform](https://iot.tuya.com)
@@ -218,7 +219,7 @@ Také zapni **"Enable debugging for this device"** v konfiguraci zařízení.
 
 ## 🆚 Srovnání s originálem
 
-| Funkce | Původní LocalTuya | BildaSystem |
+| Funkce | Původní LocalTuya | LocalTuya 2.0 |
 |--------|:-----------------:|:-----------:|
 | Quick Edit (změna IP/klíče) | ❌ | ✅ |
 | Přímá editace entity | ❌ | ✅ |
@@ -262,7 +263,7 @@ Postaveno na skvělé práci:
 ---
 
 <p align="center">
-  <strong>LocalTuya BildaSystem</strong><br>
+  <strong>LocalTuya 2.0</strong><br>
   © 2024-2025 <a href="https://bildassystem.cz">BildaSystem.cz</a><br>
   <sub>Fork projektu <a href="https://github.com/rospogrigio/localtuya">rospogrigio/localtuya</a> • Licence GPL-3.0</sub>
 </p>

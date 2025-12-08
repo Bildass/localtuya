@@ -1,9 +1,10 @@
 <p align="center">
-  <img src="img/logo.png" alt="LocalTuya BildaSystem" width="500">
+  <img src="img/logo.png" alt="LocalTuya 2.0" width="500">
 </p>
 
 <p align="center">
-  <strong>The Enhanced LocalTuya Experience for Home Assistant</strong>
+  <strong>LocalTuya 2.0 — The Next Generation of Local Tuya Control</strong><br>
+  <sub>Maintained by <a href="https://bildassystem.cz">BildaSystem.cz</a></sub>
 </p>
 
 <p align="center">
@@ -29,9 +30,9 @@
 
 ## 🤔 Why This Fork?
 
-The original [LocalTuya](https://github.com/rospogrigio/localtuya) is a fantastic integration, but development has slowed down. **LocalTuya BildaSystem** picks up where it left off:
+The original [LocalTuya](https://github.com/rospogrigio/localtuya) is a fantastic integration, but development has slowed down. **LocalTuya 2.0** picks up where it left off:
 
-| Pain Point | Original LocalTuya | BildaSystem Solution |
+| Pain Point | Original LocalTuya | LocalTuya 2.0 Solution |
 |------------|-------------------|---------------------|
 | 😤 **Changing device IP/key** | Click through ALL entities one by one | ✅ **Quick Edit** - single window, done in seconds |
 | 😤 **Editing one entity** | Must navigate through entire device | ✅ **Entity List** - jump directly to any entity |
@@ -49,7 +50,7 @@ The original [LocalTuya](https://github.com/rospogrigio/localtuya) is a fantasti
 Change host, local_key, or protocol version **without** reconfiguring all entities:
 
 ```
-Settings → Devices → LocalTuya BildaSystem → Configure
+Settings → Devices → LocalTuya 2.0 → Configure
 → Select device → Quick edit (host, key, protocol)
 → Change what you need → Done!
 ```
@@ -82,7 +83,7 @@ Run alongside original LocalTuya:
 2. Click **⋮** (three dots) → **Custom repositories**
 3. Add: `https://github.com/Bildass/localtuya`
 4. Category: **Integration**
-5. Find **LocalTuya BildaSystem** and click **Download**
+5. Find **LocalTuya 2.0** and click **Download**
 6. **Restart Home Assistant**
 
 ### Manual Installation
@@ -103,8 +104,8 @@ rm -rf temp_localtuya
 
 **Good news:** You can run both versions simultaneously!
 
-1. **Install BildaSystem** via HACS (don't remove original yet)
-2. **Add the integration:** Settings → Devices & Services → Add → **LocalTuya BildaSystem**
+1. **Install LocalTuya 2.0** via HACS (don't remove original yet)
+2. **Add the integration:** Settings → Devices & Services → Add → **LocalTuya 2.0**
 3. **Configure Cloud API** (optional but recommended)
 4. **Re-add your devices** - with Cloud Sync, it's fast!
 5. **Test everything works**
@@ -112,7 +113,7 @@ rm -rf temp_localtuya
 
 ### Your Entities Will Change
 
-| Original | BildaSystem |
+| Original | LocalTuya 2.0 |
 |----------|-------------|
 | `switch.localtuya_xxx` | `switch.localtuya_bildass_xxx` |
 | `light.localtuya_xxx` | `light.localtuya_bildass_xxx` |
@@ -125,7 +126,7 @@ rm -rf temp_localtuya
 
 ### Initial Setup
 
-1. **Add Integration:** Settings → Devices & Services → Add Integration → **LocalTuya BildaSystem**
+1. **Add Integration:** Settings → Devices & Services → Add Integration → **LocalTuya 2.0**
 
 2. **Configure Cloud API** (recommended):
    - Get credentials from [Tuya IoT Platform](https://iot.tuya.com)
@@ -218,7 +219,7 @@ Also enable **"Enable debugging for this device"** in device configuration.
 
 ## 🆚 Comparison with Original
 
-| Feature | Original LocalTuya | BildaSystem |
+| Feature | Original LocalTuya | LocalTuya 2.0 |
 |---------|:------------------:|:-----------:|
 | Quick Edit (IP/key change) | ❌ | ✅ |
 | Direct entity editing | ❌ | ✅ |
@@ -262,7 +263,7 @@ Built upon the excellent work of:
 ---
 
 <p align="center">
-  <strong>LocalTuya BildaSystem</strong><br>
+  <strong>LocalTuya 2.0</strong><br>
   © 2024-2025 <a href="https://bildassystem.cz">BildaSystem.cz</a><br>
   <sub>Fork of <a href="https://github.com/rospogrigio/localtuya">rospogrigio/localtuya</a> • Licensed under GPL-3.0</sub>
 </p>
