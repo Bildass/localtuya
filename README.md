@@ -1,117 +1,183 @@
-# LocalTuya BildaSystem
+<p align="center">
+  <img src="img/logo.png" alt="LocalTuya BildaSystem" width="500">
+</p>
 
-🇬🇧 **English** | [🇨🇿 Čeština](README.cs.md)
+<p align="center">
+  <strong>The Enhanced LocalTuya Experience for Home Assistant</strong>
+</p>
 
-> **Actively maintained fork by [BildaSystem.cz](https://bildassystem.cz)**
+<p align="center">
+  <a href="https://github.com/hacs/integration"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge" alt="HACS Custom"></a>
+  <a href="https://github.com/Bildass/localtuya/releases"><img src="https://img.shields.io/github/v/release/Bildass/localtuya?style=for-the-badge&color=green" alt="Release"></a>
+  <a href="https://github.com/Bildass/localtuya/stargazers"><img src="https://img.shields.io/github/stars/Bildass/localtuya?style=for-the-badge" alt="Stars"></a>
+  <a href="https://github.com/Bildass/localtuya/blob/master/LICENSE"><img src="https://img.shields.io/github/license/Bildass/localtuya?style=for-the-badge" alt="License"></a>
+</p>
 
-Fork of [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) with improved config flow, automatic cloud key retrieval, and Home Assistant 2025.x compatibility.
+<p align="center">
+  <a href="#-why-this-fork">Why This Fork?</a> •
+  <a href="#-installation">Installation</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-migration-guide">Migration</a> •
+  <a href="#-documentation">Documentation</a>
+</p>
+
+<p align="center">
+  🇬🇧 <strong>English</strong> | <a href="README.cs.md">🇨🇿 Čeština</a>
+</p>
 
 ---
 
-## Key Advantages Over Original LocalTuya
+## 🤔 Why This Fork?
 
-| Feature | Original | BildaSystem |
-|---------|----------|-------------|
-| Quick Edit (change IP/key) | Click through all entities | Single window, done |
-| Entity editing | Must go through all | Select specific one |
-| Cloud key sync | Manual copying | One click |
-| HA 2025.x compatibility | Errors | Works |
-| Parallel installation | No | Yes (different domain) |
+The original [LocalTuya](https://github.com/rospogrigio/localtuya) is a fantastic integration, but development has slowed down. **LocalTuya BildaSystem** picks up where it left off:
+
+| Pain Point | Original LocalTuya | BildaSystem Solution |
+|------------|-------------------|---------------------|
+| 😤 **Changing device IP/key** | Click through ALL entities one by one | ✅ **Quick Edit** - single window, done in seconds |
+| 😤 **Editing one entity** | Must navigate through entire device | ✅ **Entity List** - jump directly to any entity |
+| 😤 **Getting local_keys** | Manual copy-paste from Tuya IoT | ✅ **Cloud Sync** - one click fetches all keys |
+| 😤 **HA 2025.x errors** | Breaking changes, crashes | ✅ **Fully compatible** and tested |
+| 😤 **Can't run both versions** | Must choose one | ✅ **Parallel install** - test without risk |
+
+> **💡 Bottom line:** We fixed the daily frustrations that LocalTuya users know too well.
 
 ---
 
-## Installation
+## ✨ Features
 
-### HACS (recommended)
-1. HACS → Integrations → Custom repositories
-2. Add `https://github.com/Bildass/localtuya`
-3. Install "LocalTuya BildaSystem"
-4. Restart Home Assistant
+### 🚀 Quick Edit (v6.0)
+Change host, local_key, or protocol version **without** reconfiguring all entities:
+
+```
+Settings → Devices → LocalTuya BildaSystem → Configure
+→ Select device → Quick edit (host, key, protocol)
+→ Change what you need → Done!
+```
+
+### ☁️ Cloud Key Sync (v6.0)
+Automatically fetch local_keys for **all devices** with one click:
+- No more manual copy-paste from Tuya IoT Platform
+- Shows which keys have changed
+- Updates only modified keys
+
+### 🔄 Parallel Installation
+Run alongside original LocalTuya:
+- Different domain (`localtuya_bildass`)
+- Test before migrating
+- No conflicts
+
+### 🛠️ Enhanced Cloud API
+- **Async aiohttp** instead of blocking requests
+- **Token caching** - fewer API calls
+- **Pagination** - supports 100+ devices
+- **HMAC-SHA256** with proper nonce handling
+
+---
+
+## 📦 Installation
+
+### HACS (Recommended)
+
+1. Open HACS → **Integrations**
+2. Click **⋮** (three dots) → **Custom repositories**
+3. Add: `https://github.com/Bildass/localtuya`
+4. Category: **Integration**
+5. Find **LocalTuya BildaSystem** and click **Download**
+6. **Restart Home Assistant**
 
 ### Manual Installation
+
 ```bash
 cd /config/custom_components
-git clone https://github.com/Bildass/localtuya.git
-mv localtuya/custom_components/localtuya_bildass .
-rm -rf localtuya
+git clone https://github.com/Bildass/localtuya.git temp_localtuya
+mv temp_localtuya/custom_components/localtuya_bildass .
+rm -rf temp_localtuya
+# Restart Home Assistant
 ```
 
 ---
 
-## Configuration
+## 🔄 Migration Guide
 
-### 1. Add Integration
-Settings → Devices & Services → Add Integration → **LocalTuya BildaSystem**
+### From Original LocalTuya
 
-### 2. Cloud API (recommended)
-Enter credentials from [Tuya IoT Platform](https://iot.tuya.com):
-- **Region** - eu/us/cn/in
-- **Client ID** - from Cloud → Development → Overview
-- **Client Secret** - same location
-- **User ID** - from Link Tuya App Account
+**Good news:** You can run both versions simultaneously!
 
-> Without Cloud API, you must enter local_key manually.
+1. **Install BildaSystem** via HACS (don't remove original yet)
+2. **Add the integration:** Settings → Devices & Services → Add → **LocalTuya BildaSystem**
+3. **Configure Cloud API** (optional but recommended)
+4. **Re-add your devices** - with Cloud Sync, it's fast!
+5. **Test everything works**
+6. **Remove original LocalTuya** when satisfied
 
-### 3. Main Menu
-After configuration you'll see:
-- **Add a new device** - add device
-- **Edit a device** - edit existing
-- **Sync local keys from cloud** - fetch keys from cloud
-- **Reconfigure Cloud API** - change cloud credentials
+### Your Entities Will Change
 
-### 4. Quick Edit (NEW in v6.0)
-When editing a device:
-1. Select device
-2. Choose **Quick edit (host, key, protocol)**
-3. Change what you need
-4. Done - no clicking through entities!
+| Original | BildaSystem |
+|----------|-------------|
+| `switch.localtuya_xxx` | `switch.localtuya_bildass_xxx` |
+| `light.localtuya_xxx` | `light.localtuya_bildass_xxx` |
 
-### 5. Sync from Cloud (NEW in v6.0)
-Automatically fetches local_keys for all devices:
-1. Main menu → **Sync local keys from cloud**
-2. Shows which keys have changed
-3. Confirm → keys are updated
+**Tip:** Update your automations, scripts, and dashboards after migration.
 
 ---
 
-## Supported Devices
+## 📖 Documentation
 
-- Switches
-- Lights
-- Covers (blinds, shades)
-- Fans
-- Climates (thermostats, AC)
-- Vacuums
-- Sensors
-- Numbers
-- Selects
+### Initial Setup
 
-**Protocols:** 3.1, 3.2, 3.3, 3.4
+1. **Add Integration:** Settings → Devices & Services → Add Integration → **LocalTuya BildaSystem**
 
----
+2. **Configure Cloud API** (recommended):
+   - Get credentials from [Tuya IoT Platform](https://iot.tuya.com)
+   - **Region:** eu / us / cn / in
+   - **Client ID:** Cloud → Development → Overview
+   - **Client Secret:** Same location
+   - **User ID:** From "Link Tuya App Account"
 
-## Energy Monitoring
+3. **Add Devices:** Use Cloud Sync or manual configuration
 
-For devices with power monitoring, you can create template sensors:
+### Supported Devices
+
+| Type | Examples |
+|------|----------|
+| **Switches** | Smart plugs, relays, power strips |
+| **Lights** | Bulbs, LED strips, dimmers |
+| **Covers** | Blinds, shades, curtains, garage doors |
+| **Fans** | Ceiling fans, air purifiers |
+| **Climate** | Thermostats, AC controllers, heaters |
+| **Vacuums** | Robot vacuums |
+| **Sensors** | Temperature, humidity, motion, door/window |
+| **Numbers** | Brightness, speed, temperature setpoints |
+| **Selects** | Modes, presets |
+
+**Supported Protocols:** 3.1, 3.2, 3.3, 3.4
+
+### Energy Monitoring
+
+For devices with power measurement:
 
 ```yaml
 sensor:
   - platform: template
     sensors:
-      tuya_voltage:
-        value_template: "{{ states.switch.my_switch.attributes.voltage }}"
+      smart_plug_voltage:
+        friendly_name: "Smart Plug Voltage"
+        value_template: "{{ state_attr('switch.my_smart_plug', 'voltage') }}"
         unit_of_measurement: 'V'
-      tuya_current:
-        value_template: "{{ states.switch.my_switch.attributes.current }}"
+        device_class: voltage
+      smart_plug_current:
+        friendly_name: "Smart Plug Current"
+        value_template: "{{ state_attr('switch.my_smart_plug', 'current') }}"
         unit_of_measurement: 'mA'
-      tuya_power:
-        value_template: "{{ states.switch.my_switch.attributes.current_consumption }}"
+        device_class: current
+      smart_plug_power:
+        friendly_name: "Smart Plug Power"
+        value_template: "{{ state_attr('switch.my_smart_plug', 'current_consumption') }}"
         unit_of_measurement: 'W'
+        device_class: power
 ```
 
----
-
-## Debugging
+### Debugging
 
 Add to `configuration.yaml`:
 
@@ -123,82 +189,80 @@ logger:
     custom_components.localtuya_bildass.pytuya: debug
 ```
 
-Then check **Enable debugging for this device** when editing a device.
+Also enable **"Enable debugging for this device"** in device configuration.
 
 ---
 
-## Changelog
+## 📋 Changelog
 
-### v6.0.0 (Current)
-- **Major Config Flow Overhaul**
-  - Quick Edit - change host/local_key/protocol without entities
-  - Entity List - direct editing of single entity
-  - Sync from Cloud - fetch keys with one click
-  - Device Actions Menu - new submenu
-- **Enhanced Cloud API**
-  - Async aiohttp instead of requests
-  - Token caching
-  - Pagination for 100+ devices
-  - HMAC-SHA256 with nonce
+### v6.0.0 - Config Flow Revolution
+- ✨ **Quick Edit** - change host/local_key/protocol without entities
+- ✨ **Entity List** - direct editing of single entity
+- ✨ **Cloud Sync** - fetch all local_keys with one click
+- ✨ **Device Actions Menu** - new organized submenu
+- 🔧 **Async Cloud API** - aiohttp, token caching, pagination
+- 🔧 **Security** - HMAC-SHA256 with proper nonce
 
 ### v5.5.0
-- Removed non-functional QR authentication
-- Simplified config flow
+- 🗑️ Removed non-functional QR authentication
+- 🔧 Simplified config flow
 
 ### v5.4.0
-- Parallel installation alongside original LocalTuya
-- Changed domain to `localtuya_bildass`
+- ✨ Parallel installation alongside original LocalTuya
+- 🔧 Changed domain to `localtuya_bildass`
 
 ### v5.3.1
-- HA 2025.x compatibility fixes
+- 🐛 Home Assistant 2025.x compatibility fixes
 
 ---
 
-## Contact
+## 🆚 Comparison with Original
 
-- Web: [bildassystem.cz](https://bildassystem.cz)
-- Email: info@bildassystem.cz
-- GitHub: [Bildass/localtuya](https://github.com/Bildass/localtuya)
-- Issues: [GitHub Issues](https://github.com/Bildass/localtuya/issues)
-
----
-
-## Development
-
-### Release Workflow
-
-HACS uses Git tags for version display. Without tags, it shows commit hashes.
-
-```bash
-cd /home/core/projects/localtuya
-
-# 1. Update version in manifest.json
-#    custom_components/localtuya_bildass/manifest.json
-#    "version": "6.1.0"
-
-# 2. Commit changes
-git add .
-git commit -m "v6.1.0: Description of changes"
-
-# 3. Create tag (must match manifest version)
-git tag v6.1.0 -m "v6.1.0: Description of changes"
-
-# 4. Push everything
-git push origin master
-git push origin v6.1.0
-```
-
-**Optional:** Create a GitHub Release from the tag for nicer release notes.
+| Feature | Original LocalTuya | BildaSystem |
+|---------|:------------------:|:-----------:|
+| Quick Edit (IP/key change) | ❌ | ✅ |
+| Direct entity editing | ❌ | ✅ |
+| One-click cloud key sync | ❌ | ✅ |
+| HA 2025.x compatible | ⚠️ Issues | ✅ |
+| Parallel installation | ❌ | ✅ |
+| Async cloud API | ❌ | ✅ |
+| 100+ device support | ⚠️ Limited | ✅ |
+| Active development | ⚠️ Slow | ✅ |
 
 ---
 
-## Credits
+## 🤝 Contributing
 
-Based on work by:
-- [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) - original project
-- [NameLessJedi](https://github.com/NameLessJedi), [mileperhour](https://github.com/mileperhour), [TradeFace](https://github.com/TradeFace) - code foundation
-- [jasonacox/tinytuya](https://github.com/jasonacox/tinytuya) - protocol 3.4
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
-*LocalTuya BildaSystem © 2024-2025 [BildaSystem.cz](https://bildassystem.cz) | Fork of [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) (GPL-3.0)*
+## 📞 Support & Contact
+
+- 🌐 **Website:** [bildassystem.cz](https://bildassystem.cz)
+- 📧 **Email:** info@bildassystem.cz
+- 🐛 **Issues:** [GitHub Issues](https://github.com/Bildass/localtuya/issues)
+- 💬 **Discussions:** [GitHub Discussions](https://github.com/Bildass/localtuya/discussions)
+
+---
+
+## 🙏 Credits
+
+Built upon the excellent work of:
+- [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) - Original project
+- [NameLessJedi](https://github.com/NameLessJedi), [mileperhour](https://github.com/mileperhour), [TradeFace](https://github.com/TradeFace) - Code foundation
+- [jasonacox/tinytuya](https://github.com/jasonacox/tinytuya) - Protocol 3.4 implementation
+
+---
+
+<p align="center">
+  <strong>LocalTuya BildaSystem</strong><br>
+  © 2024-2025 <a href="https://bildassystem.cz">BildaSystem.cz</a><br>
+  <sub>Fork of <a href="https://github.com/rospogrigio/localtuya">rospogrigio/localtuya</a> • Licensed under GPL-3.0</sub>
+</p>

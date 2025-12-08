@@ -1,117 +1,183 @@
-# LocalTuya BildaSystem
+<p align="center">
+  <img src="img/logo.png" alt="LocalTuya BildaSystem" width="500">
+</p>
 
-[🇬🇧 English](README.md) | 🇨🇿 **Čeština**
+<p align="center">
+  <strong>Vylepšený LocalTuya pro Home Assistant</strong>
+</p>
 
-> **Aktivně vyvíjený fork od [BildaSystem.cz](https://bildassystem.cz)**
+<p align="center">
+  <a href="https://github.com/hacs/integration"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge" alt="HACS Custom"></a>
+  <a href="https://github.com/Bildass/localtuya/releases"><img src="https://img.shields.io/github/v/release/Bildass/localtuya?style=for-the-badge&color=green" alt="Release"></a>
+  <a href="https://github.com/Bildass/localtuya/stargazers"><img src="https://img.shields.io/github/stars/Bildass/localtuya?style=for-the-badge" alt="Stars"></a>
+  <a href="https://github.com/Bildass/localtuya/blob/master/LICENSE"><img src="https://img.shields.io/github/license/Bildass/localtuya?style=for-the-badge" alt="License"></a>
+</p>
 
-Fork integrace [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) s vylepšeným config flow, automatickým načítáním klíčů z cloudu a kompatibilitou s Home Assistant 2025.x.
+<p align="center">
+  <a href="#-proč-tento-fork">Proč tento fork?</a> •
+  <a href="#-instalace">Instalace</a> •
+  <a href="#-funkce">Funkce</a> •
+  <a href="#-migrace">Migrace</a> •
+  <a href="#-dokumentace">Dokumentace</a>
+</p>
+
+<p align="center">
+  <a href="README.md">🇬🇧 English</a> | 🇨🇿 <strong>Čeština</strong>
+</p>
 
 ---
 
-## Hlavní výhody oproti původnímu LocalTuya
+## 🤔 Proč tento fork?
 
-| Funkce | Původní | BildaSystem |
-|--------|---------|-------------|
-| Quick Edit (změna IP/klíče) | Proklikávání všech entit | Jedno okno, hotovo |
-| Editace entity | Musíš projít všechny | Vybereš jednu konkrétní |
-| Sync klíčů z cloudu | Ruční kopírování | Jedno kliknutí |
-| HA 2025.x kompatibilita | Chyby | Funguje |
-| Paralelní instalace | Ne | Ano (jiný domain) |
+Původní [LocalTuya](https://github.com/rospogrigio/localtuya) je skvělá integrace, ale vývoj se zpomalil. **LocalTuya BildaSystem** pokračuje tam, kde původní skončil:
+
+| Problém | Původní LocalTuya | BildaSystem řešení |
+|---------|-------------------|-------------------|
+| 😤 **Změna IP/klíče zařízení** | Proklikávat VŠECHNY entity jednu po druhé | ✅ **Quick Edit** - jedno okno, hotovo za sekundy |
+| 😤 **Editace jedné entity** | Musíš projít celé zařízení | ✅ **Entity List** - skok přímo na konkrétní entitu |
+| 😤 **Získání local_keys** | Ruční kopírování z Tuya IoT | ✅ **Cloud Sync** - jedno kliknutí načte všechny klíče |
+| 😤 **Chyby v HA 2025.x** | Breaking changes, pády | ✅ **Plně kompatibilní** a otestováno |
+| 😤 **Nelze spustit obě verze** | Musíš si vybrat | ✅ **Paralelní instalace** - testuj bez rizika |
+
+> **💡 Shrnutí:** Opravili jsme každodenní frustrace, které uživatelé LocalTuya znají až příliš dobře.
 
 ---
 
-## Instalace
+## ✨ Funkce
 
-### HACS (doporučeno)
-1. HACS → Integrations → Custom repositories
-2. Přidej `https://github.com/Bildass/localtuya`
-3. Nainstaluj "LocalTuya BildaSystem"
-4. Restartuj Home Assistant
+### 🚀 Quick Edit (v6.0)
+Změň host, local_key nebo verzi protokolu **bez** překonfigurování všech entit:
+
+```
+Nastavení → Zařízení → LocalTuya BildaSystem → Konfigurovat
+→ Vyber zařízení → Quick edit (host, key, protocol)
+→ Změň co potřebuješ → Hotovo!
+```
+
+### ☁️ Cloud Key Sync (v6.0)
+Automaticky načti local_keys pro **všechna zařízení** jedním klikem:
+- Konec ručního kopírování z Tuya IoT Platform
+- Zobrazí které klíče se změnily
+- Aktualizuje pouze změněné klíče
+
+### 🔄 Paralelní instalace
+Běží vedle původního LocalTuya:
+- Jiná doména (`localtuya_bildass`)
+- Testuj před migrací
+- Žádné konflikty
+
+### 🛠️ Vylepšené Cloud API
+- **Async aiohttp** místo blokujících requests
+- **Token caching** - méně API volání
+- **Paginace** - podpora 100+ zařízení
+- **HMAC-SHA256** se správným nonce
+
+---
+
+## 📦 Instalace
+
+### HACS (Doporučeno)
+
+1. Otevři HACS → **Integrations**
+2. Klikni **⋮** (tři tečky) → **Custom repositories**
+3. Přidej: `https://github.com/Bildass/localtuya`
+4. Kategorie: **Integration**
+5. Najdi **LocalTuya BildaSystem** a klikni **Download**
+6. **Restartuj Home Assistant**
 
 ### Manuální instalace
+
 ```bash
 cd /config/custom_components
-git clone https://github.com/Bildass/localtuya.git
-mv localtuya/custom_components/localtuya_bildass .
-rm -rf localtuya
+git clone https://github.com/Bildass/localtuya.git temp_localtuya
+mv temp_localtuya/custom_components/localtuya_bildass .
+rm -rf temp_localtuya
+# Restartuj Home Assistant
 ```
 
 ---
 
-## Konfigurace
+## 🔄 Migrace
 
-### 1. Přidání integrace
-Settings → Devices & Services → Add Integration → **LocalTuya BildaSystem**
+### Z původního LocalTuya
 
-### 2. Cloud API (doporučeno)
-Zadej přihlašovací údaje z [Tuya IoT Platform](https://iot.tuya.com):
-- **Region** - eu/us/cn/in
-- **Client ID** - z Cloud → Development → Overview
-- **Client Secret** - tamtéž
-- **User ID** - z Link Tuya App Account
+**Dobrá zpráva:** Můžeš spustit obě verze současně!
 
-> Bez Cloud API musíš local_key zadávat ručně.
+1. **Nainstaluj BildaSystem** přes HACS (zatím neodstraňuj původní)
+2. **Přidej integraci:** Nastavení → Zařízení a služby → Přidat → **LocalTuya BildaSystem**
+3. **Nakonfiguruj Cloud API** (volitelné, ale doporučené)
+4. **Znovu přidej zařízení** - s Cloud Sync je to rychlé!
+5. **Otestuj že vše funguje**
+6. **Odstraň původní LocalTuya** až budeš spokojený
 
-### 3. Hlavní menu
-Po konfiguraci uvidíš:
-- **Add a new device** - přidat zařízení
-- **Edit a device** - upravit existující
-- **Sync local keys from cloud** - načíst klíče z cloudu
-- **Reconfigure Cloud API** - změnit cloud credentials
+### Entity se změní
 
-### 4. Quick Edit (NOVINKA v6.0)
-Při editaci zařízení:
-1. Vyber zařízení
-2. Zvol **Quick edit (host, key, protocol)**
-3. Změň co potřebuješ
-4. Hotovo - bez proklikávání entit!
+| Původní | BildaSystem |
+|---------|-------------|
+| `switch.localtuya_xxx` | `switch.localtuya_bildass_xxx` |
+| `light.localtuya_xxx` | `light.localtuya_bildass_xxx` |
 
-### 5. Sync from Cloud (NOVINKA v6.0)
-Automaticky načte local_keys pro všechna zařízení:
-1. Hlavní menu → **Sync local keys from cloud**
-2. Zobrazí se které klíče se změnily
-3. Potvrď → klíče se aktualizují
+**Tip:** Po migraci aktualizuj automatizace, skripty a dashboardy.
 
 ---
 
-## Podporovaná zařízení
+## 📖 Dokumentace
 
-- Switches (vypínače)
-- Lights (světla)
-- Covers (rolety, žaluzie)
-- Fans (ventilátory)
-- Climates (termostaty, klimatizace)
-- Vacuums (vysavače)
-- Sensors (čidla)
-- Numbers (číselné hodnoty)
-- Selects (výběry)
+### Úvodní nastavení
 
-**Protokoly:** 3.1, 3.2, 3.3, 3.4
+1. **Přidej integraci:** Nastavení → Zařízení a služby → Přidat integraci → **LocalTuya BildaSystem**
 
----
+2. **Nakonfiguruj Cloud API** (doporučeno):
+   - Získej přihlašovací údaje z [Tuya IoT Platform](https://iot.tuya.com)
+   - **Region:** eu / us / cn / in
+   - **Client ID:** Cloud → Development → Overview
+   - **Client Secret:** Stejné místo
+   - **User ID:** Z "Link Tuya App Account"
 
-## Energy Monitoring
+3. **Přidej zařízení:** Použij Cloud Sync nebo manuální konfiguraci
 
-Pro zařízení s měřením spotřeby můžeš vytvořit template sensory:
+### Podporovaná zařízení
+
+| Typ | Příklady |
+|-----|----------|
+| **Switches** | Chytré zásuvky, relé, prodlužovačky |
+| **Lights** | Žárovky, LED pásky, stmívače |
+| **Covers** | Rolety, žaluzie, závěsy, garážová vrata |
+| **Fans** | Stropní ventilátory, čističky vzduchu |
+| **Climate** | Termostaty, ovladače klimatizace, topení |
+| **Vacuums** | Robotické vysavače |
+| **Sensors** | Teplota, vlhkost, pohyb, dveře/okna |
+| **Numbers** | Jas, rychlost, nastavení teploty |
+| **Selects** | Režimy, presety |
+
+**Podporované protokoly:** 3.1, 3.2, 3.3, 3.4
+
+### Měření energie
+
+Pro zařízení s měřením spotřeby:
 
 ```yaml
 sensor:
   - platform: template
     sensors:
-      tuya_voltage:
-        value_template: "{{ states.switch.my_switch.attributes.voltage }}"
+      chytra_zasuvka_napeti:
+        friendly_name: "Chytrá zásuvka - Napětí"
+        value_template: "{{ state_attr('switch.moje_zasuvka', 'voltage') }}"
         unit_of_measurement: 'V'
-      tuya_current:
-        value_template: "{{ states.switch.my_switch.attributes.current }}"
+        device_class: voltage
+      chytra_zasuvka_proud:
+        friendly_name: "Chytrá zásuvka - Proud"
+        value_template: "{{ state_attr('switch.moje_zasuvka', 'current') }}"
         unit_of_measurement: 'mA'
-      tuya_power:
-        value_template: "{{ states.switch.my_switch.attributes.current_consumption }}"
+        device_class: current
+      chytra_zasuvka_vykon:
+        friendly_name: "Chytrá zásuvka - Výkon"
+        value_template: "{{ state_attr('switch.moje_zasuvka', 'current_consumption') }}"
         unit_of_measurement: 'W'
+        device_class: power
 ```
 
----
-
-## Debugging
+### Debugging
 
 Přidej do `configuration.yaml`:
 
@@ -123,82 +189,80 @@ logger:
     custom_components.localtuya_bildass.pytuya: debug
 ```
 
-Pak v editaci zařízení zaškrtni **Enable debugging for this device**.
+Také zapni **"Enable debugging for this device"** v konfiguraci zařízení.
 
 ---
 
-## Changelog
+## 📋 Changelog
 
-### v6.0.0 (Current)
-- **Major Config Flow Overhaul**
-  - Quick Edit - změna host/local_key/protocol bez entit
-  - Entity List - přímá editace jedné entity
-  - Sync from Cloud - načtení klíčů jedním klikem
-  - Device Actions Menu - nové submenu
-- **Enhanced Cloud API**
-  - Async aiohttp místo requests
-  - Token caching
-  - Paginace pro 100+ zařízení
-  - HMAC-SHA256 s nonce
+### v6.0.0 - Revoluce Config Flow
+- ✨ **Quick Edit** - změna host/local_key/protocol bez entit
+- ✨ **Entity List** - přímá editace jedné entity
+- ✨ **Cloud Sync** - načtení všech local_keys jedním klikem
+- ✨ **Device Actions Menu** - nové organizované submenu
+- 🔧 **Async Cloud API** - aiohttp, token caching, paginace
+- 🔧 **Bezpečnost** - HMAC-SHA256 se správným nonce
 
 ### v5.5.0
-- Odstranění nefunkční QR autentizace
-- Zjednodušený config flow
+- 🗑️ Odstraněna nefunkční QR autentizace
+- 🔧 Zjednodušený config flow
 
 ### v5.4.0
-- Paralelní instalace vedle původního LocalTuya
-- Změna domain na `localtuya_bildass`
+- ✨ Paralelní instalace vedle původního LocalTuya
+- 🔧 Změna domény na `localtuya_bildass`
 
 ### v5.3.1
-- Opravy kompatibility s HA 2025.x
+- 🐛 Opravy kompatibility s Home Assistant 2025.x
 
 ---
 
-## Kontakt
+## 🆚 Srovnání s originálem
 
-- Web: [bildassystem.cz](https://bildassystem.cz)
-- Email: info@bildassystem.cz
-- GitHub: [Bildass/localtuya](https://github.com/Bildass/localtuya)
-- Issues: [GitHub Issues](https://github.com/Bildass/localtuya/issues)
-
----
-
-## Development
-
-### Vydání nové verze (Release Workflow)
-
-HACS používá Git tagy pro zobrazení verzí. Bez tagů ukazuje commit hashe.
-
-```bash
-cd /home/core/projects/localtuya
-
-# 1. Uprav verzi v manifest.json
-#    custom_components/localtuya_bildass/manifest.json
-#    "version": "6.1.0"
-
-# 2. Commitni změny
-git add .
-git commit -m "v6.1.0: Popis změn"
-
-# 3. Vytvoř tag (musí odpovídat verzi v manifestu)
-git tag v6.1.0 -m "v6.1.0: Popis změn"
-
-# 4. Pushni vše
-git push origin master
-git push origin v6.1.0
-```
-
-**Volitelně:** Na GitHub vytvoř Release z tagu pro hezčí release notes.
+| Funkce | Původní LocalTuya | BildaSystem |
+|--------|:-----------------:|:-----------:|
+| Quick Edit (změna IP/klíče) | ❌ | ✅ |
+| Přímá editace entity | ❌ | ✅ |
+| Sync klíčů jedním klikem | ❌ | ✅ |
+| HA 2025.x kompatibilní | ⚠️ Problémy | ✅ |
+| Paralelní instalace | ❌ | ✅ |
+| Async cloud API | ❌ | ✅ |
+| Podpora 100+ zařízení | ⚠️ Omezeno | ✅ |
+| Aktivní vývoj | ⚠️ Pomalý | ✅ |
 
 ---
 
-## Credits
+## 🤝 Přispívání
 
-Založeno na práci:
-- [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) - původní projekt
-- [NameLessJedi](https://github.com/NameLessJedi), [mileperhour](https://github.com/mileperhour), [TradeFace](https://github.com/TradeFace) - základ kódu
-- [jasonacox/tinytuya](https://github.com/jasonacox/tinytuya) - protokol 3.4
+Příspěvky jsou vítány! Postup:
+
+1. Forkni repozitář
+2. Vytvoř feature branch (`git checkout -b feature/super-funkce`)
+3. Commitni změny (`git commit -m 'Přidání super funkce'`)
+4. Pushni branch (`git push origin feature/super-funkce`)
+5. Otevři Pull Request
 
 ---
 
-*LocalTuya BildaSystem © 2024-2025 [BildaSystem.cz](https://bildassystem.cz) | Fork of [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) (GPL-3.0)*
+## 📞 Podpora a kontakt
+
+- 🌐 **Web:** [bildassystem.cz](https://bildassystem.cz)
+- 📧 **Email:** info@bildassystem.cz
+- 🐛 **Problémy:** [GitHub Issues](https://github.com/Bildass/localtuya/issues)
+- 💬 **Diskuze:** [GitHub Discussions](https://github.com/Bildass/localtuya/discussions)
+
+---
+
+## 🙏 Poděkování
+
+Postaveno na skvělé práci:
+- [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) - Původní projekt
+- [NameLessJedi](https://github.com/NameLessJedi), [mileperhour](https://github.com/mileperhour), [TradeFace](https://github.com/TradeFace) - Základ kódu
+- [jasonacox/tinytuya](https://github.com/jasonacox/tinytuya) - Implementace protokolu 3.4
+
+---
+
+<p align="center">
+  <strong>LocalTuya BildaSystem</strong><br>
+  © 2024-2025 <a href="https://bildassystem.cz">BildaSystem.cz</a><br>
+  <sub>Fork projektu <a href="https://github.com/rospogrigio/localtuya">rospogrigio/localtuya</a> • Licence GPL-3.0</sub>
+</p>
