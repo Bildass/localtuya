@@ -341,3 +341,83 @@ class TuyaCloudApi:
         self._specification_cache = {}
         self._access_token = ""
         self._token_expiry = 0
+
+    async def async_get_device_mac(self, device_id: str) -> str | None:
+        """Get MAC address for device from Tuya factory-infos endpoint."""
+        # Ensure we have a valid token
+        token_result = await self.async_get_access_token()
+        if token_result != "ok":
+            return None
+
+        path = f"/v1.0/devices/factory-infos?device_ids={device_id}"
+        data = await self._async_request("GET", path)
+
+        if not data.get("success"):
+            _LOGGER.warning("Failed to get factory info for %s: %s", device_id, data.get("msg"))
+            return None
+
+        result = data.get("result", [])
+        if result and len(result) > 0:
+            mac = result[0].get("mac")
+            if mac:
+                _LOGGER.debug("Got MAC %s for device %s", mac, device_id)
+                return mac.lower()
+        return None
+
+    async def async_get_devices_mac_batch(self, device_ids: list[str]) -> dict[str, str]:
+        """Get MAC addresses for multiple devices in one request."""
+        # Ensure we have a valid token
+        token_result = await self.async_get_access_token()
+        if token_result != "ok":
+            return {}
+
+        # API supports comma-separated device IDs
+        ids_str = ",".join(device_ids)
+        path = f"/v1.0/devices/factory-infos?device_ids={ids_str}"
+        data = await self._async_request("GET", path)
+
+        result_map = {}
+        if data.get("success"):
+            for item in data.get("result", []):
+                dev_id = item.get("id")
+                mac = item.get("mac")
+                if dev_id and mac:
+                    result_map[dev_id] = mac.lower()
+                    _LOGGER.debug("Got MAC %s for device %s", mac, dev_id)
+
+        return result_map
+
+    @staticmethod
+    def find_ip_by_mac(mac_address: str) -> str | None:
+        """Find local IP address by MAC address using ARP table."""
+        if not mac_address:
+            return None
+
+        # Normalize MAC to lowercase with colons
+        mac_clean = mac_address.lower().replace("-", ":")
+
+        try:
+            with open("/proc/net/arp", "r") as f:
+                for line in f:
+                    # Skip header
+                    if line.startswith("IP address"):
+                        continue
+                    parts = line.split()
+                    if len(parts) >= 4:
+                        ip = parts[0]
+                        arp_mac = parts[3].lower()
+                        if arp_mac == mac_clean:
+                            _LOGGER.info("Found IP %s for MAC %s in ARP table", ip, mac_address)
+                            return ip
+        except Exception as e:
+            _LOGGER.warning("Failed to read ARP table: %s", e)
+
+        _LOGGER.debug("MAC %s not found in ARP table", mac_address)
+        return None
+
+    async def async_get_device_local_ip(self, device_id: str) -> str | None:
+        """Get local IP for device by looking up MAC in ARP table."""
+        mac = await self.async_get_device_mac(device_id)
+        if mac:
+            return self.find_ip_by_mac(mac)
+        return None

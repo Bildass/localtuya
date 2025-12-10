@@ -537,7 +537,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_add_device(self, user_input=None):
         """Handle adding a new device."""
-        # Use cache if available or fallback to manual discovery
+        # Use cloud device list + UDP discovery for local IPs
         self.editing_device = False
         self.selected_device = None
         errors = {}
@@ -547,6 +547,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
 
             return await self.async_step_configure_device()
 
+        # Step 1: Try UDP discovery for local IPs
         self.discovered_devices = {}
         data = self.hass.data.get(DOMAIN)
 
@@ -555,20 +556,50 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         else:
             try:
                 self.discovered_devices = await discover()
-            except OSError as ex:
-                if ex.errno == errno.EADDRINUSE:
-                    errors["base"] = "address_in_use"
-                else:
-                    errors["base"] = "discovery_failed"
-            except Exception as ex:
-                _LOGGER.exception("discovery failed: %s", ex)
-                errors["base"] = "discovery_failed"
+            except Exception:
+                pass  # Discovery failed, continue with cloud-only
 
-        devices = {
-            dev_id: dev["ip"]
-            for dev_id, dev in self.discovered_devices.items()
-            if dev["gwId"] not in self._get_config_entry().data[CONF_DEVICES]
-        }
+        # Step 2: Get cloud device list
+        cloud_api = self.hass.data[DOMAIN][DATA_CLOUD]
+        refresh_result = await cloud_api.async_get_devices_list(force_refresh=True)
+        if refresh_result != "ok":
+            _LOGGER.warning("Failed to refresh cloud device list: %s", refresh_result)
+            errors["base"] = "cloud_api_failed"
+
+        # Get already configured device IDs
+        configured_ids = set(self._get_config_entry().data[CONF_DEVICES].keys())
+
+        # Step 3: Get MAC addresses for devices not in discovery
+        # This helps find local IP for devices that do not broadcast UDP
+        missing_device_ids = [
+            dev_id for dev_id in cloud_api.device_list.keys()
+            if dev_id not in configured_ids and dev_id not in self.discovered_devices
+        ]
+
+        mac_to_ip_map = {}
+        if missing_device_ids:
+            _LOGGER.debug("Getting MAC addresses for %d devices not in UDP discovery", len(missing_device_ids))
+            mac_addresses = await cloud_api.async_get_devices_mac_batch(missing_device_ids)
+            for dev_id, mac in mac_addresses.items():
+                local_ip = cloud_api.find_ip_by_mac(mac)
+                if local_ip:
+                    mac_to_ip_map[dev_id] = local_ip
+                    _LOGGER.info("Found IP %s for device %s via MAC %s", local_ip, dev_id, mac)
+
+        # Step 4: Build device list - cloud devices with local IPs from discovery or MAC lookup
+        devices = {}
+        for dev_id, dev_info in cloud_api.device_list.items():
+            if dev_id not in configured_ids:
+                # Priority: 1) UDP discovery, 2) MAC-to-IP lookup, 3) show device name
+                if dev_id in self.discovered_devices:
+                    dev_ip = self.discovered_devices[dev_id].get("ip", "unknown")
+                elif dev_id in mac_to_ip_map:
+                    dev_ip = mac_to_ip_map[dev_id]
+                    # Store in discovered_devices for later use in configure_device
+                    self.discovered_devices[dev_id] = {"ip": dev_ip, "gwId": dev_id, "from_mac": True}
+                else:
+                    dev_ip = dev_info.get("name", "no-local-ip")
+                devices[dev_id] = dev_ip
 
         return self.async_show_form(
             step_id="add_device",
@@ -986,15 +1017,23 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             defaults[CONF_LOCAL_KEY] = ""
             defaults[CONF_FRIENDLY_NAME] = ""
             if dev_id is not None:
-                # Insert default values from discovery and cloud if present
-                device = self.discovered_devices[dev_id]
-                defaults[CONF_HOST] = device.get("ip")
-                defaults[CONF_DEVICE_ID] = device.get("gwId")
-                defaults[CONF_PROTOCOL_VERSION] = device.get("version")
+                # Insert default values from discovery and/or cloud
                 cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
+
+                # Try discovery first for local IP
+                if dev_id in self.discovered_devices:
+                    device = self.discovered_devices[dev_id]
+                    defaults[CONF_HOST] = device.get("ip", "")
+                    defaults[CONF_DEVICE_ID] = device.get("gwId", dev_id)
+                    defaults[CONF_PROTOCOL_VERSION] = device.get("version", "3.3")
+                else:
+                    # No discovery - use device ID, user must enter IP manually
+                    defaults[CONF_DEVICE_ID] = dev_id
+
+                # Always try cloud for local_key and name
                 if dev_id in cloud_devs:
-                    defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
-                    defaults[CONF_FRIENDLY_NAME] = cloud_devs[dev_id].get(CONF_NAME)
+                    defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY, "")
+                    defaults[CONF_FRIENDLY_NAME] = cloud_devs[dev_id].get(CONF_NAME, "")
             schema = schema_defaults(DEVICE_SCHEMA, **defaults)
 
             placeholders = {"for_device": ""}
