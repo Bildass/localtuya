@@ -1332,14 +1332,24 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         if self.version == 3.5:
             # Protocol 3.5 uses 6699 prefix and GCM encryption
-            hmac_key = self.local_key
-            prefix = PREFIX_6699_VALUE
-            if msg.cmd not in NO_PROTOCOL_HEADER_CMDS:
-                # add the 3.x header
-                payload = self.version_header + payload
-            self.debug("final payload for cmd %r (v3.5): %r", msg.cmd, payload)
-            # Encryption is handled in pack_message for 6699 format
-            # payload stays unencrypted here - pack_message will encrypt with GCM
+            # BUT session key negotiation must use 55AA format (session not established yet)
+            if msg.cmd in (SESS_KEY_NEG_START, SESS_KEY_NEG_RESP, SESS_KEY_NEG_FINISH):
+                # Session negotiation uses 3.4-style format with real_local_key
+                hmac_key = self.real_local_key
+                prefix = PREFIX_VALUE  # 55AA for session negotiation
+                # Encrypt like 3.4 - ECB mode with real_local_key
+                self.cipher = AESCipher(self.real_local_key)
+                payload = self.cipher.encrypt(payload, False)
+                self.debug("v3.5 session negotiation using 55AA/ECB format, cmd %r", msg.cmd)
+            else:
+                hmac_key = self.local_key
+                prefix = PREFIX_6699_VALUE
+                if msg.cmd not in NO_PROTOCOL_HEADER_CMDS:
+                    # add the 3.x header
+                    payload = self.version_header + payload
+                self.debug("final payload for cmd %r (v3.5): %r", msg.cmd, payload)
+                # Encryption is handled in pack_message for 6699 format
+                # payload stays unencrypted here - pack_message will encrypt with GCM
         elif self.version == 3.4:
             hmac_key = self.local_key
             if msg.cmd not in NO_PROTOCOL_HEADER_CMDS:
