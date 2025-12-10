@@ -92,7 +92,7 @@ QUICK_EDIT_SCHEMA = vol.Schema(
         vol.Required(CONF_HOST): cv.string,
         vol.Required(CONF_LOCAL_KEY): cv.string,
         vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
-            ["3.1", "3.2", "3.3", "3.4"]
+            ["3.1", "3.2", "3.3", "3.4", "3.5"]
         ),
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
         vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
@@ -124,7 +124,7 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Required(CONF_DEVICE_ID): cv.string,
         vol.Required(CONF_LOCAL_KEY): cv.string,
         vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
-            ["3.1", "3.2", "3.3", "3.4"]
+            ["3.1", "3.2", "3.3", "3.4", "3.5"]
         ),
         vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
         vol.Optional(CONF_SCAN_INTERVAL): int,
