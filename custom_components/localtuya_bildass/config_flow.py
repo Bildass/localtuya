@@ -39,6 +39,7 @@ from .const import (
     CONF_EDIT_DEVICE,
     CONF_EDIT_ENTITIES,
     CONF_ENABLE_DEBUG,
+    CONF_FORCE_ADD,
     CONF_FULL_EDIT,
     CONF_LOCAL_KEY,
     CONF_MANUAL_DPS,
@@ -129,6 +130,7 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Optional(CONF_SCAN_INTERVAL): int,
         vol.Optional(CONF_MANUAL_DPS): cv.string,
         vol.Optional(CONF_RESET_DPIDS): str,
+        vol.Optional(CONF_FORCE_ADD, default=False): bool,
     }
 )
 
@@ -175,6 +177,7 @@ def options_schema(entities):
             vol.Optional(CONF_SCAN_INTERVAL): int,
             vol.Optional(CONF_MANUAL_DPS): cv.string,
             vol.Optional(CONF_RESET_DPIDS): cv.string,
+            vol.Optional(CONF_FORCE_ADD, default=False): bool,
             vol.Required(
                 CONF_ENTITIES, description={"suggested_value": entity_names}
             ): cv.multi_select(entity_names),
@@ -324,9 +327,22 @@ async def validate_input(hass: core.HomeAssistant, data):
             await interface.close()
 
     # Indicate an error if no datapoints found as the rest of the flow
-    # won't work in this case
+    # won't work in this case - unless force_add is enabled
     if not detected_dps:
-        raise EmptyDpsList
+        if data.get(CONF_FORCE_ADD):
+            _LOGGER.warning(
+                "No DPS detected but force_add is enabled. "
+                "Using manual DPS or default DPS 1."
+            )
+            # If manual DPS was provided, use those; otherwise create default DPS 1
+            if CONF_MANUAL_DPS in data and data[CONF_MANUAL_DPS]:
+                manual_dps_list = [dps.strip() for dps in data[CONF_MANUAL_DPS].split(",")]
+                for dps in manual_dps_list:
+                    detected_dps[dps] = -1
+            else:
+                detected_dps["1"] = -1  # Default to DPS 1
+        else:
+            raise EmptyDpsList
 
     _LOGGER.debug("Total DPS: %s", detected_dps)
 

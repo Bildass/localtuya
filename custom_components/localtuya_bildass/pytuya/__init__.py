@@ -991,8 +991,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     async def exchange(self, command, dps=None):
         """Send and receive a message, returning response from device."""
-        if self.version == 3.4 and self.real_local_key == self.local_key:
-            self.debug("3.4 device: negotiating a new session key")
+        if self.version >= 3.4 and self.real_local_key == self.local_key:
+            self.debug("3.4/3.5 device: negotiating a new session key")
             await self._negotiate_session_key()
 
         self.debug(
@@ -1066,7 +1066,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         Args:
             dps([int]): list of dps to update, default=detected&whitelisted
         """
-        if self.version in [3.2, 3.3, 3.4]:  # 3.2 behaves like 3.3 with type_0d
+        if self.version in [3.2, 3.3, 3.4, 3.5]:  # 3.2 behaves like 3.3 with type_0d
             if dps is None:
                 if not self.dps_cache:
                     await self.detect_available_dps()
@@ -1094,7 +1094,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         """Set values for a set of datapoints."""
         return await self.exchange(CONTROL, dps)
 
-    async def detect_available_dps(self):
+    async def detect_available_dps(self, retry_count=3):
         """Return which datapoints are supported by the device."""
         # type_0d devices need a sort of bruteforce querying in order to detect the
         # list of available dps experience shows that the dps available are usually
@@ -1103,21 +1103,43 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.dps_cache = {}
         ranges = [(2, 11), (11, 21), (21, 31), (100, 111)]
 
+        # Send heartbeat first to wake up the device
+        for attempt in range(retry_count):
+            try:
+                self.debug("DPS detection attempt %d/%d - sending heartbeat", attempt + 1, retry_count)
+                await self.heartbeat()
+                await asyncio.sleep(0.5)  # Give device time to wake up
+                break
+            except Exception as ex:
+                self.debug("Heartbeat attempt %d failed: %s", attempt + 1, ex)
+                if attempt < retry_count - 1:
+                    await asyncio.sleep(1)
+
         for dps_range in ranges:
             # dps 1 must always be sent, otherwise it might fail in case no dps is found
             # in the requested range
             self.dps_to_request = {"1": None}
             self.add_dps_to_request(range(*dps_range))
-            try:
-                data = await self.status()
-            except Exception as ex:
-                self.exception("Failed to get status: %s", ex)
-                raise
-            if "dps" in data:
-                self.dps_cache.update(data["dps"])
+
+            # Retry mechanism for each range
+            for attempt in range(retry_count):
+                try:
+                    data = await self.status()
+                    if "dps" in data:
+                        self.dps_cache.update(data["dps"])
+                    break  # Success, move to next range
+                except Exception as ex:
+                    self.debug("Status attempt %d for range %s failed: %s", attempt + 1, dps_range, ex)
+                    if attempt < retry_count - 1:
+                        await asyncio.sleep(0.5 * (attempt + 1))  # Exponential backoff
+                    else:
+                        self.exception("Failed to get status after %d attempts: %s", retry_count, ex)
+                        raise
 
             if self.dev_type == "type_0a":
+                self.debug("Detected dps (type_0a): %s", self.dps_cache)
                 return self.dps_cache
+
         self.debug("Detected dps: %s", self.dps_cache)
         return self.dps_cache
 
@@ -1273,10 +1295,17 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         # self.debug("Session nonce XOR'd: %r" % self.local_key)
 
         cipher = AESCipher(self.real_local_key)
-        self.local_key = self.dispatcher.local_key = cipher.encrypt(
-            self.local_key, False, pad=False
-        )
-        self.debug("Session key negotiate success! session key: %r", self.local_key)
+        if self.version == 3.5:
+            # Protocol 3.5 uses GCM encryption with IV from local_nonce
+            iv = self.local_nonce[:12]
+            encrypted = cipher.encrypt(self.local_key, use_base64=False, pad=False, iv=iv)
+            self.local_key = self.dispatcher.local_key = encrypted[12:28]
+            self.debug("Session key negotiate success (v3.5 GCM)! session key: %r", self.local_key)
+        else:
+            self.local_key = self.dispatcher.local_key = cipher.encrypt(
+                self.local_key, False, pad=False
+            )
+            self.debug("Session key negotiate success! session key: %r", self.local_key)
         return True
 
     # adds protocol header (if needed) and encrypts

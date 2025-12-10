@@ -82,6 +82,7 @@ CONF_NO_CLOUD = "no_cloud"
 CONF_MANUAL_DPS = "manual_dps_strings"
 CONF_DEFAULT_VALUE = "dps_default_value"
 CONF_RESET_DPIDS = "reset_dpids"
+CONF_FORCE_ADD = "force_add"
 CONF_PASSIVE_ENTITY = "is_passive_entity"
 
 # light
