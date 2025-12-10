@@ -1044,7 +1044,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         status = await self.exchange(DP_QUERY)
         if status and "dps" in status:
             self.dps_cache.update(status["dps"])
-        return self.dps_cache
+        return status  # Return raw response for proper "dps" key checking
 
     async def heartbeat(self):
         """Send a heartbeat message."""
@@ -1104,16 +1104,21 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         ranges = [(2, 11), (11, 21), (21, 31), (100, 111)]
 
         # Send heartbeat first to wake up the device
+        heartbeat_success = False
         for attempt in range(retry_count):
             try:
-                self.debug("DPS detection attempt %d/%d - sending heartbeat", attempt + 1, retry_count)
+                self.debug("DPS detection - sending heartbeat (attempt %d/%d)", attempt + 1, retry_count)
                 await self.heartbeat()
                 await asyncio.sleep(0.5)  # Give device time to wake up
+                heartbeat_success = True
                 break
             except Exception as ex:
                 self.debug("Heartbeat attempt %d failed: %s", attempt + 1, ex)
                 if attempt < retry_count - 1:
                     await asyncio.sleep(1)
+
+        if not heartbeat_success:
+            self.warning("All heartbeat attempts failed, continuing with DPS detection anyway")
 
         for dps_range in ranges:
             # dps 1 must always be sent, otherwise it might fail in case no dps is found
@@ -1125,22 +1130,32 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             for attempt in range(retry_count):
                 try:
                     data = await self.status()
-                    if "dps" in data:
-                        self.dps_cache.update(data["dps"])
-                    break  # Success, move to next range
+                    # Handle raw response with "dps" key
+                    if data and isinstance(data, dict):
+                        if "dps" in data:
+                            self.dps_cache.update(data["dps"])
+                            self.debug("Range %s: found DPS %s", dps_range, list(data["dps"].keys()))
+                        else:
+                            self.debug("Range %s: no 'dps' key in response: %s", dps_range, data)
+                    else:
+                        self.debug("Range %s: empty or invalid response: %s", dps_range, data)
+                    break  # Move to next range regardless of result
                 except Exception as ex:
                     self.debug("Status attempt %d for range %s failed: %s", attempt + 1, dps_range, ex)
                     if attempt < retry_count - 1:
                         await asyncio.sleep(0.5 * (attempt + 1))  # Exponential backoff
                     else:
-                        self.exception("Failed to get status after %d attempts: %s", retry_count, ex)
-                        raise
+                        self.warning("Failed to get status for range %s after %d attempts: %s", dps_range, retry_count, ex)
+                        # Don't raise - continue to next range
 
-            if self.dev_type == "type_0a":
-                self.debug("Detected dps (type_0a): %s", self.dps_cache)
+            if self.dev_type == "type_0a" and self.dps_cache:
+                self.debug("Detected dps (type_0a early exit): %s", self.dps_cache)
                 return self.dps_cache
 
-        self.debug("Detected dps: %s", self.dps_cache)
+        if not self.dps_cache:
+            self.warning("DPS detection completed with empty results - device may be offline or use unsupported protocol")
+        else:
+            self.debug("Detected dps: %s", self.dps_cache)
         return self.dps_cache
 
     def add_dps_to_request(self, dp_indicies):
