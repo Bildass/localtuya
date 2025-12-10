@@ -1,5 +1,7 @@
 {
   "name": "LocalTuya 2.0",
   "homeassistant": "2024.1.0",
-  "render_readme": true
+  "render_readme": true,
+  "filename": "localtuya_bildass",
+  "content_in_root": false
 }
