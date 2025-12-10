@@ -40,6 +40,7 @@ from .const import (
     CONF_EDIT_ENTITIES,
     CONF_ENABLE_DEBUG,
     CONF_FORCE_ADD,
+    CONF_SKIP_CONNECT,
     CONF_FULL_EDIT,
     CONF_LOCAL_KEY,
     CONF_MANUAL_DPS,
@@ -131,6 +132,7 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Optional(CONF_MANUAL_DPS): cv.string,
         vol.Optional(CONF_RESET_DPIDS): str,
         vol.Optional(CONF_FORCE_ADD, default=False): bool,
+        vol.Optional(CONF_SKIP_CONNECT, default=False): bool,
     }
 )
 
@@ -171,13 +173,14 @@ def options_schema(entities):
             vol.Required(CONF_HOST): cv.string,
             vol.Required(CONF_LOCAL_KEY): cv.string,
             vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
-                ["3.1", "3.2", "3.3", "3.4"]
+                ["3.1", "3.2", "3.3", "3.4", "3.5"]
             ),
             vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
             vol.Optional(CONF_SCAN_INTERVAL): int,
             vol.Optional(CONF_MANUAL_DPS): cv.string,
             vol.Optional(CONF_RESET_DPIDS): cv.string,
             vol.Optional(CONF_FORCE_ADD, default=False): bool,
+            vol.Optional(CONF_SKIP_CONNECT, default=False): bool,
             vol.Required(
                 CONF_ENTITIES, description={"suggested_value": entity_names}
             ): cv.multi_select(entity_names),
@@ -268,6 +271,21 @@ def config_schema():
 async def validate_input(hass: core.HomeAssistant, data):
     """Validate the user input allows us to connect."""
     detected_dps = {}
+
+    # Skip connection check entirely if requested
+    if data.get(CONF_SKIP_CONNECT):
+        _LOGGER.warning(
+            "Skip connection check enabled - using manual DPS only. "
+            "Device connectivity will be verified after setup."
+        )
+        if CONF_MANUAL_DPS in data and data[CONF_MANUAL_DPS]:
+            manual_dps_list = [dps.strip() for dps in data[CONF_MANUAL_DPS].split(",")]
+            for dps in manual_dps_list:
+                detected_dps[dps] = -1
+        else:
+            detected_dps["1"] = -1  # Default to DPS 1
+        _LOGGER.debug("Skip connect - using DPS: %s", detected_dps)
+        return dps_string_list(detected_dps)
 
     interface = None
 

@@ -132,6 +132,7 @@
                     "manual_dps_strings": "Manual DPS to Add (comma-separated)",
                     "reset_dpids": "DPIDs to Reset (comma-separated)",
                     "force_add": "Force Add (bypass empty DPS check)",
+                    "skip_connect_check": "Skip Connection Check (for devices that don't respond during setup)",
                     "entities": "Entities to keep",
                     "add_entities": "Add new entities"
                 }

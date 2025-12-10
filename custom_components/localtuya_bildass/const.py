@@ -3,7 +3,7 @@
 DOMAIN = "localtuya_bildass"
 
 # BildaSystem branding
-VERSION = "6.3.1"
+VERSION = "6.3.2"
 BILDASYSTEM_URL = "https://bildassystem.cz"
 BILDASYSTEM_NAME = "LocalTuya 2.0"
 
@@ -83,6 +83,7 @@ CONF_MANUAL_DPS = "manual_dps_strings"
 CONF_DEFAULT_VALUE = "dps_default_value"
 CONF_RESET_DPIDS = "reset_dpids"
 CONF_FORCE_ADD = "force_add"
+CONF_SKIP_CONNECT = "skip_connect_check"
 CONF_PASSIVE_ENTITY = "is_passive_entity"
 
 # light
