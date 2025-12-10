@@ -80,10 +80,16 @@ Switch-Satna (`bfc42749075549ec91bqsx`) CHYBÍ v tomto seznamu!
 4. **Špatný protokol** - zkusit Protocol 3.4 nebo 3.3 místo 3.5
 
 ### Co je potřeba udělat
-- [ ] Zjistit LOCAL IP z routeru (DHCP clients) nebo Fing app
+- [x] Zjistit LOCAL IP z routeru → **192.168.0.42**
 - [ ] Ověřit že local_key je správně zadaný v LocalTuya
 - [ ] Zkusit Protocol 3.4 místo 3.5
 - [ ] Zkusit Protocol 3.3 (úplně přeskočí session negotiation)
+- [ ] **NOVÉ v6.3.2:** Použít "Skip Connection Check" option
+
+### Co bylo opraveno (v6.3.2)
+- [x] Nová option: Skip Connection Check - přeskočí connection test úplně
+- [x] Přidán Protocol 3.5 do options_schema (chyběl)
+- [x] Když skip_connect je zapnutý, použije Manual DPS nebo default DPS 1
 
 ### Reference
 - xZetsubou fork: https://github.com/xZetsubou/hass-localtuya
