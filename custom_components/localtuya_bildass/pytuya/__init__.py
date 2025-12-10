@@ -58,14 +58,16 @@ __author__ = "rospogrigio"
 _LOGGER = logging.getLogger(__name__)
 
 # Tuya Packet Format
-TuyaHeader = namedtuple("TuyaHeader", "prefix seqno cmd length")
+TuyaHeader = namedtuple("TuyaHeader", "prefix seqno cmd length total_length")
 MessagePayload = namedtuple("MessagePayload", "cmd payload")
 try:
     TuyaMessage = namedtuple(
-        "TuyaMessage", "seqno cmd retcode payload crc crc_good", defaults=(True,)
+        "TuyaMessage",
+        "seqno cmd retcode payload crc crc_good prefix iv",
+        defaults=(True, 0x000055AA, None)  # prefix defaults to 55AA, iv defaults to None
     )
 except Exception:
-    TuyaMessage = namedtuple("TuyaMessage", "seqno cmd retcode payload crc crc_good")
+    TuyaMessage = namedtuple("TuyaMessage", "seqno cmd retcode payload crc crc_good prefix iv")
 
 # TinyTuya Error Response Codes
 ERR_JSON = 900
@@ -138,19 +140,29 @@ LAN_EXT_STREAM = 0x40  # 64 # FRM_LAN_EXT_STREAM
 PROTOCOL_VERSION_BYTES_31 = b"3.1"
 PROTOCOL_VERSION_BYTES_33 = b"3.3"
 PROTOCOL_VERSION_BYTES_34 = b"3.4"
+PROTOCOL_VERSION_BYTES_35 = b"3.5"
 
 PROTOCOL_3x_HEADER = 12 * b"\x00"
 PROTOCOL_33_HEADER = PROTOCOL_VERSION_BYTES_33 + PROTOCOL_3x_HEADER
 PROTOCOL_34_HEADER = PROTOCOL_VERSION_BYTES_34 + PROTOCOL_3x_HEADER
+PROTOCOL_35_HEADER = PROTOCOL_VERSION_BYTES_35 + PROTOCOL_3x_HEADER
 MESSAGE_HEADER_FMT = ">4I"  # 4*uint32: prefix, seqno, cmd, length [, retcode]
+MESSAGE_HEADER_FMT_6699 = ">IHIII"  # prefix, unknown(2bytes), seqno, cmd, length
 MESSAGE_RECV_HEADER_FMT = ">5I"  # 4*uint32: prefix, seqno, cmd, length, retcode
 MESSAGE_RETCODE_FMT = ">I"  # retcode for received messages
 MESSAGE_END_FMT = ">2I"  # 2*uint32: crc, suffix
 MESSAGE_END_FMT_HMAC = ">32sI"  # 32s:hmac, uint32:suffix
+MESSAGE_END_FMT_6699 = ">16sI"  # 16s:tag, uint32:suffix (for GCM)
+# Standard 55AA prefix/suffix
 PREFIX_VALUE = 0x000055AA
 PREFIX_BIN = b"\x00\x00U\xaa"
 SUFFIX_VALUE = 0x0000AA55
 SUFFIX_BIN = b"\x00\x00\xaaU"
+# Protocol 3.5 uses 6699 prefix/suffix
+PREFIX_6699_VALUE = 0x00006699
+PREFIX_6699_BIN = b"\x00\x00\x66\x99"
+SUFFIX_6699_VALUE = 0x00009966
+SUFFIX_6699_BIN = b"\x00\x00\x99\x66"
 NO_PROTOCOL_HEADER_CMDS = [
     DP_QUERY,
     DP_QUERY_NEW,
@@ -215,6 +227,13 @@ payload_dict = {
         },
         DP_QUERY: {"command_override": DP_QUERY_NEW},
     },
+    "v3.5": {
+        CONTROL: {
+            "command_override": CONTROL_NEW,  # Uses CONTROL_NEW command
+            "command": {"protocol": 5, "t": "int", "data": ""},
+        },
+        DP_QUERY: {"command_override": DP_QUERY_NEW},
+    },
 }
 
 
@@ -265,114 +284,260 @@ class ContextualLogger:
 
 def pack_message(msg, hmac_key=None):
     """Pack a TuyaMessage into bytes."""
-    end_fmt = MESSAGE_END_FMT_HMAC if hmac_key else MESSAGE_END_FMT
-    # Create full message excluding CRC and suffix
-    buffer = (
-        struct.pack(
-            MESSAGE_HEADER_FMT,
-            PREFIX_VALUE,
-            msg.seqno,
-            msg.cmd,
-            len(msg.payload) + struct.calcsize(end_fmt),
+    # Check message prefix to determine format
+    prefix = getattr(msg, 'prefix', PREFIX_VALUE)
+
+    if prefix == PREFIX_6699_VALUE:
+        # Protocol 3.5 - 6699 format with GCM encryption
+        if not hmac_key:
+            raise TypeError("key must be provided to pack 6699-format messages")
+
+        header_fmt = MESSAGE_HEADER_FMT_6699
+        end_fmt = MESSAGE_END_FMT_6699
+
+        # Calculate message length (payload + tag + iv)
+        msg_len = len(msg.payload) + (struct.calcsize(end_fmt) - 4) + 12
+        if isinstance(msg.retcode, int) and msg.retcode is not None:
+            msg_len += struct.calcsize(MESSAGE_RETCODE_FMT)
+
+        # Pack header: prefix, unknown(0), seqno, cmd, length
+        header_data = struct.pack(header_fmt, prefix, 0, msg.seqno, msg.cmd, msg_len)
+
+        # Encrypt payload with GCM
+        cipher = AESCipher(hmac_key)
+        if isinstance(msg.retcode, int) and msg.retcode is not None:
+            raw = struct.pack(MESSAGE_RETCODE_FMT, msg.retcode) + msg.payload
+        else:
+            raw = msg.payload
+
+        # Use IV from message or generate new one
+        iv = True if not msg.iv else msg.iv
+        encrypted = cipher.encrypt(
+            raw,
+            use_base64=False,
+            pad=False,
+            iv=iv,
+            header=header_data[4:],  # AAD is header without prefix
         )
-        + msg.payload
-    )
-    if hmac_key:
-        crc = hmac.new(hmac_key, buffer, sha256).digest()
+
+        return header_data + encrypted + SUFFIX_6699_BIN
     else:
-        crc = binascii.crc32(buffer) & 0xFFFFFFFF
-    # Calculate CRC, add it together with suffix
-    buffer += struct.pack(end_fmt, crc, SUFFIX_VALUE)
-    return buffer
+        # Protocol 3.1-3.4 - Standard 55AA format
+        end_fmt = MESSAGE_END_FMT_HMAC if hmac_key else MESSAGE_END_FMT
+        # Create full message excluding CRC and suffix
+        buffer = (
+            struct.pack(
+                MESSAGE_HEADER_FMT,
+                PREFIX_VALUE,
+                msg.seqno,
+                msg.cmd,
+                len(msg.payload) + struct.calcsize(end_fmt),
+            )
+            + msg.payload
+        )
+        if hmac_key:
+            crc = hmac.new(hmac_key, buffer, sha256).digest()
+        else:
+            crc = binascii.crc32(buffer) & 0xFFFFFFFF
+        # Calculate CRC, add it together with suffix
+        buffer += struct.pack(end_fmt, crc, SUFFIX_VALUE)
+        return buffer
 
 
 def unpack_message(data, hmac_key=None, header=None, no_retcode=False, logger=None):
-    """Unpack bytes into a TuyaMessage."""
-    end_fmt = MESSAGE_END_FMT_HMAC if hmac_key else MESSAGE_END_FMT
-    # 4-word header plus return code
-    header_len = struct.calcsize(MESSAGE_HEADER_FMT)
-    retcode_len = 0 if no_retcode else struct.calcsize(MESSAGE_RETCODE_FMT)
-    end_len = struct.calcsize(end_fmt)
-    headret_len = header_len + retcode_len
+    """Unpack bytes into a TuyaMessage.
 
-    if len(data) < headret_len + end_len:
-        logger.debug(
-            "unpack_message(): not enough data to unpack header! need %d but only have %d",
-            headret_len + end_len,
-            len(data),
-        )
-        raise DecodeError("Not enough data to unpack header")
-
+    Supports both 55AA (Protocol 3.1-3.4) and 6699 (Protocol 3.5) formats.
+    """
     if header is None:
         header = parse_header(data)
 
-    if len(data) < header_len + header.length:
-        logger.debug(
-            "unpack_message(): not enough data to unpack payload! need %d but only have %d",
-            header_len + header.length,
-            len(data),
-        )
-        raise DecodeError("Not enough data to unpack payload")
+    # Determine format based on prefix
+    if header.prefix == PREFIX_6699_VALUE:
+        # Protocol 3.5 - 6699 format with GCM encryption
+        if not hmac_key:
+            raise TypeError("key must be provided to unpack 6699-format messages")
 
-    retcode = (
-        0
-        if no_retcode
-        else struct.unpack(MESSAGE_RETCODE_FMT, data[header_len:headret_len])[0]
-    )
-    # the retcode is technically part of the payload, but strip it as we do not want it here
-    payload = data[header_len + retcode_len : header_len + header.length]
-    crc, suffix = struct.unpack(end_fmt, payload[-end_len:])
+        header_fmt = MESSAGE_HEADER_FMT_6699
+        header_len = struct.calcsize(header_fmt)
+        end_fmt = MESSAGE_END_FMT_6699
+        end_len = struct.calcsize(end_fmt)
+        retcode_len = 0  # retcode is inside encrypted payload for 6699
 
-    if hmac_key:
-        have_crc = hmac.new(
-            hmac_key, data[: (header_len + header.length) - end_len], sha256
-        ).digest()
-    else:
-        have_crc = (
-            binascii.crc32(data[: (header_len + header.length) - end_len]) & 0xFFFFFFFF
-        )
+        msg_len = header_len + header.length + 4  # +4 for suffix
 
-    if suffix != SUFFIX_VALUE:
-        logger.debug("Suffix prefix wrong! %08X != %08X", suffix, SUFFIX_VALUE)
+        if len(data) < msg_len:
+            if logger:
+                logger.debug(
+                    "unpack_message(): not enough data to unpack 6699 payload! need %d but only have %d",
+                    msg_len, len(data)
+                )
+            raise DecodeError("Not enough data to unpack 6699 payload")
 
-    if crc != have_crc:
-        if hmac_key:
-            logger.debug(
-                "HMAC checksum wrong! %r != %r",
-                binascii.hexlify(have_crc),
-                binascii.hexlify(crc),
+        # Extract payload (between header and end)
+        payload = data[header_len : header_len + header.length]
+        # Extract tag and suffix from end
+        tag, suffix = struct.unpack(end_fmt, payload[-end_len:])
+        payload = payload[:-end_len]
+
+        # Extract IV (first 12 bytes of payload)
+        iv = payload[:12]
+        encrypted_payload = payload[12:]
+
+        # Decrypt using GCM
+        try:
+            cipher = AESCipher(hmac_key)
+            decrypted = cipher.decrypt(
+                encrypted_payload,
+                use_base64=False,
+                decode_text=False,
+                iv=iv,
+                header=data[4:header_len],  # AAD is header without prefix
+                tag=tag,
             )
-        else:
-            logger.debug("CRC wrong! %08X != %08X", have_crc, crc)
+            crc_good = True
+        except Exception:
+            # Fallback to CTR mode if GCM fails (some devices)
+            try:
+                cipher = AESCipher(hmac_key)
+                decrypted = cipher.decrypt(
+                    encrypted_payload,
+                    use_base64=False,
+                    decode_text=False,
+                    iv=iv,
+                    header=None,
+                    tag=None,
+                )
+                crc_good = True
+            except Exception:
+                crc_good = False
+                decrypted = encrypted_payload
 
-    return TuyaMessage(
-        header.seqno, header.cmd, retcode, payload[:-end_len], crc, crc == have_crc
-    )
+        # Extract retcode from decrypted payload if present
+        retcode = 0
+        if no_retcode is False:
+            # Check if payload starts with retcode (not '{')
+            if len(decrypted) >= 4 and decrypted[0:1] != b'{':
+                retcode_len = struct.calcsize(MESSAGE_RETCODE_FMT)
+                if decrypted[retcode_len:retcode_len + 1] == b'{' or len(decrypted) > retcode_len:
+                    retcode = struct.unpack(MESSAGE_RETCODE_FMT, decrypted[:retcode_len])[0]
+                    decrypted = decrypted[retcode_len:]
+
+        return TuyaMessage(
+            header.seqno, header.cmd, retcode, decrypted, tag, crc_good, header.prefix, iv
+        )
+
+    else:
+        # Protocol 3.1-3.4 - Standard 55AA format
+        end_fmt = MESSAGE_END_FMT_HMAC if hmac_key else MESSAGE_END_FMT
+        header_len = struct.calcsize(MESSAGE_HEADER_FMT)
+        retcode_len = 0 if no_retcode else struct.calcsize(MESSAGE_RETCODE_FMT)
+        end_len = struct.calcsize(end_fmt)
+        headret_len = header_len + retcode_len
+
+        if len(data) < headret_len + end_len:
+            if logger:
+                logger.debug(
+                    "unpack_message(): not enough data to unpack header! need %d but only have %d",
+                    headret_len + end_len, len(data)
+                )
+            raise DecodeError("Not enough data to unpack header")
+
+        if len(data) < header_len + header.length:
+            if logger:
+                logger.debug(
+                    "unpack_message(): not enough data to unpack payload! need %d but only have %d",
+                    header_len + header.length, len(data)
+                )
+            raise DecodeError("Not enough data to unpack payload")
+
+        retcode = (
+            0
+            if no_retcode
+            else struct.unpack(MESSAGE_RETCODE_FMT, data[header_len:headret_len])[0]
+        )
+        # the retcode is technically part of the payload, but strip it as we do not want it here
+        payload = data[header_len + retcode_len : header_len + header.length]
+        crc, suffix = struct.unpack(end_fmt, payload[-end_len:])
+
+        if hmac_key:
+            have_crc = hmac.new(
+                hmac_key, data[: (header_len + header.length) - end_len], sha256
+            ).digest()
+        else:
+            have_crc = (
+                binascii.crc32(data[: (header_len + header.length) - end_len]) & 0xFFFFFFFF
+            )
+
+        if suffix != SUFFIX_VALUE:
+            if logger:
+                logger.debug("Suffix wrong! %08X != %08X", suffix, SUFFIX_VALUE)
+
+        if crc != have_crc:
+            if logger:
+                if hmac_key:
+                    logger.debug(
+                        "HMAC checksum wrong! %r != %r",
+                        binascii.hexlify(have_crc),
+                        binascii.hexlify(crc),
+                    )
+                else:
+                    logger.debug("CRC wrong! %08X != %08X", have_crc, crc)
+
+        return TuyaMessage(
+            header.seqno, header.cmd, retcode, payload[:-end_len], crc, crc == have_crc,
+            header.prefix, None
+        )
 
 
 def parse_header(data):
-    """Unpack bytes into a TuyaHeader."""
-    header_len = struct.calcsize(MESSAGE_HEADER_FMT)
+    """Unpack bytes into a TuyaHeader.
 
-    if len(data) < header_len:
-        raise DecodeError("Not enough data to unpack header")
+    Supports both 55AA (Protocol 3.1-3.4) and 6699 (Protocol 3.5) formats.
+    """
+    # Determine format based on first 4 bytes
+    if data[:4] == PREFIX_6699_BIN:
+        # Protocol 3.5 - 6699 format
+        header_fmt = MESSAGE_HEADER_FMT_6699
+        header_len = struct.calcsize(header_fmt)
 
-    prefix, seqno, cmd, payload_len = struct.unpack(
-        MESSAGE_HEADER_FMT, data[:header_len]
-    )
+        if len(data) < header_len:
+            raise DecodeError("Not enough data to unpack 6699 header")
 
-    if prefix != PREFIX_VALUE:
-        # self.debug('Header prefix wrong! %08X != %08X', prefix, PREFIX_VALUE)
-        raise DecodeError("Header prefix wrong! %08X != %08X" % (prefix, PREFIX_VALUE))
+        prefix, unknown, seqno, cmd, payload_len = struct.unpack(
+            header_fmt, data[:header_len]
+        )
+        # Total length includes header + payload + suffix (4 bytes)
+        total_length = payload_len + header_len + 4
+    elif data[:4] == PREFIX_BIN:
+        # Protocol 3.1-3.4 - Standard 55AA format
+        header_fmt = MESSAGE_HEADER_FMT
+        header_len = struct.calcsize(header_fmt)
 
-    # sanity check. currently the max payload length is somewhere around 300 bytes
-    if payload_len > 1000:
+        if len(data) < header_len:
+            raise DecodeError("Not enough data to unpack header")
+
+        prefix, seqno, cmd, payload_len = struct.unpack(
+            header_fmt, data[:header_len]
+        )
+        # Total length is header + payload (suffix is included in payload_len)
+        total_length = payload_len + header_len
+    else:
+        # Unknown prefix
+        prefix_hex = binascii.hexlify(data[:4]).decode()
         raise DecodeError(
-            "Header claims the packet size is over 1000 bytes! It is most likely corrupt. Claimed size: %d bytes"
-            % payload_len
+            "Header prefix unknown! Got %s, expected %08X or %08X"
+            % (prefix_hex, PREFIX_VALUE, PREFIX_6699_VALUE)
         )
 
-    return TuyaHeader(prefix, seqno, cmd, payload_len)
+    # Sanity check - max payload length is around 2000 bytes
+    if payload_len > 2000:
+        raise DecodeError(
+            "Header claims the packet size is over 2000 bytes! It is most likely corrupt. "
+            "Claimed size: %d bytes" % payload_len
+        )
+
+    return TuyaHeader(prefix, seqno, cmd, payload_len, total_length)
 
 
 class AESCipher:
@@ -381,23 +546,83 @@ class AESCipher:
     def __init__(self, key):
         """Initialize a new AESCipher."""
         self.block_size = 16
+        self.key = key
         self.cipher = Cipher(algorithms.AES(key), modes.ECB(), default_backend())
 
-    def encrypt(self, raw, use_base64=True, pad=True):
-        """Encrypt data to be sent to device."""
-        encryptor = self.cipher.encryptor()
-        if pad:
-            raw = self._pad(raw)
-        crypted_text = encryptor.update(raw) + encryptor.finalize()
+    def encrypt(self, raw, use_base64=True, pad=True, iv=False, header=None):
+        """Encrypt data to be sent to device.
+
+        Args:
+            raw: Data to encrypt
+            use_base64: Whether to base64 encode the result
+            pad: Whether to pad the data (for ECB mode)
+            iv: For GCM mode - True to generate IV, or bytes to use as IV
+            header: Additional authenticated data for GCM mode
+        """
+        if iv:
+            # GCM mode for Protocol 3.5
+            if iv is True:
+                # Generate IV - use timestamp-based for production, fixed for debug
+                iv = str(time.time() * 10)[:12].encode("utf8")
+            encryptor = Cipher(
+                algorithms.AES(self.key), modes.GCM(iv), default_backend()
+            ).encryptor()
+            if header:
+                encryptor.authenticate_additional_data(header)
+            crypted_text = encryptor.update(raw) + encryptor.finalize()
+            # Return: IV (12 bytes) + ciphertext + tag (16 bytes)
+            crypted_text = iv + crypted_text + encryptor.tag
+        else:
+            # ECB mode for Protocol 3.1-3.4
+            encryptor = self.cipher.encryptor()
+            if pad:
+                raw = self._pad(raw)
+            crypted_text = encryptor.update(raw) + encryptor.finalize()
         return base64.b64encode(crypted_text) if use_base64 else crypted_text
 
-    def decrypt(self, enc, use_base64=True, decode_text=True):
-        """Decrypt data from device."""
-        if use_base64:
-            enc = base64.b64decode(enc)
+    def decrypt(self, enc, use_base64=True, decode_text=True, iv=False, header=None, tag=None):
+        """Decrypt data from device.
 
-        decryptor = self.cipher.decryptor()
-        raw = self._unpad(decryptor.update(enc) + decryptor.finalize())
+        Args:
+            enc: Data to decrypt
+            use_base64: Whether input is base64 encoded
+            decode_text: Whether to decode result as UTF-8
+            iv: For GCM mode - True to extract IV from data, or bytes to use as IV
+            header: Additional authenticated data for GCM mode
+            tag: GCM authentication tag (16 bytes)
+        """
+        if not iv:
+            if use_base64:
+                enc = base64.b64decode(enc)
+
+        if iv:
+            # GCM mode for Protocol 3.5
+            if iv is True:
+                # Extract IV from first 12 bytes
+                iv = enc[:12]
+                enc = enc[12:]
+            if tag is None:
+                # CTR mode fallback if no tag provided
+                decryptor = Cipher(
+                    algorithms.AES(self.key),
+                    modes.CTR(iv + b"\x00\x00\x00\x02"),
+                    default_backend()
+                ).decryptor()
+            else:
+                # Full GCM mode with tag verification
+                decryptor = Cipher(
+                    algorithms.AES(self.key),
+                    modes.GCM(iv, tag),
+                    default_backend()
+                ).decryptor()
+            if header and tag is not None:
+                decryptor.authenticate_additional_data(header)
+            raw = decryptor.update(enc) + decryptor.finalize()
+        else:
+            # ECB mode for Protocol 3.1-3.4
+            decryptor = self.cipher.decryptor()
+            raw = self._unpad(decryptor.update(enc) + decryptor.finalize())
+
         return raw.decode("utf-8") if decode_text else raw
 
     def _pad(self, data):
@@ -460,20 +685,42 @@ class MessageDispatcher(ContextualLogger):
     def add_data(self, data):
         """Add new data to the buffer and try to parse messages."""
         self.buffer += data
-        header_len = struct.calcsize(MESSAGE_RECV_HEADER_FMT)
 
         while self.buffer:
-            # Check if enough data for measage header
+            # Determine header format based on prefix
+            if self.buffer[:4] == PREFIX_6699_BIN:
+                header_len = struct.calcsize(MESSAGE_HEADER_FMT_6699)
+            else:
+                header_len = struct.calcsize(MESSAGE_RECV_HEADER_FMT)
+
+            # Check if enough data for message header
             if len(self.buffer) < header_len:
                 break
 
-            header = parse_header(self.buffer)
-            hmac_key = self.local_key if self.version == 3.4 else None
-            msg = unpack_message(
-                self.buffer, header=header, hmac_key=hmac_key, logger=self
-            )
-            self.buffer = self.buffer[header_len - 4 + header.length :]
-            self._dispatch(msg)
+            try:
+                header = parse_header(self.buffer)
+            except DecodeError:
+                self.warning("Failed to parse header, clearing buffer")
+                self.buffer = b""
+                break
+
+            # Check if enough data for full message
+            if len(self.buffer) < header.total_length:
+                break
+
+            # Use hmac_key for 3.4 and 3.5 protocols
+            hmac_key = self.local_key if self.version >= 3.4 else None
+            try:
+                msg = unpack_message(
+                    self.buffer, header=header, hmac_key=hmac_key, logger=self
+                )
+                # Use total_length from header for proper buffer trimming
+                self.buffer = self.buffer[header.total_length:]
+                self._dispatch(msg)
+            except DecodeError as e:
+                self.warning("Failed to unpack message: %s", e)
+                self.buffer = b""
+                break
 
     def _dispatch(self, msg):
         """Dispatch a message to someone that is listening."""
@@ -601,6 +848,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             self.dev_type = "type_0d"
         elif protocol_version == 3.4:
             self.dev_type = "v3.4"
+        elif protocol_version == 3.5:
+            self.dev_type = "v3.5"
 
     def error_json(self, number=None, payload=None):
         """Return error details in JSON."""
@@ -1034,8 +1283,20 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
     def _encode_message(self, msg):
         hmac_key = None
         payload = msg.payload
+        prefix = PREFIX_VALUE  # Default 55AA
         self.cipher = AESCipher(self.local_key)
-        if self.version == 3.4:
+
+        if self.version == 3.5:
+            # Protocol 3.5 uses 6699 prefix and GCM encryption
+            hmac_key = self.local_key
+            prefix = PREFIX_6699_VALUE
+            if msg.cmd not in NO_PROTOCOL_HEADER_CMDS:
+                # add the 3.x header
+                payload = self.version_header + payload
+            self.debug("final payload for cmd %r (v3.5): %r", msg.cmd, payload)
+            # Encryption is handled in pack_message for 6699 format
+            # payload stays unencrypted here - pack_message will encrypt with GCM
+        elif self.version == 3.4:
             hmac_key = self.local_key
             if msg.cmd not in NO_PROTOCOL_HEADER_CMDS:
                 # add the 3.x header
@@ -1070,7 +1331,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             )
 
         self.cipher = None
-        msg = TuyaMessage(self.seqno, msg.cmd, 0, payload, 0, True)
+        msg = TuyaMessage(self.seqno, msg.cmd, 0, payload, 0, True, prefix, None)
         self.seqno += 1  # increase message sequence number
         buffer = pack_message(msg, hmac_key=hmac_key)
         # self.debug("payload encrypted with key %r => %r", self.local_key, binascii.hexlify(buffer))
