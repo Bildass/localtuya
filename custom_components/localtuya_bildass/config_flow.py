@@ -34,6 +34,7 @@ from .const import (
     CONF_ADD_DEVICE,
     CONF_ADD_NEW_ENTITY,
     CONF_DELETE_DEVICE,
+    CONF_DELETE_ENTITY,
     CONF_DEVICE_ACTION,
     CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
@@ -184,7 +185,7 @@ def options_schema(entities):
             vol.Required(
                 CONF_ENTITIES, description={"suggested_value": entity_names}
             ): cv.multi_select(entity_names),
-            vol.Required(CONF_ENABLE_ADD_ENTITIES, default=False): bool,
+            vol.Required(CONF_ENABLE_ADD_ENTITIES, default=True): bool,
         }
     )
 
@@ -750,7 +751,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     async def async_step_entity_list(self, user_input=None):
-        """Handle entity list for selecting one to edit."""
+        """Handle entity list for selecting one to edit or delete."""
         if user_input is not None:
             selected = user_input.get(CONF_SELECTED_ENTITY)
             if selected == CONF_ADD_NEW_ENTITY:
@@ -761,9 +762,10 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                 self.device_data[CONF_DEVICE_ID] = self.selected_device
                 return await self.async_step_pick_entity_type()
             else:
-                # Edit existing entity
+                # Entity selected - go to entity action menu
                 entity_id = int(selected.split(":")[0])
-                return await self.async_step_edit_single_entity(entity_id)
+                self._selected_entity_id = entity_id
+                return await self.async_step_entity_action()
 
         # Build entity list
         dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
@@ -786,20 +788,61 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             },
         )
 
-    async def async_step_edit_single_entity(self, entity_id=None, user_input=None):
+    async def async_step_entity_action(self, user_input=None):
+        """Handle entity action selection (edit or delete)."""
+        if user_input is not None:
+            action = user_input.get("entity_action")
+            if action == "edit":
+                return await self.async_step_edit_single_entity()
+            elif action == "delete":
+                return await self.async_step_delete_entity()
+
+        # Find entity info
+        dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
+        entity_info = None
+        for ent in dev_conf.get(CONF_ENTITIES, []):
+            if ent[CONF_ID] == self._selected_entity_id:
+                entity_info = ent
+                break
+
+        if entity_info is None:
+            return self.async_abort(reason="entity_not_found")
+
+        entity_actions = {
+            "edit": "✏️ Edit entity",
+            "delete": "🗑️ Delete entity",
+        }
+
+        return self.async_show_form(
+            step_id="entity_action",
+            data_schema=vol.Schema({
+                vol.Required("entity_action", default="edit"): vol.In(entity_actions),
+            }),
+            description_placeholders={
+                "entity_name": entity_info.get(CONF_FRIENDLY_NAME, "Unknown"),
+                "entity_id": str(self._selected_entity_id),
+                "platform": entity_info.get(CONF_PLATFORM, "unknown"),
+                "device_name": dev_conf.get(CONF_FRIENDLY_NAME, self.selected_device),
+            },
+        )
+
+    async def async_step_edit_single_entity(self, user_input=None):
         """Handle editing a single entity."""
         errors = {}
 
-        if user_input is not None:
+        # Use _selected_entity_id which was set in entity_action step
+        entity_id_to_edit = getattr(self, '_selected_entity_id', None)
+
+        if user_input is not None and entity_id_to_edit is not None:
             # Save the edited entity
             new_data = self._get_config_entry().data.copy()
             dev_conf = new_data[CONF_DEVICES][self.selected_device]
 
             # Find and update the entity
             for i, ent in enumerate(dev_conf[CONF_ENTITIES]):
-                if ent[CONF_ID] == self._editing_entity_id:
+                if int(ent[CONF_ID]) == int(entity_id_to_edit):
                     updated_entity = strip_dps_values(user_input, self.dps_strings)
-                    updated_entity[CONF_ID] = self._editing_entity_id
+                    updated_entity[CONF_ID] = entity_id_to_edit
                     updated_entity[CONF_PLATFORM] = ent[CONF_PLATFORM]
                     dev_conf[CONF_ENTITIES][i] = updated_entity
                     break
@@ -811,15 +854,14 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             )
             return self.async_create_entry(title="", data={})
 
-        # Store the entity ID being edited
-        if entity_id is not None:
-            self._editing_entity_id = entity_id
+        if entity_id_to_edit is None:
+            return self.async_abort(reason="entity_not_found")
 
         # Find the entity to edit
         dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
         current_entity = None
         for ent in dev_conf.get(CONF_ENTITIES, []):
-            if ent[CONF_ID] == self._editing_entity_id:
+            if int(ent[CONF_ID]) == int(entity_id_to_edit):
                 current_entity = ent
                 break
 
@@ -836,8 +878,78 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
             description_placeholders={
                 "entity_name": current_entity.get(CONF_FRIENDLY_NAME, "Unknown"),
-                "entity_id": str(self._editing_entity_id),
+                "entity_id": str(entity_id_to_edit),
                 "platform": current_entity.get(CONF_PLATFORM, "unknown"),
+            },
+        )
+
+    async def async_step_delete_entity(self, user_input=None):
+        """Handle deleting a single entity."""
+        # Use _selected_entity_id which was set in entity_action step
+        entity_id_to_delete = getattr(self, '_selected_entity_id', None)
+
+        if user_input is not None:
+            if user_input.get("confirm_delete") and entity_id_to_delete is not None:
+                # Delete the entity
+                new_data = self._get_config_entry().data.copy()
+                dev_conf = new_data[CONF_DEVICES][self.selected_device]
+
+                # Find and remove the entity from config
+                entity_to_delete = None
+                for i, ent in enumerate(dev_conf[CONF_ENTITIES]):
+                    # Compare as integers to handle both string and int IDs
+                    if int(ent[CONF_ID]) == int(entity_id_to_delete):
+                        entity_to_delete = dev_conf[CONF_ENTITIES].pop(i)
+                        break
+
+                # Remove from entity registry
+                if entity_to_delete:
+                    ent_reg = er.async_get(self.hass)
+                    entry_id = self._get_config_entry().entry_id
+                    # Find entity by exact unique_id: local_{device_id}_{dp_id}
+                    expected_unique_id = f"local_{self.selected_device}_{entity_id_to_delete}"
+                    for reg_entry in er.async_entries_for_config_entry(ent_reg, entry_id):
+                        if reg_entry.unique_id == expected_unique_id:
+                            ent_reg.async_remove(reg_entry.entity_id)
+                            _LOGGER.info(f"Removed entity {reg_entry.entity_id} from registry")
+                            break
+
+                new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
+                self.hass.config_entries.async_update_entry(
+                    self._get_config_entry(),
+                    data=new_data,
+                )
+                # Return to init (success)
+                return self.async_create_entry(title="", data={})
+            else:
+                # User cancelled - go back to entity list
+                return await self.async_step_entity_list()
+
+        # Find the entity info for confirmation dialog
+        if entity_id_to_delete is None:
+            return self.async_abort(reason="entity_not_found")
+
+        dev_conf = self._get_config_entry().data[CONF_DEVICES][self.selected_device]
+        entity_info = None
+        for ent in dev_conf.get(CONF_ENTITIES, []):
+            # Compare as integers to handle both string and int IDs
+            if int(ent[CONF_ID]) == int(entity_id_to_delete):
+                entity_info = ent
+                break
+
+        if entity_info is None:
+            return self.async_abort(reason="entity_not_found")
+
+        return self.async_show_form(
+            step_id="delete_entity",
+            data_schema=vol.Schema({
+                vol.Required("confirm_delete", default=False): bool,
+            }),
+            description_placeholders={
+                "entity_name": entity_info.get(CONF_FRIENDLY_NAME, "Unknown"),
+                "entity_id": str(entity_id_to_delete),
+                "platform": entity_info.get(CONF_PLATFORM, "unknown"),
+                "device_name": dev_conf.get(CONF_FRIENDLY_NAME, self.selected_device),
             },
         )
 
@@ -1071,7 +1183,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                     defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
                     note = "\nNOTE: a new local_key has been retrieved using cloud API"
                     placeholders = {"for_device": f" for device `{dev_id}`.{note}"}
-            defaults[CONF_ENABLE_ADD_ENTITIES] = False
+            defaults[CONF_ENABLE_ADD_ENTITIES] = True
             schema = schema_defaults(options_schema(self.entities), **defaults)
         else:
             defaults[CONF_PROTOCOL_VERSION] = "3.3"

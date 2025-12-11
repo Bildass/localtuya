@@ -3,7 +3,7 @@
 DOMAIN = "localtuya_bildass"
 
 # BildaSystem branding
-VERSION = "7.1.1"
+VERSION = "7.2.0"
 BILDASYSTEM_URL = "https://bildassystem.cz"
 BILDASYSTEM_NAME = "LocalTuya 2.0"
 
@@ -23,6 +23,7 @@ CONF_DELETE_DEVICE = "delete_device"
 # Entity editing
 CONF_SELECTED_ENTITY = "selected_entity"
 CONF_ADD_NEW_ENTITY = "add_new_entity"
+CONF_DELETE_ENTITY = "delete_entity"
 
 # Hub categories that don't have local keys
 HUB_CATEGORIES = [

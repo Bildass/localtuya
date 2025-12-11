@@ -97,11 +97,25 @@
                     "selected_entity": "Entity"
                 }
             },
+            "entity_action": {
+                "title": "Entity Action",
+                "description": "Entity: **{entity_name}** (DP {entity_id}, {platform})\nDevice: {device_name}\n\nWhat would you like to do?",
+                "data": {
+                    "entity_action": "Action"
+                }
+            },
             "edit_single_entity": {
                 "title": "Edit Entity",
                 "description": "Editing **{entity_name}** (DP {entity_id}, {platform})",
                 "data": {
                     "friendly_name": "Friendly Name"
+                }
+            },
+            "delete_entity": {
+                "title": "Delete Entity",
+                "description": "Are you sure you want to delete entity **{entity_name}** (DP {entity_id}, type: {platform}) from device **{device_name}**?\n\nThis action cannot be undone.",
+                "data": {
+                    "confirm_delete": "Yes, delete this entity"
                 }
             },
             "delete_device": {
