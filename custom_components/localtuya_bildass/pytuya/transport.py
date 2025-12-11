@@ -533,10 +533,11 @@ class TuyaProtocol(asyncio.Protocol):
         for attempt in range(max_retries):
             try:
                 # Step 1: Send local nonce
+                # Use seqno 0 for session negotiation (SESS_KEY_SEQNO is only for listener matching)
                 step1_msg = self.session_negotiator.create_step1_payload()
                 encoded = pack_message(
                     step1_msg,
-                    SESS_KEY_SEQNO,
+                    0,  # Use 0 as actual seqno, not SESS_KEY_SEQNO (-102)
                     self.version,
                     self.real_local_key,
                 )
@@ -544,7 +545,7 @@ class TuyaProtocol(asyncio.Protocol):
                 self.debug("Sending SESS_KEY_NEG_START (attempt %d/%d)", attempt + 1, max_retries)
                 self.transport.write(encoded)
 
-                # Wait for response
+                # Wait for response (SESS_KEY_SEQNO is used as listener identifier)
                 response = await self.dispatcher.wait_for(
                     SESS_KEY_SEQNO, SESS_KEY_NEG_RESP, DEFAULT_TIMEOUT
                 )
@@ -556,6 +557,10 @@ class TuyaProtocol(asyncio.Protocol):
                 if response.cmd != SESS_KEY_NEG_RESP:
                     self.debug("Unexpected response cmd: %d", response.cmd)
                     continue
+
+                # Update seqno from device response (some devices start with specific seqno)
+                if response.seqno > 0:
+                    self._seqno = response.seqno
 
                 # Step 2: Process response
                 try:
@@ -612,6 +617,89 @@ class TuyaProtocol(asyncio.Protocol):
         return False
 
     # =========================================================================
+    # Payload Decoding
+    # =========================================================================
+
+    def _decode_payload(self, payload: bytes) -> Optional[Dict[str, Any]]:
+        """
+        Decode and decrypt response payload.
+
+        Args:
+            payload: Raw payload from device
+
+        Returns:
+            Parsed JSON dictionary, or None on error
+        """
+        from .cipher import AESCipher
+        from .constants import (
+            PROTOCOL_VERSION_BYTES_31,
+            PROTOCOL_VERSION_BYTES_33,
+            PROTOCOL_VERSION_BYTES_34,
+            ERR_PAYLOAD,
+        )
+        import json
+
+        if not payload:
+            return None
+
+        cipher = AESCipher(self.local_key)
+
+        try:
+            # Protocol 3.4 encrypts the entire payload including version header
+            if self.version == 3.4:
+                try:
+                    payload = cipher.decrypt_ecb(payload)
+                    if isinstance(payload, str):
+                        payload = payload.encode('utf-8')
+                except Exception as ex:
+                    self.debug("3.4 decrypt failed: %s", ex)
+                    return None
+
+            # Check for version header and decrypt accordingly
+            if payload.startswith(PROTOCOL_VERSION_BYTES_31):
+                # Protocol 3.1: version header + 16-byte MD5 + encrypted data
+                payload = payload[len(PROTOCOL_VERSION_BYTES_31):]
+                payload = cipher.decrypt_ecb(payload[16:])
+            elif payload.startswith(PROTOCOL_VERSION_BYTES_33):
+                # Protocol 3.3: version header + encrypted data
+                payload = payload[len(PROTOCOL_VERSION_BYTES_33):]
+                if self.version != 3.4:
+                    payload = cipher.decrypt_ecb(payload)
+            elif payload.startswith(PROTOCOL_VERSION_BYTES_34):
+                # Protocol 3.4: already decrypted above, just strip header
+                payload = payload[len(PROTOCOL_VERSION_BYTES_34):]
+            elif self.version >= 3.2 and self.version != 3.4:
+                # Protocol 3.2/3.3 without explicit header
+                try:
+                    payload = cipher.decrypt_ecb(payload)
+                except Exception:
+                    pass  # May already be decrypted
+
+            # Convert bytes to string
+            if isinstance(payload, bytes):
+                try:
+                    payload = payload.decode('utf-8')
+                except UnicodeDecodeError as ex:
+                    self.debug("UTF-8 decode failed: %s", ex)
+                    return None
+
+            # Find and parse JSON
+            if not payload:
+                return None
+
+            json_start = payload.find('{')
+            if json_start == -1:
+                self.debug("No JSON found in payload: %r", payload[:50])
+                return None
+
+            json_str = payload[json_start:]
+            return json.loads(json_str)
+
+        except Exception as ex:
+            self.debug("_decode_payload failed: %s", ex)
+            return None
+
+    # =========================================================================
     # High-Level Commands
     # =========================================================================
 
@@ -629,7 +717,16 @@ class TuyaProtocol(asyncio.Protocol):
         if response is None:
             return None
 
-        return parse_status_response(response.payload)
+        # Decode and parse the response
+        result = self._decode_payload(response.payload)
+        if result is None:
+            raise Exception("Failed to retrieve status")
+
+        # Update cache
+        if "dps" in result:
+            self.dps_cache.update(result["dps"])
+
+        return result
 
     async def set_dp(self, value: Any, dp_index: Union[int, str]) -> Optional[Dict[str, Any]]:
         """
@@ -650,7 +747,10 @@ class TuyaProtocol(asyncio.Protocol):
         if response is None:
             return None
 
-        return parse_status_response(response.payload)
+        result = self._decode_payload(response.payload)
+        if result and "dps" in result:
+            self.dps_cache.update(result["dps"])
+        return result
 
     async def set_dps(self, dps: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
@@ -669,7 +769,10 @@ class TuyaProtocol(asyncio.Protocol):
         if response is None:
             return None
 
-        return parse_status_response(response.payload)
+        result = self._decode_payload(response.payload)
+        if result and "dps" in result:
+            self.dps_cache.update(result["dps"])
+        return result
 
     def add_dps_to_request(self, dp_indicies):
         """Add datapoint(s) to be included in requests."""
@@ -720,7 +823,7 @@ class TuyaProtocol(asyncio.Protocol):
                 try:
                     response = await self.exchange(msg, timeout=2.0)
                     if response:
-                        result = parse_status_response(response.payload)
+                        result = self._decode_payload(response.payload)
                         if result and "dps" in result:
                             self.dps_cache.update(result["dps"])
                 except Exception as ex:
@@ -738,12 +841,18 @@ class TuyaProtocol(asyncio.Protocol):
         detected_dps = {}
 
         # First, try to wake up the device with heartbeat
-        await self.heartbeat()
+        try:
+            await self.heartbeat()
+        except Exception:
+            pass
 
         # Query status
-        status = await self.status()
-        if status and "dps" in status:
-            detected_dps.update(status["dps"])
+        try:
+            status = await self.status()
+            if status and "dps" in status:
+                detected_dps.update(status["dps"])
+        except Exception:
+            pass
 
         # Try additional DPS ranges
         dps_ranges = [
@@ -763,7 +872,7 @@ class TuyaProtocol(asyncio.Protocol):
             try:
                 response = await self.exchange(msg, timeout=2.0)
                 if response:
-                    result = parse_status_response(response.payload)
+                    result = self._decode_payload(response.payload)
                     if result and "dps" in result:
                         detected_dps.update(result["dps"])
             except Exception:
