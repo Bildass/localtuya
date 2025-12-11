@@ -3,31 +3,28 @@
 Entirely based on tuya-convert.py from tuya-convert:
 
 https://github.com/ct-Open-Source/tuya-convert/blob/master/scripts/tuya-discovery.py
+
+Updated to support Protocol 3.5 (6699 format) devices.
+Refactored to use shared cipher module for better maintainability.
 """
 import asyncio
 import json
 import logging
-from hashlib import md5
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from .pytuya.cipher import (
+    UDP_KEY,
+    UDP_KEY_35,
+    decrypt_udp_broadcast,
+    decrypt_udp_broadcast_35,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-UDP_KEY = md5(b"yGAdlopoPVldABfn").digest()
-
 DEFAULT_TIMEOUT = 6.0
 
-
-def decrypt_udp(message):
-    """Decrypt encrypted UDP broadcasts."""
-
-    def _unpad(data):
-        return data[: -ord(data[len(data) - 1 :])]
-
-    cipher = Cipher(algorithms.AES(UDP_KEY), modes.ECB(), default_backend())
-    decryptor = cipher.decryptor()
-    return _unpad(decryptor.update(message) + decryptor.finalize()).decode()
+# Protocol prefixes
+PREFIX_55AA = b'\x00\x00\x55\xaa'
+PREFIX_6699 = b'\x00\x00\x66\x99'
 
 
 class TuyaDiscovery(asyncio.DatagramProtocol):
@@ -60,14 +57,41 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
 
     def datagram_received(self, data, addr):
         """Handle received broadcast message."""
-        data = data[20:-8]
         try:
-            data = decrypt_udp(data)
-        except Exception:  # pylint: disable=broad-except
-            data = data.decode()
+            # Check prefix to determine format
+            if data[:4] == PREFIX_6699:
+                # Protocol 3.5 format (6699)
+                # Header: prefix(4) + unknown(2) + seqno(4) + cmd(4) + length(4) = 18 bytes
+                # Suffix: 4 bytes (99 66 00 00)
+                _LOGGER.debug(
+                    "Received 6699 format broadcast from %s, data len: %d",
+                    addr, len(data)
+                )
+                payload = data[18:-4]
+                try:
+                    decoded_str = decrypt_udp_broadcast_35(payload)
+                    decoded = json.loads(decoded_str)
+                    _LOGGER.debug("Decrypted 6699 device: %s", decoded)
+                except Exception as ex:
+                    _LOGGER.debug("Failed to decrypt 6699 broadcast from %s: %s", addr, ex)
+                    return
+            else:
+                # Standard 55AA format
+                # Strip header (20 bytes) and suffix (8 bytes)
+                payload = data[20:-8]
+                try:
+                    decoded_str = decrypt_udp_broadcast(payload)
+                except Exception:
+                    # Unencrypted broadcast
+                    decoded_str = payload.decode()
+                decoded = json.loads(decoded_str)
 
-        decoded = json.loads(data)
-        self.device_found(decoded)
+            self.device_found(decoded)
+        except Exception as ex:
+            _LOGGER.debug(
+                "Failed to process broadcast from %s: %s (data: %s)",
+                addr, ex, data[:20].hex()
+            )
 
     def device_found(self, device):
         """Discover a new device."""
