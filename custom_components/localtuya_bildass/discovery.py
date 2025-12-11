@@ -1,40 +1,24 @@
 """Discovery module for Tuya devices.
 
-Entirely based on tuya-convert.py from tuya-convert:
-
+Based on tuya-convert discovery script:
 https://github.com/ct-Open-Source/tuya-convert/blob/master/scripts/tuya-discovery.py
 """
 import asyncio
 import json
 import logging
-from hashlib import md5
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from .pytuya import decrypt_udp, UDP_KEY
 
 _LOGGER = logging.getLogger(__name__)
 
-UDP_KEY = md5(b"yGAdlopoPVldABfn").digest()
-
 DEFAULT_TIMEOUT = 6.0
-
-
-def decrypt_udp(message):
-    """Decrypt encrypted UDP broadcasts."""
-
-    def _unpad(data):
-        return data[: -ord(data[len(data) - 1 :])]
-
-    cipher = Cipher(algorithms.AES(UDP_KEY), modes.ECB(), default_backend())
-    decryptor = cipher.decryptor()
-    return _unpad(decryptor.update(message) + decryptor.finalize()).decode()
 
 
 class TuyaDiscovery(asyncio.DatagramProtocol):
     """Datagram handler listening for Tuya broadcast messages."""
 
     def __init__(self, callback=None):
-        """Initialize a new BaseDiscovery."""
+        """Initialize a new TuyaDiscovery."""
         self.devices = {}
         self._listeners = []
         self._callback = callback
@@ -42,9 +26,12 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
     async def start(self):
         """Start discovery by listening to broadcasts."""
         loop = asyncio.get_running_loop()
+
+        # Port 6666: unencrypted broadcasts (older devices)
         listener = loop.create_datagram_endpoint(
             lambda: self, local_addr=("0.0.0.0", 6666), reuse_port=True
         )
+        # Port 6667: encrypted broadcasts (newer devices)
         encrypted_listener = loop.create_datagram_endpoint(
             lambda: self, local_addr=("0.0.0.0", 6667), reuse_port=True
         )
@@ -60,31 +47,54 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
 
     def datagram_received(self, data, addr):
         """Handle received broadcast message."""
+        # Strip Tuya header (20 bytes) and footer (8 bytes)
         data = data[20:-8]
+
+        # Try to decrypt (encrypted broadcasts on port 6667)
         try:
             data = decrypt_udp(data)
-        except Exception:  # pylint: disable=broad-except
-            data = data.decode()
+            if isinstance(data, bytes):
+                data = data.decode("utf-8")
+        except Exception:
+            # Unencrypted broadcast on port 6666
+            try:
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8")
+            except Exception:
+                _LOGGER.debug("Failed to decode broadcast data")
+                return
 
-        decoded = json.loads(data)
-        self.device_found(decoded)
+        # Parse JSON
+        try:
+            decoded = json.loads(data)
+            self.device_found(decoded)
+        except json.JSONDecodeError:
+            _LOGGER.debug("Failed to parse broadcast JSON: %s", data[:100])
 
     def device_found(self, device):
-        """Discover a new device."""
-        if device.get("gwId") not in self.devices:
-            self.devices[device.get("gwId")] = device
+        """Handle discovered device."""
+        device_id = device.get("gwId")
+        if device_id and device_id not in self.devices:
+            self.devices[device_id] = device
             _LOGGER.debug("Discovered device: %s", device)
 
         if self._callback:
             self._callback(device)
 
 
-async def discover():
-    """Discover and return devices on local network."""
+async def discover(timeout: float = DEFAULT_TIMEOUT):
+    """Discover and return devices on local network.
+
+    Args:
+        timeout: How long to listen for broadcasts (default 6 seconds)
+
+    Returns:
+        Dictionary of discovered devices {device_id: device_info}
+    """
     discovery = TuyaDiscovery()
     try:
         await discovery.start()
-        await asyncio.sleep(DEFAULT_TIMEOUT)
+        await asyncio.sleep(timeout)
     finally:
         discovery.close()
     return discovery.devices
