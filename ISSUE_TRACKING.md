@@ -106,38 +106,88 @@ Switch-Satna (`bfc42749075549ec91bqsx`) CHYBÍ v tomto seznamu!
 - [x] Přidán Protocol 3.5 do options_schema (chyběl)
 - [x] Když skip_connect je zapnutý, použije Manual DPS nebo default DPS 1
 
-### Co bylo opraveno (v7.0.0) - MAJOR REFAKTORING
-**Kompletní přepsání pytuya modulu podle TinyTuya reference**
+### Co bylo opraveno (v7.0.0) - KOMPLETNÍ PŘEPIS OD ZÁKLADU
+**Datum: 2025-12-11**
 
-Nová modulární architektura:
-- `pytuya/constants.py` - všechny konstanty a error codes
-- `pytuya/cipher.py` - AES-ECB a AES-GCM šifrování (explicitní metody)
-- `pytuya/message.py` - TuyaMessage, MessagePayload dataclasses
-- `pytuya/protocol.py` - pack/unpack pro 55AA a 6699 formáty
-- `pytuya/session.py` - **SessionKeyNegotiator** (KRITICKÝ FIX!)
-- `pytuya/transport.py` - refaktorovaný TuyaProtocol
+**Kompletní nový pytuya modul** - ne refaktoring, ale od základu nový kód podle TinyTuya reference.
 
-**Klíčový fix v session.py:**
-```python
-def calculate_session_key(self):
-    xor_result = bytes([a ^ b for a, b in zip(self.local_nonce, self.remote_nonce)])
-
-    if self.version >= 3.5:
-        iv = self.local_nonce[:12]  # CORRECT: Use LOCAL nonce
-        _, ciphertext, _ = cipher.encrypt_gcm(xor_result, iv, None)
-        session_key = ciphertext[:16]  # CORRECT: Only ciphertext!
-
-        if session_key[0] == 0x00:
-            raise SessionKeyInvalidError("Session key starts with 0x00")
-        return session_key
+#### Nová modulární architektura:
+```
+pytuya/
+├── __init__.py     # Public API + backward compat aliasy (269 řádků)
+├── constants.py    # Všechny konstanty, commands, payloads (240 řádků)
+├── cipher.py       # AES-ECB (v3.1-3.4) + AES-GCM (v3.5) (150 řádků)
+├── message.py      # TuyaMessage, TuyaHeader, exceptions (90 řádků)
+├── protocol.py     # pack/unpack pro 55AA i 6699 (380 řádků)
+└── device.py       # TuyaProtocol, TuyaListener, connect() (750 řádků)
 ```
 
-Opravené problémy:
-- [x] Session key se počítal špatně (používal celý GCM output včetně IV/tag)
-- [x] Přidána validace session key (nesmí začínat 0x00 - TinyTuya requirement)
-- [x] HMAC verification s proper error handling
-- [x] Discovery.py zjednodušen - používá cipher modul
-- [x] Backward compatible API v pytuya/__init__.py
+#### Podpora protokolů:
+| Verze | Prefix | Šifrování | Checksum | Session Key |
+|-------|--------|-----------|----------|-------------|
+| 3.1 | 55AA | ECB | CRC32 | Ne |
+| 3.2/3.3 | 55AA | ECB | CRC32 | Ne |
+| 3.4 | 55AA | ECB | HMAC-SHA256 | Ano |
+| 3.5 | 6699 | GCM | GCM Tag | Ano |
+
+#### Klíčové implementace:
+
+**Session Key Negotiation (device.py:525-585):**
+```python
+async def _negotiate_session_key(self):
+    # Step 1: Send local_nonce
+    response = await self._exchange_quick(CMD_SESS_KEY_NEG_START, self.local_nonce)
+
+    # Step 2: Receive remote_nonce + HMAC(local_nonce)
+    self.remote_nonce = payload[:16]
+
+    # Calculate session key
+    xor_result = bytes(a ^ b for a, b in zip(self.local_nonce, self.remote_nonce))
+
+    if self.protocol_version >= 3.5:
+        # Protocol 3.5: AES-GCM encrypt, take ciphertext only
+        iv = self.local_nonce[:12]
+        gcm_cipher = Cipher(algorithms.AES(self.device_key), modes.GCM(iv))
+        encryptor = gcm_cipher.encryptor()
+        encrypted = encryptor.update(xor_result) + encryptor.finalize()
+        session_key = encrypted[:16]  # ONLY ciphertext, no IV/tag!
+    else:
+        # Protocol 3.4: AES-ECB encrypt
+        session_key = cipher.encrypt_ecb(xor_result, pad=False)[:16]
+
+    # Step 3: Send HMAC(remote_nonce)
+    await self._exchange_quick(CMD_SESS_KEY_NEG_FINISH, hmac_remote)
+```
+
+**6699 Message Format (protocol.py:150-200):**
+```python
+# Structure: [header 18B][nonce 12B][encrypted_payload][tag 16B][suffix 4B]
+# Header: prefix(4) + version(1) + reserved(1) + seqno(4) + cmd(4) + length(4)
+# AAD = header bytes 4-18 (version through length)
+# GCM encrypts payload, authenticates AAD
+```
+
+#### Lokální testy (všechny prošly):
+- [x] Import všech modulů
+- [x] TuyaProtocol má všechny metody (add_dps_to_request, status, set_dp, etc.)
+- [x] TuyaListener interface kompletní
+- [x] ContextualLogger pro common.py
+- [x] AES-ECB encrypt/decrypt
+- [x] AES-GCM encrypt/decrypt s AAD
+- [x] 55AA message pack/unpack (v3.1, 3.3, 3.4)
+- [x] 6699 message pack/unpack (v3.5)
+- [x] Session key calculation algoritmus
+- [x] Backward compat aliasy (PREFIX_VALUE, CONTROL, etc.)
+
+#### GitHub Release:
+- Tag: v7.0.0
+- URL: https://github.com/Bildass/localtuya/releases/tag/v7.0.0
+- HACS: Ready for update
+
+#### Čeká na test:
+- [ ] Test s reálným zařízením Protocol 3.3
+- [ ] Test s Switch-Satna (Protocol 3.5)
+- [ ] Ověření session key negotiation s reálným zařízením
 
 ### Reference
 - xZetsubou fork: https://github.com/xZetsubou/hass-localtuya

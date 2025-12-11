@@ -887,7 +887,13 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     async def async_step_sync_from_cloud(self, user_input=None):
-        """Handle syncing local keys from cloud."""
+        """Handle syncing local keys from cloud with smart verification.
+
+        This function now verifies keys before syncing:
+        - If current key works, it WON'T be overwritten (even if cloud has different key)
+        - Only updates keys where current key is broken AND cloud key works
+        - Shows detailed status for each device
+        """
         errors = {}
 
         cloud_api = self.hass.data[DOMAIN][DATA_CLOUD]
@@ -901,13 +907,16 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             if user_input.get("apply_changes"):
-                # Apply the synced keys
+                # Apply only verified changes (recommendation == "update")
                 new_data = self._get_config_entry().data.copy()
-                sync_result = await cloud_api.async_sync_local_keys(new_data[CONF_DEVICES])
+                sync_result = await cloud_api.async_sync_local_keys(
+                    new_data[CONF_DEVICES], verify_keys=True
+                )
 
                 updated_count = 0
                 for dev_id, info in sync_result.items():
-                    if info["changed"] and info["found"]:
+                    # Only update if recommendation is "update" (verified that new key works)
+                    if info.get("recommendation") == "update" and info["found"]:
                         new_data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY] = info["new_key"]
                         updated_count += 1
 
@@ -922,39 +931,59 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             else:
                 return await self.async_step_init()
 
-        # Get sync preview
+        # Get sync preview with key verification
         configured_devices = self._get_config_entry().data.get(CONF_DEVICES, {})
-        sync_result = await cloud_api.async_sync_local_keys(configured_devices)
+        sync_result = await cloud_api.async_sync_local_keys(
+            configured_devices, verify_keys=True
+        )
 
-        # Count changes
+        # Count by recommendation
         total_devices = len(sync_result)
-        changed_count = sum(1 for info in sync_result.values() if info["changed"])
+        update_count = sum(1 for info in sync_result.values() if info.get("recommendation") == "update")
+        keep_count = sum(1 for info in sync_result.values() if info.get("recommendation") == "keep")
+        manual_count = sum(1 for info in sync_result.values() if info.get("recommendation") == "manual")
         not_found = sum(1 for info in sync_result.values() if not info["found"])
 
-        # Build description of changes
+        # Build detailed description
         changes_list = []
         for dev_id, info in sync_result.items():
-            status = "✅" if info["found"] else "❌"
-            if info["changed"]:
-                changes_list.append(f"{status} **{info['name']}** - new key detected")
-            elif info["found"]:
-                changes_list.append(f"{status} {info['name']} - unchanged")
-            else:
-                changes_list.append(f"{status} {info['name']} - not found in cloud")
+            recommendation = info.get("recommendation", "keep")
+            old_works = info.get("old_key_works")
+            new_works = info.get("new_key_works")
 
-        changes_text = "\n".join(changes_list[:10])  # Limit to 10 items
-        if len(changes_list) > 10:
-            changes_text += f"\n... and {len(changes_list) - 10} more"
+            if recommendation == "update":
+                # Current broken, cloud works - will update
+                changes_list.append(f"🔄 **{info['name']}** - will UPDATE (current key broken, cloud key works)")
+            elif recommendation == "manual":
+                # Both broken - needs manual fix
+                changes_list.append(f"⚠️ **{info['name']}** - NEEDS MANUAL FIX (both keys broken)")
+            elif recommendation == "keep":
+                if not info["found"]:
+                    changes_list.append(f"❌ {info['name']} - not found in cloud")
+                elif old_works is True:
+                    changes_list.append(f"✅ {info['name']} - current key works, keeping")
+                elif info["old_key"] == info["new_key"]:
+                    changes_list.append(f"✅ {info['name']} - keys match")
+                else:
+                    changes_list.append(f"✅ {info['name']} - unchanged")
+
+        changes_text = "\n".join(changes_list[:15])  # Show more items
+        if len(changes_list) > 15:
+            changes_text += f"\n... and {len(changes_list) - 15} more"
+
+        # Add summary
+        summary = f"\n\n**Summary:** {update_count} to update, {keep_count} working, {manual_count} need manual fix, {not_found} not in cloud"
+        changes_text += summary
 
         return self.async_show_form(
             step_id="sync_from_cloud",
             data_schema=vol.Schema({
-                vol.Required("apply_changes", default=changed_count > 0): bool,
+                vol.Required("apply_changes", default=update_count > 0): bool,
             }),
             errors=errors,
             description_placeholders={
                 "total_devices": str(total_devices),
-                "changed_count": str(changed_count),
+                "changed_count": str(update_count),
                 "not_found": str(not_found),
                 "changes_list": changes_text,
             },

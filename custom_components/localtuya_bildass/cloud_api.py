@@ -2,6 +2,7 @@
 
 BildaSystem fork - ported from domácnost project.
 """
+import asyncio
 import hashlib
 import hmac
 import logging
@@ -10,6 +11,8 @@ import uuid
 from typing import Any
 
 import aiohttp
+
+from . import pytuya
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -293,10 +296,57 @@ class TuyaCloudApi:
 
         return data.get("result", {})
 
-    async def async_sync_local_keys(self, configured_devices: dict) -> dict:
-        """Sync local keys for all configured devices.
+    async def _test_device_key(
+        self,
+        host: str,
+        device_id: str,
+        local_key: str,
+        protocol_version: float,
+        timeout: float = 5.0
+    ) -> bool:
+        """Test if a local_key works for connecting to device.
 
-        Returns dict with device_id -> {old_key, new_key, changed} for each device.
+        Args:
+            host: Device IP address
+            device_id: Device ID
+            local_key: Local key to test
+            protocol_version: Protocol version (3.1, 3.3, 3.4, 3.5)
+            timeout: Connection timeout
+
+        Returns:
+            True if connection successful, False otherwise
+        """
+        if not host or not local_key:
+            return False
+
+        try:
+            protocol = await pytuya.connect(
+                address=host,
+                device_id=device_id,
+                local_key=local_key,
+                protocol_version=protocol_version,
+                timeout=timeout
+            )
+            # Connection successful, close it
+            protocol.close()
+            await asyncio.sleep(0.1)  # Give time to close cleanly
+            return True
+        except Exception as e:
+            _LOGGER.debug("Key test failed for %s: %s", device_id, e)
+            return False
+
+    async def async_sync_local_keys(self, configured_devices: dict, verify_keys: bool = True) -> dict:
+        """Sync local keys for all configured devices with optional verification.
+
+        IMPORTANT: If verify_keys is True (default), this function will:
+        1. Test if the current (old) key works
+        2. Only suggest changing to new key if old key doesn't work AND new key works
+        3. This prevents overwriting working keys with stale cloud data
+
+        Returns dict with device_id -> {
+            name, old_key, new_key, changed, found,
+            old_key_works, new_key_works, recommendation
+        }
         """
         result = {}
 
@@ -308,25 +358,83 @@ class TuyaCloudApi:
 
         for device_id, device_config in configured_devices.items():
             old_key = device_config.get("local_key", "")
+            host = device_config.get("host", "")
+            protocol_version = device_config.get("protocol_version", 3.3)
             cloud_device = self.device_list.get(device_id)
 
+            device_name = device_config.get("name", "Unknown")
             if cloud_device:
+                device_name = cloud_device.get("name", device_name)
                 new_key = cloud_device.get("local_key", "")
-                result[device_id] = {
-                    "name": cloud_device.get("name", device_config.get("name", "Unknown")),
-                    "old_key": old_key,
-                    "new_key": new_key,
-                    "changed": old_key != new_key and new_key != "",
-                    "found": True,
-                }
             else:
-                result[device_id] = {
-                    "name": device_config.get("name", "Unknown"),
-                    "old_key": old_key,
-                    "new_key": "",
-                    "changed": False,
-                    "found": False,
-                }
+                new_key = ""
+
+            # Default result
+            device_result = {
+                "name": device_name,
+                "old_key": old_key,
+                "new_key": new_key,
+                "changed": False,
+                "found": cloud_device is not None,
+                "old_key_works": None,
+                "new_key_works": None,
+                "recommendation": "keep",  # keep, update, or manual
+            }
+
+            # If keys are the same, no change needed
+            if old_key == new_key or not new_key:
+                device_result["recommendation"] = "keep"
+                result[device_id] = device_result
+                continue
+
+            # Keys differ - verify if requested
+            if verify_keys and host:
+                _LOGGER.info("Testing keys for %s (%s)...", device_name, device_id[:8])
+
+                # Test old key first
+                old_works = await self._test_device_key(
+                    host, device_id, old_key, protocol_version
+                )
+                device_result["old_key_works"] = old_works
+
+                if old_works:
+                    # Old key works - DON'T change it!
+                    _LOGGER.info(
+                        "Device %s: current key WORKS, keeping it (cloud has different key)",
+                        device_name
+                    )
+                    device_result["recommendation"] = "keep"
+                    device_result["changed"] = False
+                else:
+                    # Old key doesn't work - test new key
+                    new_works = await self._test_device_key(
+                        host, device_id, new_key, protocol_version
+                    )
+                    device_result["new_key_works"] = new_works
+
+                    if new_works:
+                        # New key works, old doesn't - recommend update
+                        _LOGGER.info(
+                            "Device %s: current key BROKEN, cloud key WORKS - recommending update",
+                            device_name
+                        )
+                        device_result["recommendation"] = "update"
+                        device_result["changed"] = True
+                    else:
+                        # Neither key works - manual intervention needed
+                        _LOGGER.warning(
+                            "Device %s: BOTH keys broken - manual re-pairing needed",
+                            device_name
+                        )
+                        device_result["recommendation"] = "manual"
+                        device_result["changed"] = False
+            else:
+                # No verification - use old behavior (mark as changed if different)
+                device_result["changed"] = old_key != new_key and new_key != ""
+                if device_result["changed"]:
+                    device_result["recommendation"] = "update"
+
+            result[device_id] = device_result
 
         return result
 
