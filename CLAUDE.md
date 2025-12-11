@@ -27,11 +27,14 @@ y = PATCH - opravy, bugfixy
 
 ### Git workflow (VŽDY dodržovat!):
 
-1. `git add -A`
-2. `git commit -m "vX.Y.Z: Popis změny"`
-3. `git push origin master`
-4. `git tag -a vX.Y.Z -m "vX.Y.Z: Popis"`
-5. `git push origin vX.Y.Z`
+1. **Aktualizovat verzi ve DVOU souborech:**
+   - `const.py` → `VERSION = "X.Y.Z"`
+   - `manifest.json` → `"version": "X.Y.Z"` (HACS čte tuto!)
+2. `git add -A`
+3. `git commit -m "vX.Y.Z: Popis změny"`
+4. `git push origin master`
+5. `git tag -a vX.Y.Z -m "vX.Y.Z: Popis"`
+6. `git push origin vX.Y.Z`
 
 **NIKDY nekopírovat soubory ručně! Vždy přes git tag/release.**
 
