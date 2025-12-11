@@ -34,6 +34,7 @@ from .constants import (
     SessionKeyError,
     SessionKeyInvalidError,
     STATUS,
+    UPDATE_DPS_WHITELIST,
     UPDATEDPS,
 )
 from .message import (
@@ -302,6 +303,10 @@ class TuyaProtocol(asyncio.Protocol):
 
         # Device type (some devices need different commands)
         self.dev_type = "type_0a"
+
+        # DPS tracking
+        self.dps_to_request: Dict[str, Any] = {}
+        self.dps_cache: Dict[str, Any] = {}
 
     def debug(self, msg: str, *args):
         """Log debug message with device ID prefix."""
@@ -646,6 +651,80 @@ class TuyaProtocol(asyncio.Protocol):
             return None
 
         return parse_status_response(response.payload)
+
+    async def set_dps(self, dps: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Set multiple datapoint values at once.
+
+        Args:
+            dps: Dictionary mapping dp_index to value
+
+        Returns:
+            Updated status, or None on error
+        """
+        from .message import create_control_payload
+        msg = create_control_payload(self.dev_id, dps, self.version)
+        response = await self.exchange(msg)
+
+        if response is None:
+            return None
+
+        return parse_status_response(response.payload)
+
+    def add_dps_to_request(self, dp_indicies):
+        """Add datapoint(s) to be included in requests."""
+        if isinstance(dp_indicies, int):
+            self.dps_to_request[str(dp_indicies)] = None
+        elif isinstance(dp_indicies, dict):
+            self.dps_to_request.update({str(k): v for k, v in dp_indicies.items()})
+        else:
+            self.dps_to_request.update({str(index): None for index in dp_indicies})
+
+    async def reset(self, dpIds=None):
+        """Send a reset message (3.3 only)."""
+        if self.version == 3.3:
+            self.dev_type = "type_0a"
+            self.debug("reset switching to dev_type %s", self.dev_type)
+            msg = MessagePayload(
+                cmd=UPDATEDPS,
+                payload=f'{{"dpId":{dpIds}}}'.encode('utf-8') if dpIds else b'{}'
+            )
+            response = await self.exchange(msg)
+            return response is not None
+        return True
+
+    async def update_dps(self, dps=None):
+        """
+        Request device to update index.
+
+        Args:
+            dps: List of dps to update, default=detected&whitelisted
+        """
+        if self.version in [3.2, 3.3, 3.4, 3.5]:
+            if dps is None:
+                if not self.dps_cache:
+                    detected = await self.detect_available_dps()
+                    self.dps_cache.update(detected)
+                if self.dps_cache:
+                    dps = [int(dp) for dp in self.dps_cache]
+                    # Filter to whitelist
+                    dps = list(set(dps).intersection(set(UPDATE_DPS_WHITELIST)))
+
+            self.debug("update_dps() entry (dps %s, dps_cache %s)", dps, self.dps_cache)
+
+            if dps:
+                msg = MessagePayload(
+                    cmd=UPDATEDPS,
+                    payload=f'{{"dpId":{dps}}}'.encode('utf-8')
+                )
+                try:
+                    response = await self.exchange(msg, timeout=2.0)
+                    if response:
+                        result = parse_status_response(response.payload)
+                        if result and "dps" in result:
+                            self.dps_cache.update(result["dps"])
+                except Exception as ex:
+                    self.debug("update_dps failed: %s", ex)
 
     async def detect_available_dps(self) -> Dict[str, Any]:
         """
