@@ -35,6 +35,10 @@ y = PATCH - opravy, bugfixy
 4. `git push origin master`
 5. `git tag -a vX.Y.Z -m "vX.Y.Z: Popis"`
 6. `git push origin vX.Y.Z`
+7. **Vytvořit GitHub Release (HACS to vyžaduje!):**
+   ```bash
+   gh release create vX.Y.Z --title "vX.Y.Z: Popis" --notes "Changelog..."
+   ```
 
 **NIKDY nekopírovat soubory ručně! Vždy přes git tag/release.**
 
