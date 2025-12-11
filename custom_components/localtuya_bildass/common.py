@@ -214,7 +214,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                         raise Exception("Failed to retrieve status")
 
                     self._interface.start_heartbeat()
-                    self.status_updated(status)
+                    self.status_updated(status.get("dps", status) if status else {})
 
                 except Exception as ex:
                     if (self._default_reset_dpids is not None) and (
@@ -233,7 +233,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                             raise Exception("Failed to retrieve status") from ex
 
                         self._interface.start_heartbeat()
-                        self.status_updated(status)
+                        self.status_updated(status.get("dps", status) if status else {})
                     else:
                         self.error("Initial state update failed, giving up: %r", ex)
                         if self._interface is not None:
@@ -306,9 +306,15 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         self._is_closing = True
         if self._connect_task is not None:
             self._connect_task.cancel()
-            await self._connect_task
+            try:
+                await asyncio.wait_for(asyncio.shield(self._connect_task), timeout=5.0)
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                pass
         if self._interface is not None:
-            await self._interface.close()
+            try:
+                await asyncio.wait_for(self._interface.close(), timeout=5.0)
+            except asyncio.TimeoutError:
+                self.warning("Timeout closing interface, forcing close")
         if self._disconnect_task is not None:
             self._disconnect_task()
         self.info(

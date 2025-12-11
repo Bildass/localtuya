@@ -297,6 +297,17 @@ class MessageDispatcher:
                 sem.release()
             return
 
+        # Fallback for protocol 3.4: device may use its own seqno counter
+        # Try seqno+1 for DP_QUERY_NEW responses (cmd=16)
+        if msg.cmd == CMD_DP_QUERY_NEW and (msg.seqno + 1) in self.listeners:
+            alt_seqno = msg.seqno + 1
+            self.debug("Seqno mismatch for cmd=16, using fallback seqno %d -> %d", msg.seqno, alt_seqno)
+            sem = self.listeners[alt_seqno]
+            if isinstance(sem, asyncio.Semaphore):
+                self.listeners[alt_seqno] = msg
+                sem.release()
+            return
+
         # Handle special message types
         if msg.cmd == CMD_HEART_BEAT:
             self._dispatch_special(self.HEARTBEAT_SEQNO, msg)
@@ -409,6 +420,8 @@ class TuyaProtocol(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport) -> None:
         """Called when connection is established."""
         self.transport = transport
+        print(f"*** CONNECTION_MADE for {self.device_id} ***")
+        self._logger.info("TCP connection established to device")
         self.debug("Connection established")
         self.on_connected.set_result(True)
 
@@ -418,6 +431,7 @@ class TuyaProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
         """Called when connection is lost."""
+        self._logger.info("TCP connection lost: %s", exc)
         self.debug("Connection lost: %s", exc)
         self.session_key = None
         self.dispatcher.session_key = None
@@ -604,8 +618,9 @@ class TuyaProtocol(asyncio.Protocol):
             self.debug("Negotiating session key for v%.1f", self.protocol_version)
             success = await self._negotiate_session_key()
             if not success:
-                self._logger.error("Session key negotiation failed")
-                return None
+                self._logger.warning("Session key negotiation failed, trying without session key")
+                # Pokračovat bez session key - některá zařízení to nepodporují
+                pass
 
         self.debug("Sending command %d (device_type=%s)", command, self.device_type)
 
@@ -771,7 +786,11 @@ class TuyaProtocol(asyncio.Protocol):
 
         # Step 3: Send HMAC of remote nonce
         response_hmac = hmac.new(self.device_key, self.remote_nonce, sha256).digest()
-        await self._exchange_quick(CMD_SESS_KEY_NEG_FINISH, response_hmac)
+        # Odeslat CMD_SESS_KEY_NEG_FINISH bez čekání na odpověď
+        data = pack_message(seqno=self.seqno, cmd=CMD_SESS_KEY_NEG_FINISH, payload=response_hmac, key=self.device_key, protocol_version=self.protocol_version, encrypt=True)
+        self.transport.write(data)
+        self.seqno += 1
+        self.debug("Sent SESS_KEY_NEG_FINISH, not waiting for response")
 
         # Store session key
         self.session_key = session_key
