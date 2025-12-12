@@ -447,7 +447,12 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
             states[self._config.get(CONF_COLOR_MODE)] = MODE_WHITE
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
-        await self._device.set_dps(states)
+        # Use set_dp for single DP (more reliable for some devices)
+        if len(states) == 1:
+            dp_id, value = next(iter(states.items()))
+            await self._device.set_dp(value, dp_id)
+        else:
+            await self._device.set_dps(states)
 
     async def async_turn_off(self, **kwargs):
         """Turn Tuya light off."""
@@ -466,20 +471,23 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
             self._brightness = self.dps_conf(CONF_BRIGHTNESS)
 
         if ColorMode.HS in self.supported_color_modes:
-            color = self.dps_conf(CONF_COLOR)
-            if color is not None and not self.is_white_mode:
-                if self.__is_color_rgb_encoded():
-                    hue = int(color[6:10], 16)
-                    sat = int(color[10:12], 16)
-                    value = int(color[12:14], 16)
-                    self._hs = [hue, (sat * 100 / 255)]
-                    self._brightness = value
-                else:
-                    hue, sat, value = [
-                        int(value, 16) for value in textwrap.wrap(color, 4)
-                    ]
-                    self._hs = [hue, sat / 10.0]
-                    self._brightness = value
+            try:
+                color = self.dps_conf(CONF_COLOR)
+                if color is not None and not self.is_white_mode:
+                    if self.__is_color_rgb_encoded():
+                        hue = int(color[6:10], 16)
+                        sat = int(color[10:12], 16)
+                        value = int(color[12:14], 16)
+                        self._hs = [hue, (sat * 100 / 255)]
+                        self._brightness = value
+                    elif len(color) == 12:  # Standard HSV format only
+                        hue, sat, value = [
+                            int(value, 16) for value in textwrap.wrap(color, 4)
+                        ]
+                        self._hs = [hue, sat / 10.0]
+                        self._brightness = value
+            except (ValueError, IndexError):
+                pass  # Ignore color parsing errors for non-standard formats
 
         if ColorMode.COLOR_TEMP in self.supported_color_modes:
             self._color_temp = self.dps_conf(CONF_COLOR_TEMP)
