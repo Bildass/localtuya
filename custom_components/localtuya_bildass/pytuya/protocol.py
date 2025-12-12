@@ -404,8 +404,12 @@ def _unpack_message_6699(
                 payload = cipher.decrypt_gcm_noauth(ciphertext, nonce)
                 crc_good = False  # No authentication
             except Exception as e3:
-                _LOGGER.warning("All decrypt methods failed: %s", e3)
-                payload = ciphertext
+                _LOGGER.warning(
+                    "Protocol 3.5 decrypt failed (all methods). cmd=%d, ciphertext_len=%d: %s",
+                    header.cmd, len(ciphertext), e3
+                )
+                # Return empty payload instead of encrypted garbage to avoid JSON parse errors
+                payload = b""
                 crc_good = False
 
     # Extract retcode from payload if present (not for session key commands)

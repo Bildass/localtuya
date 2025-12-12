@@ -647,8 +647,18 @@ class TuyaProtocol(asyncio.Protocol):
         if msg is None:
             return None
 
-        # ACK responses have empty payload
-        if payload.cmd in (CMD_HEART_BEAT, CMD_CONTROL, CMD_CONTROL_NEW) and len(msg.payload) == 0:
+        # Heartbeat responses: treat retcode=0 as success, don't parse payload as JSON
+        # Protocol 3.5 devices may return non-empty encrypted payload that fails JSON decode
+        if payload.cmd == CMD_HEART_BEAT:
+            if msg.retcode == 0 or len(msg.payload) == 0:
+                self.debug("Heartbeat ACK received (retcode=%d, payload_len=%d)", msg.retcode, len(msg.payload))
+                return None
+            else:
+                self.debug("Heartbeat failed with retcode=%d", msg.retcode)
+                return None  # Don't try to parse heartbeat errors as JSON either
+
+        # Other ACK responses (CONTROL, CONTROL_NEW) with empty payload
+        if payload.cmd in (CMD_CONTROL, CMD_CONTROL_NEW) and len(msg.payload) == 0:
             self.debug("ACK received for cmd %d", payload.cmd)
             return None
 
@@ -907,13 +917,15 @@ class TuyaProtocol(asyncio.Protocol):
             self.debug("Detected type_0d device")
             return None
 
-        # Parse JSON
+        # Parse JSON with defensive error handling
         self.debug("Decoded payload: %s", payload)
         try:
             json_payload = json.loads(payload)
         except json.JSONDecodeError as e:
-            self.debug("Failed to parse JSON: %s", e)
-            raise DecodeError(f"Invalid JSON: {e}")
+            # Log more details for debugging, return error structure instead of raising
+            payload_preview = payload[:100] if len(payload) > 100 else payload
+            self.debug("Failed to parse JSON: %s (payload=%r)", e, payload_preview)
+            return {"error": "JSON_DECODE_ERROR", "message": str(e), "raw": payload_preview}
 
         # Handle nested dps structure (v3.4+)
         if "dps" not in json_payload and "data" in json_payload:
