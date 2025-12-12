@@ -308,8 +308,8 @@ class MessageDispatcher:
             return
 
         # Fallback for protocol 3.4+: device may respond with seqno=0 or different seqno
-        # Try to find any waiting listener for this command type
-        if msg.cmd in (CMD_DP_QUERY_NEW, CMD_CONTROL_NEW):
+        # Also handle CMD_STATUS responses that might be control ACKs
+        if msg.cmd in (CMD_DP_QUERY_NEW, CMD_CONTROL_NEW, CMD_STATUS):
             # First try seqno+1 fallback
             if (msg.seqno + 1) in self.listeners:
                 alt_seqno = msg.seqno + 1
@@ -319,16 +319,18 @@ class MessageDispatcher:
                     self.listeners[alt_seqno] = msg
                     sem.release()
                 return
-            # For seqno=0 responses, try to find first available listener
-            if msg.seqno == 0 and self.listeners:
+            # For seqno=0 responses or near-match seqnos, try to find first available listener
+            if self.listeners:
                 for listener_seqno in list(self.listeners.keys()):
                     if listener_seqno >= 0:  # Skip special negative seqnos
-                        self.debug("Seqno=0 response for cmd=%d, routing to listener seqno=%d", msg.cmd, listener_seqno)
-                        sem = self.listeners[listener_seqno]
-                        if isinstance(sem, asyncio.Semaphore):
-                            self.listeners[listener_seqno] = msg
-                            sem.release()
-                        return
+                        # Accept if seqno matches, is 0, or is close (within 2)
+                        if msg.seqno == 0 or abs(msg.seqno - listener_seqno) <= 2:
+                            self.debug("Routing cmd=%d seqno=%d to listener seqno=%d", msg.cmd, msg.seqno, listener_seqno)
+                            sem = self.listeners[listener_seqno]
+                            if isinstance(sem, asyncio.Semaphore):
+                                self.listeners[listener_seqno] = msg
+                                sem.release()
+                            return
 
         # Handle special message types
         if msg.cmd == CMD_HEART_BEAT:
