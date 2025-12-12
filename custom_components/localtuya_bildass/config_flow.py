@@ -63,6 +63,7 @@ from .const import (
     VERSION,
 )
 from .discovery import discover
+from . import device_library
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,6 +74,8 @@ NO_ADDITIONAL_ENTITIES = "no_additional_entities"
 SELECTED_DEVICE = "selected_device"
 
 CUSTOM_DEVICE = "..."
+USE_LIBRARY_TEMPLATE = "use_library_template"
+CONF_USE_TEMPLATE = "use_template"
 
 CONF_ACTIONS = {
     CONF_ADD_DEVICE: "Add a new device",
@@ -1155,7 +1158,7 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                         return await self.async_step_configure_entity()
 
                 self.dps_strings = await validate_input(self.hass, user_input)
-                return await self.async_step_pick_entity_type()
+                return await self.async_step_check_library_template()
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
@@ -1219,6 +1222,77 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             errors=errors,
             description_placeholders=placeholders,
         )
+
+
+    async def async_step_check_library_template(self, user_input=None):
+        """Check if device has a template in library and offer to use it."""
+        dev_id = self.selected_device
+
+        # Try to get product_key from cloud data
+        product_key = None
+        try:
+            cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
+            if dev_id in cloud_devs:
+                product_key = cloud_devs[dev_id].get("productKey")
+        except Exception:
+            pass
+
+        # Check if we have a template for this product_key
+        template = None
+        if product_key:
+            template = device_library.get_device_config(product_key)
+
+        if template and user_input is None:
+            # We have a template - ask user if they want to use it
+            return self.async_show_form(
+                step_id="check_library_template",
+                data_schema=vol.Schema({
+                    vol.Required(CONF_USE_TEMPLATE, default=True): bool,
+                }),
+                description_placeholders={
+                    "device_name": template.get("name", "Unknown"),
+                    "manufacturer": template.get("manufacturer", "Unknown"),
+                    "entity_count": str(len(template.get("entities", []))),
+                },
+            )
+
+        if user_input is not None and user_input.get(CONF_USE_TEMPLATE) and product_key:
+            # User wants to use template - apply it
+            template = device_library.get_device_config(product_key)
+            if template:
+                self.entities = []
+                for entity_def in template.get("entities", []):
+                    entity = {
+                        CONF_ID: entity_def["id"],
+                        CONF_FRIENDLY_NAME: entity_def["friendly_name"],
+                        CONF_PLATFORM: entity_def["platform"],
+                    }
+                    # Copy all other fields from template
+                    for key, value in entity_def.items():
+                        if key not in ["id", "friendly_name", "platform"]:
+                            entity[key] = value
+                    self.entities.append(entity)
+
+                # Create device entry with template entities
+                config = {
+                    **self.device_data,
+                    CONF_DEVICE_ID: dev_id,
+                    CONF_DPS_STRINGS: self.dps_strings,
+                    CONF_ENTITIES: self.entities,
+                }
+
+                new_data = self._get_config_entry().data.copy()
+                new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
+                new_data[CONF_DEVICES].update({dev_id: config})
+
+                self.hass.config_entries.async_update_entry(
+                    self._get_config_entry(),
+                    data=new_data,
+                )
+                return self.async_create_entry(title="", data={})
+
+        # No template or user declined - continue with manual config
+        return await self.async_step_pick_entity_type()
 
     async def async_step_pick_entity_type(self, user_input=None):
         """Handle asking if user wants to add another entity."""

@@ -1,0 +1,29 @@
+{
+  "product_key": "keypaujpukpnpy8s",
+  "name": "Smart Star Projector",
+  "manufacturer": "Tuya Generic",
+  "model": "Star Projector",
+  "protocol_version": "3.3",
+  "category": "light",
+  "entities": [
+    {
+      "platform": "light",
+      "id": 20,
+      "friendly_name": "Projector",
+      "brightness": 22,
+      "brightness_lower": 10,
+      "brightness_upper": 1000,
+      "color": 24,
+      "color_mode": 21,
+      "color_temp_min_kelvin": 2700,
+      "color_temp_max_kelvin": 6500,
+      "scene": 25
+    },
+    {"platform": "switch", "id": 102, "friendly_name": "Laser", "restore_on_reconnect": false},
+    {"platform": "switch", "id": 103, "friendly_name": "RGB", "restore_on_reconnect": false},
+    {"platform": "number", "id": 22, "friendly_name": "Laser Brightness", "min_value": 300, "max_value": 1000, "step_size": 50},
+    {"platform": "number", "id": 101, "friendly_name": "Rotation Speed", "min_value": 0, "max_value": 1000, "step_size": 50}
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": true
+}

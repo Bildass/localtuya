@@ -1,0 +1,23 @@
+{
+  "product_key": "xmn86dg364jogqec",
+  "name": "Roller Blind M313EIRWT",
+  "manufacturer": "Tuya Generic",
+  "model": "M313EIRWT",
+  "protocol_version": "3.3",
+  "category": "cover",
+  "entities": [
+    {
+      "platform": "cover",
+      "id": 5,
+      "friendly_name": "Roller Blind",
+      "commands_set": "open_close_stop",
+      "positioning_mode": "position",
+      "current_position_dp": 2,
+      "set_position_dp": 2,
+      "position_inverted": false,
+      "span_time": 25.0
+    }
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": true
+}

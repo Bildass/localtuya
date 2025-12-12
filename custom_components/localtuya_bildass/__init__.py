@@ -42,6 +42,7 @@ from .const import (
     TUYA_DEVICES,
 )
 from .discovery import TuyaDiscovery
+from . import device_library
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,6 +63,12 @@ SERVICE_SET_DP_SCHEMA = vol.Schema(
         vol.Required(CONF_VALUE): object,
     }
 )
+
+# Device Library Services
+SERVICE_GET_LIBRARY = "get_library_devices"
+SERVICE_GET_TEMPLATE = "get_device_template"
+SERVICE_RELOAD_LIBRARY = "reload_library"
+CONF_PRODUCT_KEY_SVC = "product_key"
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -95,6 +102,34 @@ async def async_setup(hass: HomeAssistant, config: dict):
             raise HomeAssistantError("not connected to device")
 
         await device.set_dp(event.data[CONF_VALUE], event.data[CONF_DP])
+
+    async def _handle_get_library(call):
+        """Return all devices in the library."""
+        stats = device_library.get_library_stats()
+        devices = device_library.get_all_devices()
+        _LOGGER.info("Device library: %d devices from %s", stats["total_devices"], stats["manufacturers"])
+        return {"devices": devices, "stats": stats}
+
+    async def _handle_get_template(call):
+        """Get device template by product_key."""
+        product_key = call.data.get("product_key")
+        if not product_key:
+            raise HomeAssistantError("product_key is required")
+
+        config = device_library.get_device_config(product_key)
+        if config:
+            _LOGGER.info("Found template for %s: %s", product_key, config.get("name"))
+            return config
+        else:
+            _LOGGER.warning("No template found for product_key: %s", product_key)
+            raise HomeAssistantError(f"No template found for product_key: {product_key}")
+
+    async def _handle_reload_library(call):
+        """Reload device library from disk."""
+        device_library.reload_library()
+        stats = device_library.get_library_stats()
+        _LOGGER.info("Device library reloaded: %d devices", stats["total_devices"])
+        return stats
 
     def _device_discovered(device):
         """Update address of device if it has changed."""
@@ -173,6 +208,22 @@ async def async_setup(hass: HomeAssistant, config: dict):
     hass.services.async_register(
         DOMAIN, SERVICE_SET_DP, _handle_set_dp, schema=SERVICE_SET_DP_SCHEMA
     )
+
+    # Register device library services
+    hass.services.async_register(
+        DOMAIN, SERVICE_GET_LIBRARY, _handle_get_library
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_GET_TEMPLATE, _handle_get_template,
+        schema=vol.Schema({vol.Required("product_key"): cv.string})
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_RELOAD_LIBRARY, _handle_reload_library
+    )
+
+    # Initialize device library on startup
+    lib_stats = device_library.get_library_stats()
+    _LOGGER.info("BildaSystem Device Library loaded: %d devices", lib_stats["total_devices"])
 
     discovery = TuyaDiscovery(_device_discovered)
     try:

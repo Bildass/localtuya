@@ -1,0 +1,21 @@
+{
+  "product_key": "0kp8wo2xazyhqyqm",
+  "name": "Blitzwolf AIR CLEANER",
+  "manufacturer": "Blitzwolf",
+  "model": "Air Cleaner",
+  "protocol_version": "3.3",
+  "category": "air_purifier",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "Power", "restore_on_reconnect": false},
+    {"platform": "sensor", "id": 2, "friendly_name": "Indoor Air Quality"},
+    {"platform": "select", "id": 3, "friendly_name": "Fan Mode", "select_options": "auto;manual;sleep", "select_options_friendly": "Auto;Manual;Sleep"},
+    {"platform": "select", "id": 4, "friendly_name": "Fan Speed", "select_options": "1;2;3;4", "select_options_friendly": "1;2;3;4"},
+    {"platform": "switch", "id": 6, "friendly_name": "Ionizer", "restore_on_reconnect": false},
+    {"platform": "switch", "id": 7, "friendly_name": "Child Lock", "restore_on_reconnect": false},
+    {"platform": "sensor", "id": 14, "friendly_name": "Air Quality"},
+    {"platform": "sensor", "id": 16, "friendly_name": "Filter Life", "unit_of_measurement": "%"},
+    {"platform": "select", "id": 19, "friendly_name": "Timer", "select_options": "cancle;1;2;3;4", "select_options_friendly": "Off;1h;2h;3h;4h"}
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": true
+}

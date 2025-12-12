@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LocalTuya BildaSystem Device Library Schema",
+  "description": "Schema for device definitions in LocalTuya_bildass device library",
+  "type": "object",
+  "required": ["product_key", "name", "manufacturer", "model", "entities"],
+  "properties": {
+    "product_key": {
+      "type": "string",
+      "description": "Tuya product key for auto-detection"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable device name"
+    },
+    "manufacturer": {
+      "type": "string",
+      "description": "Device manufacturer"
+    },
+    "model": {
+      "type": "string",
+      "description": "Device model"
+    },
+    "protocol_version": {
+      "type": "string",
+      "enum": ["3.1", "3.2", "3.3", "3.4", "3.5"],
+      "description": "Tuya protocol version"
+    },
+    "category": {
+      "type": "string",
+      "description": "Device category (e.g., air_purifier, switch, cover)"
+    },
+    "entities": {
+      "type": "array",
+      "description": "List of entity configurations",
+      "items": {
+        "type": "object",
+        "required": ["platform", "id", "friendly_name"],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": ["switch", "sensor", "binary_sensor", "light", "cover", "fan", "climate", "select", "number", "vacuum"]
+          },
+          "id": {
+            "type": "integer",
+            "description": "DP ID"
+          },
+          "friendly_name": {
+            "type": "string"
+          },
+          "device_class": {
+            "type": "string"
+          },
+          "unit_of_measurement": {
+            "type": "string"
+          },
+          "scaling": {
+            "type": "number"
+          },
+          "select_options": {
+            "type": "string",
+            "description": "Semicolon-separated options for select platform"
+          },
+          "select_options_friendly": {
+            "type": "string",
+            "description": "Semicolon-separated friendly names for options"
+          }
+        }
+      }
+    },
+    "contributed_by": {
+      "type": "string",
+      "description": "Contributor name/email"
+    },
+    "tested": {
+      "type": "boolean",
+      "description": "Whether this config has been tested"
+    }
+  }
+}

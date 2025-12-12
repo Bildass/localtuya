@@ -13,3 +13,16 @@ set_dp:
     value:
       description: New value to set
       example: False
+
+get_library_devices:
+  description: Get list of all devices in the BildaSystem device library.
+
+get_device_template:
+  description: Get entity template for a device from the library by product_key.
+  fields:
+    product_key:
+      description: Tuya product key to look up
+      example: sgodozglgymucvq2
+
+reload_library:
+  description: Reload the device library from disk.

@@ -1,0 +1,14 @@
+{
+  "product_key": "keyuh3jxk9wu8ruj",
+  "name": "Smart Circuit Breaker 63A",
+  "manufacturer": "Tuya Generic",
+  "model": "63A Circuit Breaker",
+  "protocol_version": "3.4",
+  "category": "switch",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "Power", "restore_on_reconnect": true},
+    {"platform": "sensor", "id": 20, "friendly_name": "Voltage", "device_class": "voltage", "unit_of_measurement": "V", "scaling": 0.1}
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": true
+}

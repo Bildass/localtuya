@@ -1,0 +1,23 @@
+{
+  "product_key": "tadm13agjigbdtxd",
+  "name": "KWS-302WF Energy Meter",
+  "manufacturer": "Gaqqee",
+  "model": "KWS-302WF",
+  "protocol_version": "3.4",
+  "category": "sensor",
+  "entities": [
+    {"platform": "switch", "id": 16, "friendly_name": "Power On/Off", "restore_on_reconnect": false},
+    {"platform": "sensor", "id": 101, "friendly_name": "Voltage", "device_class": "voltage", "unit_of_measurement": "V", "scaling": 0.1},
+    {"platform": "sensor", "id": 102, "friendly_name": "Current", "device_class": "current", "unit_of_measurement": "A", "scaling": 0.001},
+    {"platform": "sensor", "id": 103, "friendly_name": "Power", "device_class": "power", "unit_of_measurement": "W", "scaling": 0.1},
+    {"platform": "sensor", "id": 105, "friendly_name": "Energy", "device_class": "energy", "unit_of_measurement": "kWh", "scaling": 0.001},
+    {"platform": "sensor", "id": 106, "friendly_name": "Power Factor", "device_class": "power_factor", "unit_of_measurement": "PF", "scaling": 0.01},
+    {"platform": "sensor", "id": 107, "friendly_name": "Frequency", "device_class": "frequency", "unit_of_measurement": "Hz"},
+    {"platform": "sensor", "id": 108, "friendly_name": "Temperature", "device_class": "temperature", "unit_of_measurement": "°C"},
+    {"platform": "number", "id": 109, "friendly_name": "Undervoltage Threshold", "min_value": 100, "max_value": 220, "step_size": 1},
+    {"platform": "number", "id": 110, "friendly_name": "Overvoltage Threshold", "min_value": 240, "max_value": 290, "step_size": 1},
+    {"platform": "number", "id": 115, "friendly_name": "Over Temperature", "min_value": -20, "max_value": 150, "step_size": 10}
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": true
+}

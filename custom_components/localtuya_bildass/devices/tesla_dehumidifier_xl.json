@@ -1,0 +1,19 @@
+{
+  "product_key": "sbagvpq9c6widk0c",
+  "name": "Tesla Smart Dehumidifier XL",
+  "manufacturer": "Tesla Smart",
+  "model": "Dehumidifier XL",
+  "protocol_version": "3.3",
+  "category": "climate",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "Power", "restore_on_reconnect": false},
+    {"platform": "number", "id": 2, "friendly_name": "Target Humidity", "min_value": 20, "max_value": 80, "step_size": 20},
+    {"platform": "select", "id": 4, "friendly_name": "Fan Speed", "select_options": "High;Low;Sleep", "select_options_friendly": "High;Low;Sleep"},
+    {"platform": "sensor", "id": 6, "friendly_name": "Current Humidity", "device_class": "humidity", "unit_of_measurement": "%"},
+    {"platform": "switch", "id": 16, "friendly_name": "Child Lock", "restore_on_reconnect": false},
+    {"platform": "select", "id": 17, "friendly_name": "Timer", "select_options": "cancel;2h;4h;8h", "select_options_friendly": "Off;2h;4h;8h"},
+    {"platform": "sensor", "id": 19, "friendly_name": "Tank Full", "device_class": "problem"}
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": true
+}
