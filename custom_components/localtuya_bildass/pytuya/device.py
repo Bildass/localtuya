@@ -278,11 +278,21 @@ class MessageDispatcher:
                     header=header
                 )
                 self.buffer = self.buffer[header.total_length:]
-                self._dispatch(msg)
+
+                # Dispatch message - also wrapped in try-catch for safety
+                try:
+                    self._dispatch(msg)
+                except Exception as e:
+                    self.warning("Exception in _dispatch: %s", e)
+
             except DecodeError as e:
                 self.warning("Failed to unpack message: %s", e)
                 self.buffer = b""
                 break
+            except Exception as e:
+                # Catch any unexpected exception to prevent connection drop
+                self.warning("Unexpected error processing message: %s", e)
+                self.buffer = self.buffer[header.total_length:]  # Skip this message
 
     def _dispatch(self, msg: TuyaMessage) -> None:
         """Dispatch message to appropriate handler."""
@@ -318,8 +328,11 @@ class MessageDispatcher:
             if self.RESET_SEQNO in self.listeners:
                 self._dispatch_special(self.RESET_SEQNO, msg)
             elif msg.cmd == CMD_STATUS:
-                # Unsolicited status update
-                self.status_callback(msg)
+                # Unsolicited status update - wrap in try-catch to prevent connection drop
+                try:
+                    self.status_callback(msg)
+                except Exception as e:
+                    self.warning("Exception in status_callback: %s", e)
         elif msg.cmd == CMD_CONTROL_NEW:
             self.debug("ACK for cmd %d", msg.cmd)
         else:
@@ -1019,20 +1032,31 @@ class TuyaProtocol(asyncio.Protocol):
         }
 
     def _handle_status_update(self, msg: TuyaMessage) -> None:
-        """Handle unsolicited status update."""
-        if msg.seqno > 0:
-            self.seqno = msg.seqno + 1
-
+        """Handle unsolicited status update from device."""
         try:
+            # Update seqno first (inside try block for safety)
+            if msg.seqno > 0:
+                self.seqno = msg.seqno + 1
+
+            # Decode payload
             decoded = self._decode_payload(msg.payload)
-            if decoded and "dps" in decoded:
+
+            # Check for valid status with dps
+            if decoded and isinstance(decoded, dict) and "dps" in decoded:
                 self.dps_cache.update(decoded["dps"])
+                self.debug("Status update: dps=%s", decoded["dps"])
 
                 listener = self.listener()
                 if listener:
                     listener.status_updated(self.dps_cache)
+            elif decoded and isinstance(decoded, dict) and "error" in decoded:
+                # Decode error (e.g., JSON decode failed) - log but don't fail
+                self.debug("Status update decode error: %s", decoded.get("message", decoded.get("error")))
+            else:
+                self.debug("Status update ignored: no dps in payload (decoded=%r)", decoded)
         except Exception as e:
-            self.debug("Failed to handle status update: %s", e)
+            # Catch all exceptions to prevent connection drop
+            self._logger.warning("Failed to handle status update: %s", e)
 
 
 # =============================================================================
