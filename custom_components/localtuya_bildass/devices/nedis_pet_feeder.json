@@ -1,0 +1,54 @@
+{
+  "product_key": "wifipet10cwt",
+  "name": "WiFi Pet Feeder",
+  "manufacturer": "Nedis",
+  "model": "WIFIPET10CWT",
+  "protocol_version": "3.3",
+  "category": "pet_feeder",
+  "entities": [
+    {
+      "platform": "switch",
+      "id": 103,
+      "friendly_name": "Feeding Active",
+      "device_class": "running",
+      "restore_on_reconnect": false
+    },
+    {
+      "platform": "number",
+      "id": 104,
+      "friendly_name": "Express Feed (portions)",
+      "min_value": 0,
+      "max_value": 12,
+      "step_size": 1
+    },
+    {
+      "platform": "number",
+      "id": 105,
+      "friendly_name": "Manual Portion Size",
+      "min_value": 1,
+      "max_value": 12,
+      "step_size": 1
+    },
+    {
+      "platform": "switch",
+      "id": 111,
+      "friendly_name": "Voice Recording",
+      "restore_on_reconnect": true
+    },
+    {
+      "platform": "sensor",
+      "id": 110,
+      "friendly_name": "Food Level",
+      "device_class": "weight"
+    },
+    {
+      "platform": "binary_sensor",
+      "id": 102,
+      "friendly_name": "Fault Status",
+      "device_class": "problem"
+    }
+  ],
+  "contributed_by": "GitHub Issue #1",
+  "tested": false,
+  "notes": "DPs based on tuya-local#379. Express Feed DP104 triggers immediate feeding when set to 1-12 portions."
+}
