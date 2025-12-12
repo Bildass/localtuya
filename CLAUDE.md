@@ -58,6 +58,9 @@ y = PATCH - opravy, bugfixy
 
 ## Aktuální verze
 
+- **v7.3.6** - Fix Protocol 3.5 status update exception handling (prevents connection drop)
+- **v7.3.5** - Fix Protocol 3.5 CONTROL response handling
+- **v7.3.4** - Heartbeat retry logic (3 failures before disconnect)
 - **v7.3.3** - Fix Protocol 3.5 DP_QUERY (empty payload jak TinyTuya)
 - **v7.3.2** - Nedis Pet Feeder template (Issue #1)
 - **v7.3.1** - Fix Protocol 3.5 heartbeat JSON decode (Issue #2)
