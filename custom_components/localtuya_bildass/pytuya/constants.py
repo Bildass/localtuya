@@ -251,7 +251,8 @@ PAYLOAD_DICT = {
         },
         CMD_DP_QUERY: {
             "command_override": CMD_DP_QUERY_NEW,
-            "command": {"devId": "", "uid": "", "t": ""},
+            # TinyTuya: v3.5 devices require empty payload for DP_QUERY
+            "command": {},
         },
     },
 }
