@@ -308,8 +308,8 @@ class MessageDispatcher:
             return
 
         # Fallback for protocol 3.4+: device may respond with seqno=0 or different seqno
-        # Also handle CMD_STATUS responses that might be control ACKs
-        if msg.cmd in (CMD_DP_QUERY_NEW, CMD_CONTROL_NEW, CMD_STATUS):
+        # Only for control/query responses, NOT for STATUS (which should go to status_callback)
+        if msg.cmd in (CMD_DP_QUERY_NEW, CMD_CONTROL_NEW):
             # First try seqno+1 fallback
             if (msg.seqno + 1) in self.listeners:
                 alt_seqno = msg.seqno + 1

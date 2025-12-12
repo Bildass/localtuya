@@ -58,7 +58,8 @@ y = PATCH - opravy, bugfixy
 
 ## Aktuální verze
 
-- **v7.3.8** - Broader seqno fallback (includes CMD_STATUS, fuzzy seqno matching)
+- **v7.3.9** - Fix CMD_STATUS routing (don't capture in seqno fallback, let it go to status_callback)
+- **v7.3.8** - Broader seqno fallback (fuzzy seqno matching ±2)
 - **v7.3.7** - Fix Protocol 3.5 seqno=0 response routing, data_received exception handling
 - **v7.3.6** - Fix Protocol 3.5 status update exception handling (prevents connection drop)
 - **v7.3.5** - Fix Protocol 3.5 CONTROL response handling
