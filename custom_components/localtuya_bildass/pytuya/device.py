@@ -671,10 +671,15 @@ class TuyaProtocol(asyncio.Protocol):
                 self.debug("Heartbeat failed with retcode=%d", msg.retcode)
                 return None  # Don't try to parse heartbeat errors as JSON either
 
-        # Other ACK responses (CONTROL, CONTROL_NEW) with empty payload
-        if payload.cmd in (CMD_CONTROL, CMD_CONTROL_NEW) and len(msg.payload) == 0:
-            self.debug("ACK received for cmd %d", payload.cmd)
-            return None
+        # CONTROL responses: treat retcode=0 as success, don't parse payload as JSON
+        # Protocol 3.5 devices may return encrypted payload that fails JSON decode
+        if payload.cmd in (CMD_CONTROL, CMD_CONTROL_NEW):
+            if msg.retcode == 0 or len(msg.payload) == 0:
+                self.debug("Control ACK received (retcode=%d, payload_len=%d)", msg.retcode, len(msg.payload))
+                return None
+            else:
+                self.debug("Control failed with retcode=%d", msg.retcode)
+                return None  # Don't try to parse control errors as JSON
 
         return self._decode_payload(msg.payload)
 
