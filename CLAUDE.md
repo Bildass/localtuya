@@ -58,6 +58,8 @@ y = PATCH - opravy, bugfixy
 
 ## Aktuální verze
 
+- **v7.3.3** - Fix Protocol 3.5 DP_QUERY (empty payload jak TinyTuya)
+- **v7.3.2** - Nedis Pet Feeder template (Issue #1)
+- **v7.3.1** - Fix Protocol 3.5 heartbeat JSON decode (Issue #2)
 - **v7.1.0** - Smart sync (ověřuje klíče před přepsáním)
 - **v7.0.0** - Kompletní pytuya rewrite
-- **v6.3.3** - Rollback (stabilní záloha)
