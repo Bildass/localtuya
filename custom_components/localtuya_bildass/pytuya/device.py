@@ -479,19 +479,33 @@ class TuyaProtocol(asyncio.Protocol):
 
         async def heartbeat_loop():
             self.debug("Heartbeat loop started")
+            consecutive_failures = 0
+            max_failures = 3  # Disconnect after 3 consecutive failures
+
             try:
                 while True:
-                    await self.heartbeat()
+                    try:
+                        await self.heartbeat()
+                        consecutive_failures = 0  # Reset on success
+                    except asyncio.TimeoutError:
+                        consecutive_failures += 1
+                        self.debug("Heartbeat timeout (%d/%d)", consecutive_failures, max_failures)
+                        if consecutive_failures >= max_failures:
+                            self.debug("Max heartbeat failures reached, disconnecting")
+                            break
+                    except Exception as e:
+                        consecutive_failures += 1
+                        self.debug("Heartbeat error (%d/%d): %s", consecutive_failures, max_failures, e)
+                        if consecutive_failures >= max_failures:
+                            self._logger.warning("Max heartbeat failures reached: %s", e)
+                            break
+
                     await asyncio.sleep(HEARTBEAT_INTERVAL)
             except asyncio.CancelledError:
                 self.debug("Heartbeat loop cancelled")
                 raise
-            except asyncio.TimeoutError:
-                self.debug("Heartbeat timeout, disconnecting")
-            except Exception as e:
-                self._logger.exception("Heartbeat error: %s", e)
 
-            # Disconnect on error
+            # Disconnect on max failures
             if self.transport:
                 self.transport.close()
 
