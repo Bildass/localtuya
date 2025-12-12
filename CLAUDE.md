@@ -58,6 +58,7 @@ y = PATCH - opravy, bugfixy
 
 ## Aktuální verze
 
+- **v7.3.7** - Fix Protocol 3.5 seqno=0 response routing, data_received exception handling
 - **v7.3.6** - Fix Protocol 3.5 status update exception handling (prevents connection drop)
 - **v7.3.5** - Fix Protocol 3.5 CONTROL response handling
 - **v7.3.4** - Heartbeat retry logic (3 failures before disconnect)

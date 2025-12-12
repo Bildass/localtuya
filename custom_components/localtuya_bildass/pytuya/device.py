@@ -307,16 +307,28 @@ class MessageDispatcher:
                 sem.release()
             return
 
-        # Fallback for protocol 3.4: device may use its own seqno counter
-        # Try seqno+1 for DP_QUERY_NEW responses (cmd=16)
-        if msg.cmd == CMD_DP_QUERY_NEW and (msg.seqno + 1) in self.listeners:
-            alt_seqno = msg.seqno + 1
-            self.debug("Seqno mismatch for cmd=16, using fallback seqno %d -> %d", msg.seqno, alt_seqno)
-            sem = self.listeners[alt_seqno]
-            if isinstance(sem, asyncio.Semaphore):
-                self.listeners[alt_seqno] = msg
-                sem.release()
-            return
+        # Fallback for protocol 3.4+: device may respond with seqno=0 or different seqno
+        # Try to find any waiting listener for this command type
+        if msg.cmd in (CMD_DP_QUERY_NEW, CMD_CONTROL_NEW):
+            # First try seqno+1 fallback
+            if (msg.seqno + 1) in self.listeners:
+                alt_seqno = msg.seqno + 1
+                self.debug("Seqno mismatch for cmd=%d, using fallback seqno %d -> %d", msg.cmd, msg.seqno, alt_seqno)
+                sem = self.listeners[alt_seqno]
+                if isinstance(sem, asyncio.Semaphore):
+                    self.listeners[alt_seqno] = msg
+                    sem.release()
+                return
+            # For seqno=0 responses, try to find first available listener
+            if msg.seqno == 0 and self.listeners:
+                for listener_seqno in list(self.listeners.keys()):
+                    if listener_seqno >= 0:  # Skip special negative seqnos
+                        self.debug("Seqno=0 response for cmd=%d, routing to listener seqno=%d", msg.cmd, listener_seqno)
+                        sem = self.listeners[listener_seqno]
+                        if isinstance(sem, asyncio.Semaphore):
+                            self.listeners[listener_seqno] = msg
+                            sem.release()
+                        return
 
         # Handle special message types
         if msg.cmd == CMD_HEART_BEAT:
@@ -440,7 +452,10 @@ class TuyaProtocol(asyncio.Protocol):
 
     def data_received(self, data: bytes) -> None:
         """Called when data is received."""
-        self.dispatcher.add_data(data)
+        try:
+            self.dispatcher.add_data(data)
+        except Exception as e:
+            self._logger.warning("Exception in data_received: %s", e)
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
         """Called when connection is lost."""
