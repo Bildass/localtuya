@@ -12,6 +12,7 @@ from homeassistant.helpers.selector import (
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
+    SelectOptionDict,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -1438,19 +1439,38 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
 
         if template and user_input is None:
             # We have a template - ask user if they want to use it
+            # Build dynamic label with template name
+            template_name = template.get("name", "Unknown")
+            manufacturer = template.get("manufacturer", "Unknown")
+            entity_count = len(template.get("entities", []))
+
             return self.async_show_form(
                 step_id="check_library_template",
                 data_schema=vol.Schema({
-                    vol.Required(CONF_USE_TEMPLATE, default=True): bool,
+                    vol.Required(CONF_USE_TEMPLATE, default="use"): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value="use",
+                                    label=f"✅ Use: {template_name} ({entity_count} entities)"
+                                ),
+                                SelectOptionDict(
+                                    value="skip",
+                                    label="⏭️ Skip template, configure manually"
+                                ),
+                            ],
+                            mode=SelectSelectorMode.LIST,
+                        )
+                    ),
                 }),
                 description_placeholders={
-                    "device_name": template.get("name", "Unknown"),
-                    "manufacturer": template.get("manufacturer", "Unknown"),
-                    "entity_count": str(len(template.get("entities", []))),
+                    "device_name": template_name,
+                    "manufacturer": manufacturer,
+                    "entity_count": str(entity_count),
                 },
             )
 
-        if user_input is not None and user_input.get(CONF_USE_TEMPLATE) and product_key:
+        if user_input is not None and user_input.get(CONF_USE_TEMPLATE) == "use" and product_key:
             # User wants to use template - apply it
             template = device_library.get_device_config(product_key)
             if template:
