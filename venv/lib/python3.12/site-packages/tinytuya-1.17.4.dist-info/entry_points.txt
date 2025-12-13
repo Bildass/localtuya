@@ -1,0 +1,2 @@
+[console_scripts]
+tinytuya = tinytuya.__main__:dummy
