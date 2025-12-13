@@ -447,6 +447,11 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
             states[self._config.get(CONF_COLOR_MODE)] = MODE_WHITE
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
+        # Optimistic update - změň stav okamžitě
+        if not self.is_on:
+            self._state = True
+            self.schedule_update_ha_state()
+
         # Use set_dp for single DP (more reliable for some devices)
         if len(states) == 1:
             dp_id, value = next(iter(states.items()))
@@ -456,6 +461,10 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
 
     async def async_turn_off(self, **kwargs):
         """Turn Tuya light off."""
+        # Optimistic update - změň stav okamžitě
+        self._state = False
+        self.schedule_update_ha_state()
+
         await self._device.set_dp(False, self._dp_id)
 
     def status_updated(self):

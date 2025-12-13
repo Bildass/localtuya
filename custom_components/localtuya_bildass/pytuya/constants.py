@@ -130,8 +130,9 @@ FOOTER_SIZE_6699 = 20
 # TIMING AND LIMITS
 # =============================================================================
 
-HEARTBEAT_INTERVAL = 20  # seconds (increased for v3.5 stability)
-DEFAULT_TIMEOUT = 5  # seconds
+HEARTBEAT_INTERVAL = 15  # seconds (faster failure detection)
+DEFAULT_TIMEOUT = 8  # seconds (tolerance for slow responses)
+HEARTBEAT_LOCK_TIMEOUT = 2.0  # seconds (heartbeat lock timeout)
 MAX_PAYLOAD_SIZE = 2000  # bytes - sanity check
 
 # DPS indices known to be safe for UPDATE_DPS command
