@@ -4,13 +4,23 @@
 
 Hloubková analýza implementace QR autentizace v **tuya-local** integraci pro budoucí implementaci do **LocalTuya 2.0 (BildaSystem fork)**.
 
-**Status:** Pouze výzkum - bez implementace
+**Status:** ✅ OVĚŘENO - Plně funkční! (testováno 2025-12-13)
 
 ---
 
 ## Klíčové zjištění
 
 Tuya-local používá **tuya-device-sharing-sdk** místo standardního Tuya IoT API. Toto SDK umožňuje autentizaci bez developer účtu - stačí **User Code** z Tuya/Smart Life aplikace.
+
+### ⚠️ KRITICKÉ - Client ID
+
+**NESMÍ se použít Client ID z developer účtu!** Tuya má speciální Client ID pro Home Assistant:
+
+```python
+CLIENT_ID = "HA_3y9q4ak7g4ephrvke"  # POVINNÉ pro HA integrace!
+```
+
+S jiným Client ID dostanete chybu `sign invalid`.
 
 ---
 
@@ -170,33 +180,58 @@ pip install tuya-device-sharing-sdk
 ### GitHub
 https://github.com/tuya/tuya-device-sharing-sdk
 
-### Použití v kódu
+### Použití v kódu (OVĚŘENÝ funkční kód!)
+
 ```python
 from tuya_sharing import Manager, LoginControl
 
-# QR generace
-login_control = LoginControl(
-    root_path=".",
-    client_id="...",
-    user_code="...",
+# KRITICKÉ: Použít HA Client ID, NE developer účet!
+CLIENT_ID = "HA_3y9q4ak7g4ephrvke"
+USER_CODE = "XxXxXx"  # Z Smart Life: Me > Settings > Account and Security > User Code
+SCHEMA = "smartlife"   # nebo "tuyaSmart"
+
+# 1. QR generace
+login = LoginControl()
+result = login.qr_code(
+    client_id=CLIENT_ID,
+    schema=SCHEMA,
+    user_code=USER_CODE
 )
-qr_token = login_control.qr_code()
+token = result["result"]["qrcode"]
+qr_url = f"tuyaSmart--qrLogin?token={token}"
+# → Zobrazit QR kód uživateli k naskenování
 
-# Polling po skenování
-result = login_control.login_result(qr_token)
+# 2. Polling po skenování (každé 2 sekundy)
+success, login_data = login.login_result(
+    token=token,
+    client_id=CLIENT_ID,
+    user_code=USER_CODE
+)
 
-# Manager pro zařízení
+# login_data obsahuje:
+# {
+#     'access_token': '...',
+#     'refresh_token': '...',
+#     'expire_time': 7200,
+#     'terminal_id': '...',
+#     'uid': '...',
+#     'endpoint': 'https://apigw.tuyaeu.com'
+# }
+
+# 3. Manager pro zařízení
 manager = Manager(
-    client_id=result["client_id"],
-    user_code=result["user_code"],
-    terminal_id=result["terminal_id"],
-    end_point=result["endpoint"],
-    token_info=result["token_info"]
+    client_id=CLIENT_ID,
+    user_code=USER_CODE,
+    terminal_id=login_data['terminal_id'],
+    end_point=login_data['endpoint'],
+    token_response=login_data  # POZOR: token_response, NE token_info!
 )
 
-# Načtení zařízení
+# 4. Načtení zařízení
 manager.update_device_cache()
-devices = manager.device_map
+
+for device_id, device in manager.device_map.items():
+    print(f"{device.name}: {device.local_key}")
 ```
 
 ---
@@ -295,6 +330,48 @@ devices = manager.device_map
 
 ---
 
+## 11. Výsledky testování (2025-12-13)
+
+### ✅ Test úspěšný!
+
+QR autentizace byla plně otestována a funguje:
+
+```
+📱 Nalezeno 15 zařízení:
+
+  📍 Roleta (cl) - xmn86dg364jogqec
+  📍 Smart-Star-Projector (dj) - cw7kinnselbesfp9
+  📍 Air cleaner (kj) - 0kp8wo2xazyhqyqm
+  📍 Tesla Smart Dehumidifier XL (cs) - sbagvpq9c6widk0c
+  📍 KWS-302WF-Hlavni (zndb) - tadm13agjigbdtxd
+  📍 Tesla Smart Air Purifier Mini (kj) - sgodozglgymucvq2
+  📍 KWS-302WF-Kuchyn (zndb) - tadm13agjigbdtxd
+  📍 odsavani-koupelna (dlq) - mwduyh3ewt7whcv8
+  📍 odsavani-wc (dlq) - mwduyh3ewt7whcv8
+  📍 Šatna světlo (dlq) - mwduyh3ewt7whcv8
+  📍 Tesla Smart Power Strip PS300 (pc) - dxsgqusi8lwn8avk
+  📍 Bodová Levá (dj) - 8hfgf6zcmubhwjex
+  📍 Bodová Pravá (dj) - 8hfgf6zcmubhwjex
+  ... a další
+```
+
+### Potvrzeno:
+- ✅ QR generace funguje
+- ✅ Polling pro login result funguje
+- ✅ Manager načte všechna zařízení
+- ✅ Local keys jsou dostupné
+- ✅ Product IDs jsou dostupné
+- ✅ Online status je dostupný
+
+### Důležité poznatky z testování:
+1. **Client ID MUSÍ být `HA_3y9q4ak7g4ephrvke`** - jinak `sign invalid` error
+2. **User Code najdeš v Smart Life app:** Me → Settings → Account and Security → User Code
+3. **Schema:** `smartlife` pro Smart Life app, `tuyaSmart` pro Tuya Smart app
+4. **Manager parametr:** `token_response` (ne `token_info`!)
+5. **Endpoint:** Vrácen automaticky podle regionu (např. `https://apigw.tuyaeu.com` pro EU)
+
+---
+
 *Dokument vytvořen: 2025-12-13*
 *Autor: BildaSystem.cz + Claude Code*
-*Status: Research only - no implementation*
+*Status: ✅ OVĚŘENO - připraveno k implementaci*
