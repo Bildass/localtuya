@@ -686,7 +686,11 @@ class TuyaProtocol(asyncio.Protocol):
 
         # Send and wait
         self.transport.write(data)
-        msg = await self.dispatcher.wait_for(wait_seqno, payload.cmd)
+        try:
+            msg = await self.dispatcher.wait_for(wait_seqno, payload.cmd)
+        except asyncio.TimeoutError:
+            self.debug("Timeout waiting for response to cmd %d (seqno=%d)", payload.cmd, wait_seqno)
+            return None
 
         if msg is None:
             return None
