@@ -25,7 +25,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import callback
 
-from .cloud_api import TuyaCloudApi
+from .cloud_api import TuyaCloudApi, TUYA_REGION_NAMES
 from .common import pytuya
 from .const import (
     ATTR_UPDATED_AT,
@@ -112,7 +112,7 @@ CONFIGURE_SCHEMA = vol.Schema(
 
 CLOUD_SETUP_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_REGION, default="eu"): vol.In(["eu", "us", "cn", "in"]),
+        vol.Required(CONF_REGION, default="eu"): vol.In(TUYA_REGION_NAMES),
         vol.Optional(CONF_CLIENT_ID): cv.string,
         vol.Optional(CONF_CLIENT_SECRET): cv.string,
         vol.Optional(CONF_USER_ID): cv.string,
