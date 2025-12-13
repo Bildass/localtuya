@@ -3,9 +3,24 @@
 DOMAIN = "localtuya_bildass"
 
 # BildaSystem branding
-VERSION = "7.3.20"
+VERSION = "7.4.0"
 BILDASYSTEM_URL = "https://bildassystem.cz"
 BILDASYSTEM_NAME = "LocalTuya 2.0"
+
+# QR Code Authentication (tuya-device-sharing-sdk)
+# CRITICAL: This is the official Home Assistant Client ID - do NOT change!
+TUYA_HA_CLIENT_ID = "HA_3y9q4ak7g4ephrvke"
+
+# Schema options for QR auth
+TUYA_QR_SCHEMAS = {
+    "smartlife": "Smart Life",
+    "tuyaSmart": "Tuya Smart",
+}
+
+# QR auth config keys
+CONF_QR_AUTH = "qr_auth"
+CONF_USER_CODE = "user_code"
+CONF_QR_SCHEMA = "qr_schema"
 
 # Data storage keys
 DATA_DISCOVERY = "discovery"
