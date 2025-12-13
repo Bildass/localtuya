@@ -418,6 +418,10 @@ class TuyaProtocol(asyncio.Protocol):
         # Command lock - prevents heartbeat and control commands from overlapping
         self._command_lock = asyncio.Lock()
 
+        # Rate limiting for Protocol 3.5 devices (they need time between commands)
+        self._last_command_time: float = 0
+        self._min_command_interval: float = 0.5 if protocol_version >= 3.5 else 0.1
+
         # Message dispatcher
         self.dispatcher = MessageDispatcher(
             device_id=device_id,
@@ -676,6 +680,15 @@ class TuyaProtocol(asyncio.Protocol):
 
     async def _exchange_unlocked(self, command: int, dps: Optional[Dict] = None) -> Optional[Dict]:
         """Send command without acquiring lock (caller must hold lock)."""
+        # Rate limiting - wait if commands are too fast (Protocol 3.5 devices need this)
+        now = time.time()
+        elapsed = now - self._last_command_time
+        if elapsed < self._min_command_interval:
+            wait_time = self._min_command_interval - elapsed
+            self.debug("Rate limiting: waiting %.2fs before command", wait_time)
+            await asyncio.sleep(wait_time)
+        self._last_command_time = time.time()
+
         # Negotiate session key for 3.4+ if needed
         if self.protocol_version >= 3.4 and self.session_key is None:
             self.debug("Negotiating session key for v%.1f", self.protocol_version)
