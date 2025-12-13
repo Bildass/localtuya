@@ -1229,11 +1229,17 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
         dev_id = self.selected_device
 
         # Try to get product_key from cloud data
+        # Tuya API may return "product_id", "productKey", or "product_key"
         product_key = None
         try:
             cloud_devs = self.hass.data[DOMAIN][DATA_CLOUD].device_list
             if dev_id in cloud_devs:
-                product_key = cloud_devs[dev_id].get("productKey")
+                dev_data = cloud_devs[dev_id]
+                product_key = (
+                    dev_data.get("product_id") or
+                    dev_data.get("productKey") or
+                    dev_data.get("product_key")
+                )
         except Exception:
             pass
 

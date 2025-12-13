@@ -58,6 +58,8 @@ y = PATCH - opravy, bugfixy
 
 ## Aktuální verze
 
+- **v7.3.16** - Add Smart Mini Bulb template, fix product_id detection in config_flow
+- **v7.3.15** - Add rate limiting for Protocol 3.5 devices (0.5s min interval)
 - **v7.3.9** - Fix CMD_STATUS routing (don't capture in seqno fallback, let it go to status_callback)
 - **v7.3.8** - Broader seqno fallback (fuzzy seqno matching ±2)
 - **v7.3.7** - Fix Protocol 3.5 seqno=0 response routing, data_received exception handling
