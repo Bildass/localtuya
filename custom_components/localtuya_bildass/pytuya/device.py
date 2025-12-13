@@ -415,6 +415,9 @@ class TuyaProtocol(asyncio.Protocol):
         self.local_nonce = os.urandom(16)
         self.remote_nonce: Optional[bytes] = None
 
+        # Command lock - prevents heartbeat and control commands from overlapping
+        self._command_lock = asyncio.Lock()
+
         # Message dispatcher
         self.dispatcher = MessageDispatcher(
             device_id=device_id,
@@ -657,65 +660,67 @@ class TuyaProtocol(asyncio.Protocol):
         Returns:
             Parsed response or None
         """
-        # Negotiate session key for 3.4+ if needed
-        if self.protocol_version >= 3.4 and self.session_key is None:
-            self.debug("Negotiating session key for v%.1f", self.protocol_version)
-            success = await self._negotiate_session_key()
-            if not success:
-                self._logger.warning("Session key negotiation failed, trying without session key")
-                # Pokračovat bez session key - některá zařízení to nepodporují
-                pass
+        # Use lock to prevent overlapping commands (heartbeat + control collision)
+        async with self._command_lock:
+            # Negotiate session key for 3.4+ if needed
+            if self.protocol_version >= 3.4 and self.session_key is None:
+                self.debug("Negotiating session key for v%.1f", self.protocol_version)
+                success = await self._negotiate_session_key()
+                if not success:
+                    self._logger.warning("Session key negotiation failed, trying without session key")
+                    # Pokračovat bez session key - některá zařízení to nepodporují
+                    pass
 
-        self.debug("Sending command %d (device_type=%s)", command, self.device_type)
+            self.debug("Sending command %d (device_type=%s)", command, self.device_type)
 
-        # Generate and encode payload
-        payload = self._generate_payload(command, dps)
-        data = self._encode_message(payload)
+            # Generate and encode payload
+            payload = self._generate_payload(command, dps)
+            data = self._encode_message(payload)
 
-        if not self.transport:
-            self._logger.error("No transport available")
-            return None
-
-        # Determine sequence number to wait for
-        if payload.cmd == CMD_HEART_BEAT:
-            wait_seqno = MessageDispatcher.HEARTBEAT_SEQNO
-        elif payload.cmd == CMD_UPDATE_DPS:
-            wait_seqno = MessageDispatcher.RESET_SEQNO
-        else:
-            wait_seqno = self.seqno - 1  # seqno was incremented in _encode_message
-
-        # Send and wait
-        self.transport.write(data)
-        try:
-            msg = await self.dispatcher.wait_for(wait_seqno, payload.cmd)
-        except asyncio.TimeoutError:
-            self.debug("Timeout waiting for response to cmd %d (seqno=%d)", payload.cmd, wait_seqno)
-            return None
-
-        if msg is None:
-            return None
-
-        # Heartbeat responses: treat retcode=0 as success, don't parse payload as JSON
-        # Protocol 3.5 devices may return non-empty encrypted payload that fails JSON decode
-        if payload.cmd == CMD_HEART_BEAT:
-            if msg.retcode == 0 or len(msg.payload) == 0:
-                self.debug("Heartbeat ACK received (retcode=%d, payload_len=%d)", msg.retcode, len(msg.payload))
+            if not self.transport:
+                self._logger.error("No transport available")
                 return None
-            else:
-                self.debug("Heartbeat failed with retcode=%d", msg.retcode)
-                return None  # Don't try to parse heartbeat errors as JSON either
 
-        # CONTROL responses: treat retcode=0 as success, don't parse payload as JSON
-        # Protocol 3.5 devices may return encrypted payload that fails JSON decode
-        if payload.cmd in (CMD_CONTROL, CMD_CONTROL_NEW):
-            if msg.retcode == 0 or len(msg.payload) == 0:
-                self.debug("Control ACK received (retcode=%d, payload_len=%d)", msg.retcode, len(msg.payload))
+            # Determine sequence number to wait for
+            if payload.cmd == CMD_HEART_BEAT:
+                wait_seqno = MessageDispatcher.HEARTBEAT_SEQNO
+            elif payload.cmd == CMD_UPDATE_DPS:
+                wait_seqno = MessageDispatcher.RESET_SEQNO
+            else:
+                wait_seqno = self.seqno - 1  # seqno was incremented in _encode_message
+
+            # Send and wait
+            self.transport.write(data)
+            try:
+                msg = await self.dispatcher.wait_for(wait_seqno, payload.cmd)
+            except asyncio.TimeoutError:
+                self.debug("Timeout waiting for response to cmd %d (seqno=%d)", payload.cmd, wait_seqno)
                 return None
-            else:
-                self.debug("Control failed with retcode=%d", msg.retcode)
-                return None  # Don't try to parse control errors as JSON
 
-        return self._decode_payload(msg.payload)
+            if msg is None:
+                return None
+
+            # Heartbeat responses: treat retcode=0 as success, don't parse payload as JSON
+            # Protocol 3.5 devices may return non-empty encrypted payload that fails JSON decode
+            if payload.cmd == CMD_HEART_BEAT:
+                if msg.retcode == 0 or len(msg.payload) == 0:
+                    self.debug("Heartbeat ACK received (retcode=%d, payload_len=%d)", msg.retcode, len(msg.payload))
+                    return None
+                else:
+                    self.debug("Heartbeat failed with retcode=%d", msg.retcode)
+                    return None  # Don't try to parse heartbeat errors as JSON either
+
+            # CONTROL responses: treat retcode=0 as success, don't parse payload as JSON
+            # Protocol 3.5 devices may return encrypted payload that fails JSON decode
+            if payload.cmd in (CMD_CONTROL, CMD_CONTROL_NEW):
+                if msg.retcode == 0 or len(msg.payload) == 0:
+                    self.debug("Control ACK received (retcode=%d, payload_len=%d)", msg.retcode, len(msg.payload))
+                    return None
+                else:
+                    self.debug("Control failed with retcode=%d", msg.retcode)
+                    return None  # Don't try to parse control errors as JSON
+
+            return self._decode_payload(msg.payload)
 
     async def _exchange_quick(self, cmd: int, payload: bytes, recv_retries: int = 2) -> Optional[TuyaMessage]:
         """Send message and wait for response without decoding.

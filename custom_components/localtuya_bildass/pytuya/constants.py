@@ -238,7 +238,7 @@ PAYLOAD_DICT = {
     DEVICE_TYPE_V34: {
         CMD_CONTROL: {
             "command_override": CMD_CONTROL_NEW,
-            "command": {"protocol": 5, "t": "int", "data": ""},
+            "command": {"protocol": 5, "t": "int", "data": {}},
         },
         CMD_DP_QUERY: {
             "command_override": CMD_DP_QUERY_NEW,
@@ -247,7 +247,7 @@ PAYLOAD_DICT = {
     DEVICE_TYPE_V35: {
         CMD_CONTROL: {
             "command_override": CMD_CONTROL_NEW,
-            "command": {"protocol": 5, "t": "int", "data": ""},
+            "command": {"protocol": 5, "t": "int", "data": {}},
         },
         CMD_DP_QUERY: {
             "command_override": CMD_DP_QUERY_NEW,
