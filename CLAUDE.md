@@ -58,6 +58,8 @@ y = PATCH - opravy, bugfixy
 
 ## Aktuální verze
 
+- **v7.5.0** - Config flow refactoring - split 1677-line file into 6 modular files (mixins architecture)
+- **v7.4.4** - Pet Feeder DU3L template (GitHub Issue #5)
 - **v7.3.17** - Remove rate limiting (caused delays, not needed with correct DP config)
 - **v7.3.16** - Add Smart Mini Bulb template, fix product_id detection in config_flow
 - **v7.3.9** - Fix CMD_STATUS routing (don't capture in seqno fallback, let it go to status_callback)
