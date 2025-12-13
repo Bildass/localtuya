@@ -8,6 +8,21 @@ import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.entity_registry as er
 import voluptuous as vol
 from homeassistant import config_entries, core, exceptions
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
+
+# QR Code selector - available in HA 2024.2+
+try:
+    from homeassistant.helpers.selector import QrCodeSelector, QrCodeSelectorConfig
+    QR_SELECTOR_AVAILABLE = True
+except ImportError:
+    QR_SELECTOR_AVAILABLE = False
 from homeassistant.const import (
     CONF_CLIENT_ID,
     CONF_CLIENT_SECRET,
@@ -1250,11 +1265,26 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
             _LOGGER.error("QR Auth error: %s", ex)
             return self.async_abort(reason="qr_auth_error")
 
+        # Build schema with QR code if available
+        if QR_SELECTOR_AVAILABLE:
+            schema = vol.Schema({
+                vol.Optional("qr_code"): QrCodeSelector(
+                    QrCodeSelectorConfig(
+                        data=qr_url,
+                        scale=6,
+                    )
+                ),
+                vol.Required("scanned", default=False): bool,
+            })
+        else:
+            # Fallback for older HA versions
+            schema = vol.Schema({
+                vol.Required("scanned", default=False): bool,
+            })
+
         return self.async_show_form(
             step_id="qr_scan",
-            data_schema=vol.Schema({
-                vol.Required("scanned", default=False): bool,
-            }),
+            data_schema=schema,
             errors=errors,
             description_placeholders={
                 "qr_url": qr_url,
