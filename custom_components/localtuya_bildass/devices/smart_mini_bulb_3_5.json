@@ -1,0 +1,38 @@
+{
+  "product_key": "8hfgf6zcmubhwjex",
+  "name": "Smart Mini Bulb RGB+CCT (Protocol 3.5)",
+  "manufacturer": "Tuya Generic",
+  "model": "220V IIC 5W CBLC5 W&B",
+  "protocol_version": "3.5",
+  "category": "dj",
+  "entities": [
+    {
+      "platform": "light",
+      "id": 20,
+      "friendly_name": "Light",
+      "brightness": 22,
+      "brightness_lower": 10,
+      "brightness_upper": 1000,
+      "color_mode": 21,
+      "color": 24,
+      "color_temp": 23,
+      "color_temp_min_kelvin": 2700,
+      "color_temp_max_kelvin": 6500,
+      "color_temp_reverse": false,
+      "music_mode": false
+    }
+  ],
+  "dps_description": {
+    "20": "ON/OFF (bool)",
+    "21": "Mode: 'colour' or 'white' (string)",
+    "22": "Brightness 10-1000 (int)",
+    "23": "Color Temperature in device units (int)",
+    "24": "HSV Color as hex HHHHSSSSBBBB (string)",
+    "25": "Scene data (string)",
+    "26": "Countdown timer (int)",
+    "34": "Music mode enabled (bool)"
+  },
+  "notes": "Protocol 3.5 RGB+CCT bulb. IMPORTANT: color_mode is DP 21 (not 24!), color is DP 24 (not 25!). Common misconfiguration causes crashes.",
+  "contributed_by": "BildaSystem.cz",
+  "tested": true
+}
