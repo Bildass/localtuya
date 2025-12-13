@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="#-why-this-fork">Why This Fork?</a> •
-  <a href="#-installation">Installation</a> •
+  <a href="#-why-localtuya-20">Why?</a> •
   <a href="#-features">Features</a> •
-  <a href="#-migration-guide">Migration</a> •
-  <a href="#-documentation">Documentation</a>
+  <a href="#-installation">Install</a> •
+  <a href="#-roadmap">Roadmap</a> •
+  <a href="#-documentation">Docs</a>
 </p>
 
 <p align="center">
@@ -28,50 +28,84 @@
 
 ---
 
-## 🤔 Why This Fork?
+## 🤔 Why LocalTuya 2.0?
 
-The original [LocalTuya](https://github.com/rospogrigio/localtuya) is a fantastic integration, but development has slowed down. **LocalTuya 2.0** picks up where it left off:
+The original [LocalTuya](https://github.com/rospogrigio/localtuya) was a game-changer for Tuya device owners. But development stalled, bugs piled up, and Home Assistant kept evolving. **We stepped in to keep LocalTuya alive.**
 
-| Pain Point | Original LocalTuya | LocalTuya 2.0 Solution |
-|------------|-------------------|---------------------|
-| 😤 **Changing device IP/key** | Click through ALL entities one by one | ✅ **Quick Edit** - single window, done in seconds |
-| 😤 **Editing one entity** | Must navigate through entire device | ✅ **Entity List** - jump directly to any entity |
-| 😤 **Getting local_keys** | Manual copy-paste from Tuya IoT | ✅ **Cloud Sync** - one click fetches all keys |
-| 😤 **HA 2025.x errors** | Breaking changes, crashes | ✅ **Fully compatible** and tested |
-| 😤 **Can't run both versions** | Must choose one | ✅ **Parallel install** - test without risk |
+### The Problem
 
-> **💡 Bottom line:** We fixed the daily frustrations that LocalTuya users know too well.
+| Pain Point | What Happened |
+|------------|---------------|
+| 🐛 **HA 2024/2025 breaking changes** | Crashes, deprecation warnings, broken config flows |
+| 🔧 **Protocol 3.5 devices** | Not supported, newer devices didn't work |
+| 😤 **Changing device IP/key** | Click through ALL entities one by one |
+| 📦 **No device templates** | Configure 15 DPs manually for every bulb |
+| 🔐 **Complex cloud setup** | Need developer account, API keys, etc. |
+
+### Our Solution
+
+**LocalTuya 2.0** fixes all of this and more. We're committed to keeping local Tuya control **alive and thriving**.
+
+> 💡 **Philosophy:** Your smart home should work **locally**, without cloud dependencies. That's why LocalTuya exists, and that's why we maintain it.
 
 ---
 
 ## ✨ Features
 
-### 🚀 Quick Edit (v6.0)
-Change host, local_key, or protocol version **without** reconfiguring all entities:
+### 🆕 Protocol 3.5 Support (v7.0+)
+Full support for the latest Tuya protocol:
+- **GCM encryption** for secure communication
+- **6699 packet prefix** handling
+- **Proper heartbeat** with retry logic
+- Works with newest Tuya devices
 
+### 📚 Device Library (v7.0+)
+Pre-configured templates for common devices:
+- **Auto-detection** by product_id
+- **One-click setup** - no manual DP configuration
+- **Community templates** - growing library
+
+Currently supported:
+- Smart Mini Bulb RGB+CCT (Protocol 3.5)
+- Smart Star Projector
+- Tesla Air Purifier Mini
+- Tesla Dehumidifier XL
+- Tesla Power Strip PS300
+- BlitzWolf Air Cleaner
+- Nedis Pet Feeder
+- KWS-302WF Energy Meter
+- Circuit Breaker 63A
+- Roleta M313EIRWT
+- *...and more coming!*
+
+### 🚀 Quick Edit
+Change host, local_key, or protocol **without** reconfiguring entities:
 ```
 Settings → Devices → LocalTuya 2.0 → Configure
-→ Select device → Quick edit (host, key, protocol)
-→ Change what you need → Done!
+→ Select device → Quick edit
+→ Done in 10 seconds!
 ```
 
-### ☁️ Cloud Key Sync (v6.0)
-Automatically fetch local_keys for **all devices** with one click:
-- No more manual copy-paste from Tuya IoT Platform
-- Shows which keys have changed
-- Updates only modified keys
+### ☁️ Cloud Key Sync
+Fetch all local_keys with **one click**:
+- No manual copy-paste from Tuya IoT
+- Shows which keys changed
+- Smart sync - only updates modified keys
 
 ### 🔄 Parallel Installation
 Run alongside original LocalTuya:
 - Different domain (`localtuya_bildass`)
 - Test before migrating
-- No conflicts
+- Zero conflicts
 
-### 🛠️ Enhanced Cloud API
-- **Async aiohttp** instead of blocking requests
-- **Token caching** - fewer API calls
-- **Pagination** - supports 100+ devices
-- **HMAC-SHA256** with proper nonce handling
+### 🌍 All Tuya Regions (v7.3.19+)
+- EU - Central Europe
+- EU West - Western Europe
+- US - Western America
+- US East - Eastern America
+- CN - China
+- IN - India
+- **SG - Singapore** (new!)
 
 ---
 
@@ -80,25 +114,231 @@ Run alongside original LocalTuya:
 ### HACS (Recommended)
 
 1. Open HACS → **Integrations**
-2. Click **⋮** (three dots) → **Custom repositories**
+2. Click **⋮** → **Custom repositories**
 3. Add: `https://github.com/Bildass/localtuya`
 4. Category: **Integration**
-5. Find **LocalTuya 2.0** and click **Download**
+5. Find **LocalTuya 2.0** → **Download**
 6. **Restart Home Assistant**
 
-### Manual Installation
+### Manual
 
 ```bash
 cd /config/custom_components
-git clone https://github.com/Bildass/localtuya.git temp_localtuya
-mv temp_localtuya/custom_components/localtuya_bildass .
-rm -rf temp_localtuya
+git clone https://github.com/Bildass/localtuya.git temp
+mv temp/custom_components/localtuya_bildass .
+rm -rf temp
 # Restart Home Assistant
 ```
 
 ---
 
-## 🔄 Migration Guide
+## 🗺️ Roadmap
+
+We're actively developing LocalTuya 2.0. Here's what's coming:
+
+### 🔜 Coming Soon
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **QR Code Authentication** | 🔬 Research done | Login with Tuya app - no developer account needed! |
+| **Water Heater Platform** | 📋 Planned | Support for smart kettles, water heaters |
+| **More Device Templates** | 🔄 Ongoing | Community-contributed device configs |
+
+### ✅ Recently Shipped
+
+| Version | Feature |
+|---------|---------|
+| v7.3.20 | Fixed template name display in options flow |
+| v7.3.19 | Added Singapore region + friendly region names |
+| v7.3.18 | Heartbeat optimization + optimistic UI updates |
+| v7.3.16 | Smart Mini Bulb template + product_id detection |
+| v7.0.0 | Complete pytuya rewrite + Protocol 3.5 |
+
+### 💡 Future Ideas
+
+- **Matter bridge** - expose LocalTuya devices to Matter
+- **Device diagnostics** - built-in network analyzer
+- **Firmware version detection** - track device updates
+- **Scenes support** - Tuya scene activation
+
+> 📣 **Have a feature request?** [Open an issue](https://github.com/Bildass/localtuya/issues) or [start a discussion](https://github.com/Bildass/localtuya/discussions)!
+
+---
+
+## 📖 Documentation
+
+### Quick Start
+
+1. **Install** via HACS (see above)
+2. **Add Integration:** Settings → Devices & Services → Add → **LocalTuya 2.0**
+3. **Configure Cloud API** (optional but recommended):
+   - Get credentials from [Tuya IoT Platform](https://iot.tuya.com)
+   - Region, Client ID, Client Secret, User ID
+4. **Add Devices:** Cloud Sync auto-fills device info!
+
+### Supported Platforms
+
+| Platform | Examples |
+|----------|----------|
+| **switch** | Smart plugs, relays, power strips |
+| **light** | Bulbs, LED strips, dimmers |
+| **cover** | Blinds, curtains, garage doors |
+| **fan** | Ceiling fans, air purifiers |
+| **climate** | Thermostats, AC controllers |
+| **vacuum** | Robot vacuums |
+| **sensor** | Temperature, humidity, power monitoring |
+| **binary_sensor** | Motion, door/window, leak |
+| **number** | Brightness, speed setpoints |
+| **select** | Modes, presets |
+
+### Supported Protocols
+
+| Protocol | Encryption | Status |
+|----------|------------|--------|
+| 3.1 | AES-ECB | ✅ Supported |
+| 3.2 | AES-ECB | ✅ Supported |
+| 3.3 | AES-ECB | ✅ Supported |
+| 3.4 | AES-GCM | ✅ Supported |
+| **3.5** | AES-GCM | ✅ **Full Support** |
+
+### Debugging
+
+```yaml
+# configuration.yaml
+logger:
+  default: warning
+  logs:
+    custom_components.localtuya_bildass: debug
+    custom_components.localtuya_bildass.pytuya: debug
+```
+
+---
+
+## 🔄 Migration from Original LocalTuya
+
+**Good news:** You can run both versions simultaneously!
+
+### Quick Steps
+
+1. Install LocalTuya 2.0 via HACS
+2. Export existing config (local_keys are precious!)
+3. Add devices to LocalTuya 2.0
+4. Test everything
+5. Remove original when satisfied
+
+### Entity Name Changes
+
+| Original | LocalTuya 2.0 |
+|----------|---------------|
+| `switch.localtuya_xxx` | `switch.localtuya_bildass_xxx` |
+| `light.localtuya_xxx` | `light.localtuya_bildass_xxx` |
+
+**Update references in:** Automations, Scripts, Dashboards, Templates
+
+> 📚 **Full migration guide:** See [Migration Guide](#migration-guide) section below.
+
+---
+
+## 📋 Changelog
+
+### v7.3.x - Stability & UX
+- **v7.3.20** - Fix template name display in options flow
+- **v7.3.19** - Add all Tuya regions (SG, EU West, US East) with friendly names
+- **v7.3.18** - Heartbeat optimization, optimistic UI updates
+- **v7.3.17** - Remove rate limiting (caused delays)
+- **v7.3.16** - Smart Mini Bulb template, product_id detection fix
+
+### v7.0.x - Protocol 3.5 Revolution
+- **v7.0.0** - Complete pytuya rewrite, Protocol 3.5 support, Device Library
+
+### v6.x - Config Flow Overhaul
+- **v6.0.0** - Quick Edit, Entity List, Cloud Sync, Async API
+
+<details>
+<summary>📜 Older versions...</summary>
+
+### v5.x
+- **v5.5.0** - Removed broken QR auth, simplified flow
+- **v5.4.0** - Parallel installation, domain change
+- **v5.3.1** - HA 2025.x compatibility
+
+</details>
+
+---
+
+## 🆚 Comparison
+
+| Feature | Original LocalTuya | LocalTuya 2.0 |
+|---------|:------------------:|:-------------:|
+| Protocol 3.5 | ❌ | ✅ |
+| Device templates | ❌ | ✅ |
+| Quick Edit | ❌ | ✅ |
+| Cloud Key Sync | ❌ | ✅ |
+| HA 2024/2025 | ⚠️ Issues | ✅ |
+| Parallel install | ❌ | ✅ |
+| 100+ devices | ⚠️ Limited | ✅ |
+| Active development | ❌ Stalled | ✅ **Active** |
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions!
+
+### Ways to Help
+
+- 🐛 **Report bugs** - [Open an issue](https://github.com/Bildass/localtuya/issues)
+- 💡 **Request features** - [Start a discussion](https://github.com/Bildass/localtuya/discussions)
+- 📚 **Add device templates** - Share your working configs
+- 🌍 **Translations** - Help localize the integration
+- 🔧 **Code** - PRs welcome!
+
+### Development
+
+```bash
+git clone https://github.com/Bildass/localtuya.git
+cd localtuya
+# Create feature branch
+git checkout -b feature/amazing-feature
+# Make changes, commit, push
+git push origin feature/amazing-feature
+# Open PR
+```
+
+---
+
+## 📞 Support & Contact
+
+- 🌐 **Website:** [bildassystem.cz](https://bildassystem.cz)
+- 📧 **Email:** info@bildassystem.cz
+- 🐛 **Issues:** [GitHub Issues](https://github.com/Bildass/localtuya/issues)
+- 💬 **Discussions:** [GitHub Discussions](https://github.com/Bildass/localtuya/discussions)
+
+---
+
+## 🙏 Credits
+
+Built upon the excellent work of:
+- [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) - Original project
+- [jasonacox/tinytuya](https://github.com/jasonacox/tinytuya) - Protocol implementation
+- [make-all/tuya-local](https://github.com/make-all/tuya-local) - Inspiration for QR auth research
+
+**Community Contributors:**
+- Everyone who reports bugs, suggests features, and shares device configs!
+
+---
+
+<p align="center">
+  <strong>LocalTuya 2.0</strong><br>
+  Keeping local Tuya control <strong>alive</strong>.<br><br>
+  © 2024-2025 <a href="https://bildassystem.cz">BildaSystem.cz</a><br>
+  <sub>Fork of <a href="https://github.com/rospogrigio/localtuya">rospogrigio/localtuya</a> • Licensed under GPL-3.0</sub>
+</p>
+
+---
+
+<details>
+<summary><h2>📚 Full Migration Guide</h2></summary>
 
 ### From Original LocalTuya
 
@@ -117,11 +357,11 @@ rm -rf temp_localtuya
 
 ### 📋 Step 1: Export Your Existing Configuration
 
-Your existing device configurations (including precious `local_key` values) are stored in Home Assistant's config storage. Here's how to extract them:
+Your existing device configurations (including precious `local_key` values) are stored in Home Assistant's config storage.
 
 #### Option A: Python Script (Recommended for 10+ devices)
 
-Create a file called `export_localtuya.py` in your Home Assistant `/config` directory:
+Create `export_localtuya.py` in `/config`:
 
 ```python
 #!/usr/bin/env python3
@@ -130,16 +370,13 @@ Create a file called `export_localtuya.py` in your Home Assistant `/config` dire
 import json
 from pathlib import Path
 
-# Read config entries
 config_path = Path('/config/.storage/core.config_entries')
 with open(config_path, 'r') as f:
     data = json.load(f)
 
-# Find LocalTuya entries
 devices = []
 for entry in data['data']['entries']:
-    domain = entry.get('domain', '').lower()
-    if domain == 'localtuya':
+    if entry.get('domain', '').lower() == 'localtuya':
         device_data = entry.get('data', {})
         devices.append({
             'name': entry.get('title', 'Unknown'),
@@ -150,261 +387,88 @@ for entry in data['data']['entries']:
             'entities': device_data.get('entities', [])
         })
 
-# Save to file
 output_path = Path('/config/localtuya_export.json')
 with open(output_path, 'w') as f:
     json.dump(devices, f, indent=2)
 
 print(f"✅ Exported {len(devices)} devices to {output_path}")
-print("\nDevices found:")
-for d in devices:
-    print(f"  - {d['name']}: {d['device_id'][:8]}... @ {d['host']}")
 ```
 
-Run it via SSH or Terminal add-on:
-```bash
-cd /config
-python3 export_localtuya.py
-```
+Run via SSH: `python3 /config/export_localtuya.py`
 
-#### Option B: Manual Export (Few devices)
+#### Option B: Manual (Few devices)
 
-1. Access your Home Assistant via SSH or File Editor
-2. Open `/config/.storage/core.config_entries`
-3. Search for `"domain": "localtuya"`
-4. Copy the relevant entries to a text file
+1. Open `/config/.storage/core.config_entries`
+2. Search for `"domain": "localtuya"`
+3. Copy relevant entries
 
 ---
 
-### 📝 Step 2: Identify Key Information
+### 📝 Step 2: Add Devices to LocalTuya 2.0
 
-For each device, you need:
+For each device:
 
-| Field | Where to Find | Example |
-|-------|---------------|---------|
-| `device_id` | Exported data / Tuya IoT | `bf123456789abcdef` |
-| `local_key` | **Exported data** (don't re-fetch!) | `abcd1234efgh5678` |
-| `host` | Exported data / Router DHCP | `192.168.1.100` |
-| `protocol_version` | Exported data (usually 3.3 or 3.4) | `3.3` |
-| `entities` | Exported data (DP configurations) | switches, sensors, etc. |
+1. **Settings → Devices & Services → LocalTuya 2.0 → Configure**
+2. **Add new device**
+3. Enter details from export: Device ID, Host, Local Key, Protocol
+4. Configure entities using DP numbers from export
+5. Repeat
 
-> **💡 Pro tip:** The `local_key` is the most valuable piece - it's tedious to get from Tuya Cloud. Your export file already has it!
-
----
-
-### 🔧 Step 3: Add Devices to LocalTuya 2.0
-
-For each device in your export:
-
-1. Go to **Settings → Devices & Services → LocalTuya 2.0 → Configure**
-2. Select **Add new device**
-3. Enter the device details from your export:
-   - **Device ID:** Copy from export
-   - **Host:** Copy from export (or use new IP if changed)
-   - **Local Key:** Copy from export
-   - **Protocol Version:** Copy from export
-4. Configure entities using the DP numbers from your export
-5. Repeat for all devices
-
-> **⏱️ Time estimate:** ~2-3 minutes per device with prepared data
-
----
-
-### 🚀 Step 4: Use Cloud Sync (Alternative Method)
-
-If you have Tuya Cloud API configured, you can speed this up:
-
-1. **Configure Cloud API** in LocalTuya 2.0:
-   - Go to Settings → Devices & Services → LocalTuya 2.0 → Configure
-   - Select "Reconfigure Cloud API account"
-   - Enter your Tuya IoT credentials
-
-2. **Use Cloud Sync:**
-   - When adding a device, LocalTuya 2.0 will auto-fill `device_id` and `local_key`
-   - You still need to configure entities manually (DPs)
+> ⏱️ ~2-3 minutes per device with prepared data
 
 ---
 
 ### ⚠️ Entity Name Changes
 
-Your entity IDs will change after migration:
+Your entity IDs will change:
 
 | Original | LocalTuya 2.0 |
-|----------|-------------|
+|----------|---------------|
 | `switch.localtuya_xxx` | `switch.localtuya_bildass_xxx` |
 | `light.localtuya_xxx` | `light.localtuya_bildass_xxx` |
-| `climate.localtuya_xxx` | `climate.localtuya_bildass_xxx` |
 
-**Important:** Update these in:
-- ✏️ Automations
-- ✏️ Scripts
-- ✏️ Dashboard cards
-- ✏️ Template sensors
-- ✏️ Groups
+**Update in:** Automations, Scripts, Dashboards, Templates, Groups
 
 ---
 
-### ✅ Step 5: Verify and Clean Up
+### 💡 Tips
 
-1. **Test all devices** in LocalTuya 2.0
-2. **Check automations** still work
-3. **Once satisfied**, remove original LocalTuya:
-   - Settings → Devices & Services → LocalTuya → Delete
+- **Set static IPs** for Tuya devices in router
+- **Keep export file** as backup
+- **Migrate in batches** if many devices
+- **Test each batch** before continuing
 
----
-
-### 💡 Migration Tips
-
-- **Set static IPs** for your Tuya devices in your router to prevent IP changes
-- **Export before updating** Home Assistant - config format might change
-- **Keep the export file** as backup - local_keys are hard to get again
-- **Migrate in batches** if you have many devices - test each batch before continuing
-- **Use device names** from your export to keep things organized
+</details>
 
 ---
 
-## 📖 Documentation
+<details>
+<summary><h2>⚡ Energy Monitoring Setup</h2></summary>
 
-### Initial Setup
-
-1. **Add Integration:** Settings → Devices & Services → Add Integration → **LocalTuya 2.0**
-
-2. **Configure Cloud API** (recommended):
-   - Get credentials from [Tuya IoT Platform](https://iot.tuya.com)
-   - **Region:** eu / us / cn / in
-   - **Client ID:** Cloud → Development → Overview
-   - **Client Secret:** Same location
-   - **User ID:** From "Link Tuya App Account"
-
-3. **Add Devices:** Use Cloud Sync or manual configuration
-
-### Supported Devices
-
-| Type | Examples |
-|------|----------|
-| **Switches** | Smart plugs, relays, power strips |
-| **Lights** | Bulbs, LED strips, dimmers |
-| **Covers** | Blinds, shades, curtains, garage doors |
-| **Fans** | Ceiling fans, air purifiers |
-| **Climate** | Thermostats, AC controllers, heaters |
-| **Vacuums** | Robot vacuums |
-| **Sensors** | Temperature, humidity, motion, door/window |
-| **Numbers** | Brightness, speed, temperature setpoints |
-| **Selects** | Modes, presets |
-
-**Supported Protocols:** 3.1, 3.2, 3.3, 3.4
-
-### Energy Monitoring
-
-For devices with power measurement:
+For devices with power measurement (smart plugs, power strips):
 
 ```yaml
+# configuration.yaml
 sensor:
   - platform: template
     sensors:
       smart_plug_voltage:
         friendly_name: "Smart Plug Voltage"
-        value_template: "{{ state_attr('switch.my_smart_plug', 'voltage') }}"
+        value_template: "{{ state_attr('switch.localtuya_bildass_plug', 'voltage') }}"
         unit_of_measurement: 'V'
         device_class: voltage
+
       smart_plug_current:
         friendly_name: "Smart Plug Current"
-        value_template: "{{ state_attr('switch.my_smart_plug', 'current') }}"
+        value_template: "{{ state_attr('switch.localtuya_bildass_plug', 'current') }}"
         unit_of_measurement: 'mA'
         device_class: current
+
       smart_plug_power:
         friendly_name: "Smart Plug Power"
-        value_template: "{{ state_attr('switch.my_smart_plug', 'current_consumption') }}"
+        value_template: "{{ state_attr('switch.localtuya_bildass_plug', 'current_consumption') }}"
         unit_of_measurement: 'W'
         device_class: power
 ```
 
-### Debugging
-
-Add to `configuration.yaml`:
-
-```yaml
-logger:
-  default: warning
-  logs:
-    custom_components.localtuya_bildass: debug
-    custom_components.localtuya_bildass.pytuya: debug
-```
-
-Also enable **"Enable debugging for this device"** in device configuration.
-
----
-
-## 📋 Changelog
-
-### v6.0.0 - Config Flow Revolution
-- ✨ **Quick Edit** - change host/local_key/protocol without entities
-- ✨ **Entity List** - direct editing of single entity
-- ✨ **Cloud Sync** - fetch all local_keys with one click
-- ✨ **Device Actions Menu** - new organized submenu
-- 🔧 **Async Cloud API** - aiohttp, token caching, pagination
-- 🔧 **Security** - HMAC-SHA256 with proper nonce
-
-### v5.5.0
-- 🗑️ Removed non-functional QR authentication
-- 🔧 Simplified config flow
-
-### v5.4.0
-- ✨ Parallel installation alongside original LocalTuya
-- 🔧 Changed domain to `localtuya_bildass`
-
-### v5.3.1
-- 🐛 Home Assistant 2025.x compatibility fixes
-
----
-
-## 🆚 Comparison with Original
-
-| Feature | Original LocalTuya | LocalTuya 2.0 |
-|---------|:------------------:|:-----------:|
-| Quick Edit (IP/key change) | ❌ | ✅ |
-| Direct entity editing | ❌ | ✅ |
-| One-click cloud key sync | ❌ | ✅ |
-| HA 2025.x compatible | ⚠️ Issues | ✅ |
-| Parallel installation | ❌ | ✅ |
-| Async cloud API | ❌ | ✅ |
-| 100+ device support | ⚠️ Limited | ✅ |
-| Active development | ⚠️ Slow | ✅ |
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📞 Support & Contact
-
-- 🌐 **Website:** [bildassystem.cz](https://bildassystem.cz)
-- 📧 **Email:** info@bildassystem.cz
-- 🐛 **Issues:** [GitHub Issues](https://github.com/Bildass/localtuya/issues)
-- 💬 **Discussions:** [GitHub Discussions](https://github.com/Bildass/localtuya/discussions)
-
----
-
-## 🙏 Credits
-
-Built upon the excellent work of:
-- [rospogrigio/localtuya](https://github.com/rospogrigio/localtuya) - Original project
-- [NameLessJedi](https://github.com/NameLessJedi), [mileperhour](https://github.com/mileperhour), [TradeFace](https://github.com/TradeFace) - Code foundation
-- [jasonacox/tinytuya](https://github.com/jasonacox/tinytuya) - Protocol 3.4 implementation
-
----
-
-<p align="center">
-  <strong>LocalTuya 2.0</strong><br>
-  © 2024-2025 <a href="https://bildassystem.cz">BildaSystem.cz</a><br>
-  <sub>Fork of <a href="https://github.com/rospogrigio/localtuya">rospogrigio/localtuya</a> • Licensed under GPL-3.0</sub>
-</p>
+</details>
