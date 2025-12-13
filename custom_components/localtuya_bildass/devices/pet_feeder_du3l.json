@@ -1,0 +1,73 @@
+{
+  "product_key": "yumxmjz4scg1zfmd",
+  "name": "Automatic Pet Feeder DU3L",
+  "manufacturer": "Tuya Generic",
+  "model": "DU3L-W-02(WBR3)",
+  "protocol_version": "3.3",
+  "category": "pet_feeder",
+  "description": "Automatic pet feeder with meal planning, manual feed control (1-20 portions), battery monitoring and charging status.",
+  "entities": [
+    {
+      "platform": "switch",
+      "id": 25,
+      "friendly_name": "Power",
+      "icon": "mdi:power"
+    },
+    {
+      "platform": "switch",
+      "id": 2,
+      "friendly_name": "Quick Feed",
+      "icon": "mdi:food-drumstick"
+    },
+    {
+      "platform": "number",
+      "id": 3,
+      "friendly_name": "Manual Feed Portions",
+      "icon": "mdi:food-variant",
+      "min_value": 1,
+      "max_value": 20,
+      "step_size": 1,
+      "unit_of_measurement": "portions"
+    },
+    {
+      "platform": "sensor",
+      "id": 4,
+      "friendly_name": "Feed State",
+      "icon": "mdi:state-machine"
+    },
+    {
+      "platform": "sensor",
+      "id": 10,
+      "friendly_name": "Battery",
+      "device_class": "battery",
+      "unit_of_measurement": "%"
+    },
+    {
+      "platform": "binary_sensor",
+      "id": 11,
+      "friendly_name": "Charging",
+      "device_class": "battery_charging"
+    },
+    {
+      "platform": "sensor",
+      "id": 14,
+      "friendly_name": "Last Feed Report",
+      "icon": "mdi:history",
+      "unit_of_measurement": "portions"
+    }
+  ],
+  "dps_info": {
+    "1": "Meal Plan - Raw schedule data",
+    "2": "Quick Feed - Boolean trigger",
+    "3": "Manual Feed - Integer 1-20 portions",
+    "4": "Feed State - Enum: standby/feeding/done",
+    "10": "Battery Percentage - 0-100%",
+    "11": "Charge State - Boolean",
+    "13": "Fault - Error codes",
+    "14": "Feed Report - Last feed portions",
+    "24": "Factory Reset - Boolean (caution!)",
+    "25": "Switch - Main power on/off"
+  },
+  "contributed_by": "VISTALL (GitHub Issue #5)",
+  "tested": false
+}
