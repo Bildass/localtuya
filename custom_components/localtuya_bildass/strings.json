@@ -36,10 +36,10 @@
                 }
             },
             "check_library_template": {
-                "title": "🎉 Device Template Found!",
-                "description": "A pre-configured template was found for this device:\n\n**{device_name}** ({manufacturer})\n\nThis template includes **{entity_count} entities** with all DPs pre-configured.\n\nWould you like to use this template?",
+                "title": "🎉 Template: {device_name}",
+                "description": "Found pre-configured template for this device!\n\n**{device_name}**\nManufacturer: {manufacturer}\nEntities: {entity_count}\n\nAll DPs are pre-configured. Recommended!",
                 "data": {
-                    "use_template": "Use library template (recommended)"
+                    "use_template": "✅ Yes, use this template (recommended)"
                 }
             }
         }
@@ -287,10 +287,10 @@
                 "description": "Options cannot be edited when configured via YAML."
             },
             "check_library_template": {
-                "title": "🎉 Device Template Found!",
-                "description": "A pre-configured template was found for this device:\n\n**{device_name}** ({manufacturer})\n\nThis template includes **{entity_count} entities** with all DPs pre-configured.\n\nWould you like to use this template?",
+                "title": "🎉 Template: {device_name}",
+                "description": "Found pre-configured template for this device!\n\n**{device_name}**\nManufacturer: {manufacturer}\nEntities: {entity_count}\n\nAll DPs are pre-configured. Recommended!",
                 "data": {
-                    "use_template": "Use library template (recommended)"
+                    "use_template": "✅ Yes, use this template (recommended)"
                 }
             }
         }
