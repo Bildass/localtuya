@@ -16,12 +16,27 @@ from . import pytuya
 
 _LOGGER = logging.getLogger(__name__)
 
-# Tuya API regions
+# Tuya API regions - all available data centers
+# Reference: https://developer.tuya.com/en/docs/iot/api-request?id=Ka4a8uuo1j4t4
 TUYA_REGIONS = {
-    "eu": "https://openapi.tuyaeu.com",
-    "us": "https://openapi.tuyaus.com",
-    "cn": "https://openapi.tuyacn.com",
-    "in": "https://openapi.tuyain.com",
+    "eu": "https://openapi.tuyaeu.com",           # Central Europe
+    "eu_west": "https://openapi-weaz.tuyaeu.com", # Western Europe
+    "us": "https://openapi.tuyaus.com",           # Western America
+    "us_east": "https://openapi-ueaz.tuyaus.com", # Eastern America
+    "cn": "https://openapi.tuyacn.com",           # China
+    "in": "https://openapi.tuyain.com",           # India
+    "sg": "https://openapi-sg.iotbing.com",       # Singapore (launched June 2025)
+}
+
+# Human-readable region names for UI
+TUYA_REGION_NAMES = {
+    "eu": "EU - Central Europe",
+    "eu_west": "EU West - Western Europe",
+    "us": "US - Western America",
+    "us_east": "US East - Eastern America",
+    "cn": "CN - China",
+    "in": "IN - India",
+    "sg": "SG - Singapore",
 }
 
 
