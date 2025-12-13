@@ -258,6 +258,13 @@
             "yaml_import": {
                 "title": "Not Supported",
                 "description": "Options cannot be edited when configured via YAML."
+            },
+            "check_library_template": {
+                "title": "🎉 Device Template Found!",
+                "description": "A pre-configured template was found for this device:\n\n**{device_name}** ({manufacturer})\n\nThis template includes **{entity_count} entities** with all DPs pre-configured.\n\nWould you like to use this template?",
+                "data": {
+                    "use_template": "Use library template (recommended)"
+                }
             }
         }
     },
