@@ -33,13 +33,14 @@ from .const import (
     VERSION,
 )
 
-# Import helpers
+# Import helpers (re-export for backwards compatibility with __init__.py)
 from .config_flow_helpers import (
     ENTRIES_VERSION,
     CONFIGURE_SCHEMA,
     CLOUD_SETUP_SCHEMA,
     schema_defaults,
     attempt_cloud_connection,
+    config_schema,
 )
 
 # Import mixins
