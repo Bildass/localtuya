@@ -31,7 +31,7 @@ from .constants import (
     # Payload
     PAYLOAD_DICT, DEVICE_TYPE_0A, DEVICE_TYPE_0D, DEVICE_TYPE_V34, DEVICE_TYPE_V35,
     # Timing
-    HEARTBEAT_INTERVAL, DEFAULT_TIMEOUT,
+    HEARTBEAT_INTERVAL, DEFAULT_TIMEOUT, HEARTBEAT_LOCK_TIMEOUT,
     UPDATE_DPS_WHITELIST,
     # Errors
     ERR_JSON, ERR_PAYLOAD, ERROR_MESSAGES,
@@ -513,7 +513,7 @@ class TuyaProtocol(asyncio.Protocol):
         async def heartbeat_loop():
             self.debug("Heartbeat loop started")
             consecutive_failures = 0
-            max_failures = 3  # Disconnect after 3 consecutive failures
+            max_failures = 5  # Disconnect after 5 consecutive failures (75s tolerance)
 
             try:
                 while True:
@@ -549,7 +549,7 @@ class TuyaProtocol(asyncio.Protocol):
         """Send heartbeat (low priority - won't block control commands)."""
         # Try to acquire lock with short timeout - skip if busy with control command
         try:
-            await asyncio.wait_for(self._command_lock.acquire(), timeout=0.5)
+            await asyncio.wait_for(self._command_lock.acquire(), timeout=HEARTBEAT_LOCK_TIMEOUT)
         except asyncio.TimeoutError:
             self.debug("Heartbeat skipped - command in progress")
             return None
