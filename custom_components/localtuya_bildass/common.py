@@ -359,8 +359,6 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
     @callback
     def disconnected(self):
         """Device disconnected."""
-        signal = f"localtuya_{self._dev_config_entry[CONF_DEVICE_ID]}"
-        async_dispatcher_send(self._hass, signal, None)
         if self._unsub_interval is not None:
             self._unsub_interval()
             self._unsub_interval = None
@@ -369,7 +367,28 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         if self._connect_task is not None:
             self._connect_task.cancel()
             self._connect_task = None
-        self.warning("Disconnected - waiting for discovery broadcast")
+
+        # Don't mark as unavailable immediately - try reconnect first
+        # This helps with Protocol 3.5 devices that disconnect after control commands
+        if not self._is_closing:
+            self.warning("Disconnected - attempting immediate reconnect")
+            # Schedule reconnect after short delay (1s)
+            async def _delayed_reconnect():
+                await asyncio.sleep(1)
+                if not self._is_closing and self._interface is None:
+                    self.async_connect()
+                    # If still not connected after 5s, mark as unavailable
+                    await asyncio.sleep(5)
+                    if self._interface is None:
+                        signal = f"localtuya_{self._dev_config_entry[CONF_DEVICE_ID]}"
+                        async_dispatcher_send(self._hass, signal, None)
+                        self.warning("Reconnect failed - marking as unavailable")
+            asyncio.create_task(_delayed_reconnect())
+        else:
+            # Closing - mark as unavailable immediately
+            signal = f"localtuya_{self._dev_config_entry[CONF_DEVICE_ID]}"
+            async_dispatcher_send(self._hass, signal, None)
+            self.warning("Disconnected during close")
 
 
 class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
