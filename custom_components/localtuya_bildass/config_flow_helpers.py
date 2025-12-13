@@ -23,6 +23,7 @@ from homeassistant.const import (
 from .cloud_api import TuyaCloudApi, TUYA_REGION_NAMES
 from .common import pytuya
 from .const import (
+    CONF_ACTION,
     CONF_ADD_DEVICE,
     CONF_DELETE_DEVICE,
     CONF_DPS_STRINGS,
@@ -131,8 +132,6 @@ PICK_ENTITY_SCHEMA = vol.Schema(
     {vol.Required(PLATFORM_TO_ADD, default="switch"): vol.In(PLATFORMS)}
 )
 
-# Need CONF_ACTION for schema - import it
-from .const import CONF_ACTION
 
 
 # ============================================================================
