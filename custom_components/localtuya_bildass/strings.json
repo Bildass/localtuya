@@ -4,7 +4,10 @@
             "already_configured": "Device has already been configured.",
             "unsupported_device_type": "Unsupported device type!",
             "no_cloud_configured": "Cloud API is not configured. Please configure Cloud API first.",
-            "entity_not_found": "Entity not found."
+            "entity_not_found": "Entity not found.",
+            "qr_auth_unavailable": "QR Code authentication is not available. Please install tuya-device-sharing-sdk.",
+            "qr_token_failed": "Failed to generate QR code token. Please try again.",
+            "qr_auth_error": "QR Code authentication failed. Please try again."
         },
         "error": {
             "cannot_connect": "Cannot connect to device. Verify that address is correct.",
@@ -15,7 +18,9 @@
             "authentication_failed": "Authentication failed. Please check your credentials.",
             "empty_dps": "No datapoints found. Device may be offline or unreachable.",
             "address_in_use": "Discovery port is already in use.",
-            "discovery_failed": "Device discovery failed."
+            "discovery_failed": "Device discovery failed.",
+            "qr_not_scanned": "QR code was not scanned yet. Please scan the QR code with your Smart Life app.",
+            "qr_device_fetch_failed": "Failed to fetch devices after QR authentication. Please try again."
         },
         "step": {
             "cloud_credentials": {
@@ -43,7 +48,14 @@
         "abort": {
             "no_cloud_configured": "Cloud API is not configured. Please configure Cloud API first in 'Reconfigure Cloud API account'.",
             "entity_not_found": "Entity not found.",
-            "no_entities": "No entities configured for this device."
+            "no_entities": "No entities configured for this device.",
+            "qr_auth_unavailable": "QR Code authentication is not available. Please install tuya-device-sharing-sdk.",
+            "qr_token_failed": "Failed to generate QR code token. Please try again.",
+            "qr_auth_error": "QR Code authentication failed. Please try again."
+        },
+        "error": {
+            "qr_not_scanned": "QR code was not scanned yet. Please scan the QR code with your Smart Life app.",
+            "qr_device_fetch_failed": "Failed to fetch devices after QR authentication. Please try again."
         },
         "step": {
             "init": {
@@ -137,6 +149,21 @@
                 "description": "Found {total_devices} configured devices.\n**{changed_count}** have updated keys.\n{not_found} not found in cloud.\n\n{changes_list}",
                 "data": {
                     "apply_changes": "Apply changes"
+                }
+            },
+            "qr_auth": {
+                "title": "🔐 QR Code Authentication",
+                "description": "Easy authentication without Tuya developer account!\n\n**Step 1:** Open your Smart Life (or Tuya Smart) app\n**Step 2:** Go to: Me → Settings → Account and Security → User Code\n**Step 3:** Enter the User Code below and select your app type",
+                "data": {
+                    "user_code": "User Code (from Smart Life app)",
+                    "qr_schema": "App Type"
+                }
+            },
+            "qr_scan": {
+                "title": "📱 Scan QR Code",
+                "description": "Scan this QR code with your Smart Life app:\n\n**QR URL:** `{qr_url}`\n\n**How to scan:**\n1. Open Smart Life app\n2. Tap '+' (add device)\n3. Select 'Scan' at top right\n4. Scan the QR code above\n5. Confirm the authorization\n\nAfter scanning, check the box below and submit.",
+                "data": {
+                    "scanned": "I have scanned the QR code and confirmed"
                 }
             },
             "configure_device": {

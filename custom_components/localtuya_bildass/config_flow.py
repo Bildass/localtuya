@@ -56,6 +56,11 @@ from .const import (
     CONF_SYNC_CLOUD,
     CONF_USER_ID,
     CONF_ENABLE_ADD_ENTITIES,
+    CONF_QR_AUTH,
+    CONF_USER_CODE,
+    CONF_QR_SCHEMA,
+    TUYA_HA_CLIENT_ID,
+    TUYA_QR_SCHEMAS,
     DATA_CLOUD,
     DATA_DISCOVERY,
     DOMAIN,
@@ -66,6 +71,14 @@ from .discovery import discover
 from . import device_library
 
 _LOGGER = logging.getLogger(__name__)
+
+# QR Code Authentication imports
+try:
+    from tuya_sharing import LoginControl, Manager
+    QR_AUTH_AVAILABLE = True
+except ImportError:
+    QR_AUTH_AVAILABLE = False
+    _LOGGER.debug("tuya-device-sharing-sdk not installed, QR auth will be unavailable")
 
 ENTRIES_VERSION = 2
 
@@ -82,6 +95,7 @@ CONF_ACTIONS = {
     CONF_EDIT_DEVICE: "Edit a device",
     CONF_SYNC_CLOUD: "Sync local keys from cloud",
     CONF_SETUP_CLOUD: "Reconfigure Cloud API account",
+    CONF_QR_AUTH: "🔐 QR Code Authentication (Easy!)",
 }
 
 # Device action submenu options
@@ -509,6 +523,8 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_edit_device()
             if action == CONF_SYNC_CLOUD:
                 return await self.async_step_sync_from_cloud()
+            if action == CONF_QR_AUTH:
+                return await self.async_step_qr_auth()
 
         # Count configured devices for display
         device_count = len(self._get_config_entry().data.get(CONF_DEVICES, {}))
@@ -1101,6 +1117,148 @@ class LocalTuyaOptionsFlowHandler(config_entries.OptionsFlow):
                 "changed_count": str(update_count),
                 "not_found": str(not_found),
                 "changes_list": changes_text,
+            },
+        )
+
+    async def async_step_qr_auth(self, user_input=None):
+        """Handle QR code authentication setup."""
+        errors = {}
+
+        if not QR_AUTH_AVAILABLE:
+            return self.async_abort(
+                reason="qr_auth_unavailable",
+                description_placeholders={},
+            )
+
+        if user_input is not None:
+            # Store user input and proceed to QR scan
+            self._qr_user_code = user_input[CONF_USER_CODE]
+            self._qr_schema = user_input[CONF_QR_SCHEMA]
+            return await self.async_step_qr_scan()
+
+        return self.async_show_form(
+            step_id="qr_auth",
+            data_schema=vol.Schema({
+                vol.Required(CONF_USER_CODE): cv.string,
+                vol.Required(CONF_QR_SCHEMA, default="smartlife"): vol.In(TUYA_QR_SCHEMAS),
+            }),
+            errors=errors,
+            description_placeholders={},
+        )
+
+    async def async_step_qr_scan(self, user_input=None):
+        """Handle QR code scanning and polling."""
+        import asyncio
+
+        errors = {}
+
+        if user_input is not None:
+            # User confirmed they scanned - check result
+            if hasattr(self, '_qr_login_data') and self._qr_login_data:
+                # Success! Update cloud data with QR auth results
+                try:
+                    # Initialize Manager to get devices
+                    manager = Manager(
+                        client_id=TUYA_HA_CLIENT_ID,
+                        user_code=self._qr_user_code,
+                        terminal_id=self._qr_login_data['terminal_id'],
+                        end_point=self._qr_login_data['endpoint'],
+                        token_response=self._qr_login_data
+                    )
+
+                    # Fetch devices
+                    await self.hass.async_add_executor_job(manager.update_device_cache)
+
+                    # Convert to our cloud format and update
+                    cloud_api = self.hass.data[DOMAIN][DATA_CLOUD]
+                    devices_synced = 0
+
+                    for device_id, device in manager.device_map.items():
+                        cloud_api.device_list[device_id] = {
+                            CONF_NAME: device.name,
+                            CONF_LOCAL_KEY: device.local_key,
+                            "product_id": device.product_id,
+                            "category": device.category,
+                            "online": device.online,
+                        }
+                        devices_synced += 1
+
+                    _LOGGER.info("QR Auth: Synced %d devices from cloud", devices_synced)
+
+                    # Mark that we have cloud data (even though via QR)
+                    new_data = self._get_config_entry().data.copy()
+                    new_data[CONF_NO_CLOUD] = False
+                    new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
+                    self.hass.config_entries.async_update_entry(
+                        self._get_config_entry(),
+                        data=new_data,
+                    )
+
+                    return self.async_create_entry(title="", data={})
+
+                except Exception as ex:
+                    _LOGGER.error("QR Auth device fetch failed: %s", ex)
+                    errors["base"] = "qr_device_fetch_failed"
+            else:
+                errors["base"] = "qr_not_scanned"
+
+        # Generate QR code token
+        try:
+            login = LoginControl()
+            result = await self.hass.async_add_executor_job(
+                login.qr_code,
+                TUYA_HA_CLIENT_ID,
+                self._qr_schema,
+                self._qr_user_code
+            )
+
+            if not result.get("success"):
+                _LOGGER.error("QR token generation failed: %s", result)
+                return self.async_abort(reason="qr_token_failed")
+
+            token = result.get("result", {}).get("qrcode")
+            if not token:
+                return self.async_abort(reason="qr_token_failed")
+
+            self._qr_token = token
+            qr_url = f"tuyaSmart--qrLogin?token={token}"
+
+            # Start background polling for login result
+            async def poll_login():
+                for _ in range(60):  # 2 minutes timeout
+                    await asyncio.sleep(2)
+                    try:
+                        success, login_data = await self.hass.async_add_executor_job(
+                            login.login_result,
+                            token,
+                            TUYA_HA_CLIENT_ID,
+                            self._qr_user_code
+                        )
+                        if success:
+                            self._qr_login_data = login_data
+                            _LOGGER.info("QR Auth: Login successful!")
+                            return True
+                    except Exception as ex:
+                        _LOGGER.debug("QR polling error: %s", ex)
+                return False
+
+            # Start polling in background
+            self._qr_poll_task = self.hass.async_create_task(poll_login())
+            self._qr_login_data = None
+
+        except Exception as ex:
+            _LOGGER.error("QR Auth error: %s", ex)
+            return self.async_abort(reason="qr_auth_error")
+
+        return self.async_show_form(
+            step_id="qr_scan",
+            data_schema=vol.Schema({
+                vol.Required("scanned", default=False): bool,
+            }),
+            errors=errors,
+            description_placeholders={
+                "qr_url": qr_url,
+                "user_code": self._qr_user_code,
             },
         )
 
