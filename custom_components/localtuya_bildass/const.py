@@ -3,7 +3,7 @@
 DOMAIN = "localtuya_bildass"
 
 # BildaSystem branding
-VERSION = "7.3.14"
+VERSION = "7.3.15"
 BILDASYSTEM_URL = "https://bildassystem.cz"
 BILDASYSTEM_NAME = "LocalTuya 2.0"
 
