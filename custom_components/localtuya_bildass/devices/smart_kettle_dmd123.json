@@ -1,0 +1,89 @@
+{
+  "product_key": "1n9aainqrkrzxeuc",
+  "name": "Smart Kettle DMD123",
+  "model": "SMART KETTLE DMD123",
+  "manufacturer": "Unknown",
+  "entities": [
+    {
+      "platform": "switch",
+      "id": 1,
+      "friendly_name": "Start"
+    },
+    {
+      "platform": "sensor",
+      "id": 2,
+      "friendly_name": "Current Temperature",
+      "device_class": "temperature",
+      "unit_of_measurement": "°C"
+    },
+    {
+      "platform": "number",
+      "id": 4,
+      "friendly_name": "Set Temperature",
+      "min_value": 35,
+      "max_value": 100,
+      "unit_of_measurement": "°C"
+    },
+    {
+      "platform": "number",
+      "id": 7,
+      "friendly_name": "Warm Time",
+      "min_value": 0,
+      "max_value": 360,
+      "unit_of_measurement": "min"
+    },
+    {
+      "platform": "sensor",
+      "id": 8,
+      "friendly_name": "Status"
+    },
+    {
+      "platform": "select",
+      "id": 9,
+      "friendly_name": "Work Type"
+    },
+    {
+      "platform": "sensor",
+      "id": 10,
+      "friendly_name": "Fault"
+    },
+    {
+      "platform": "select",
+      "id": 11,
+      "friendly_name": "Mode"
+    },
+    {
+      "platform": "number",
+      "id": 12,
+      "friendly_name": "Countdown",
+      "min_value": 0,
+      "max_value": 1440,
+      "unit_of_measurement": "min"
+    },
+    {
+      "platform": "sensor",
+      "id": 13,
+      "friendly_name": "Countdown Remaining",
+      "unit_of_measurement": "min"
+    },
+    {
+      "platform": "switch",
+      "id": 14,
+      "friendly_name": "Warm Function"
+    },
+    {
+      "platform": "number",
+      "id": 15,
+      "friendly_name": "Warm Set Temperature",
+      "min_value": 35,
+      "max_value": 100,
+      "unit_of_measurement": "°C"
+    },
+    {
+      "platform": "sensor",
+      "id": 17,
+      "friendly_name": "Warm Time Remaining",
+      "unit_of_measurement": "min"
+    }
+  ]
+}
