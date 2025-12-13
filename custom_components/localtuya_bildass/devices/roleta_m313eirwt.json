@@ -15,7 +15,7 @@
       "positioning_mode": "position",
       "current_position_dp": 2,
       "set_position_dp": 2,
-      "position_inverted": false,
+      "position_inverted": true,
       "span_time": 25.0
     }
   ],
