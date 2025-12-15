@@ -44,7 +44,17 @@ class LocaltuyaSelect(LocalTuyaEntity, SelectEntity):
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
         self._state = STATE_UNKNOWN
         self._state_friendly = ""
-        self._valid_options = self._config.get(CONF_OPTIONS).split(";")
+
+        # Handle missing options gracefully (can happen with device templates)
+        options_str = self._config.get(CONF_OPTIONS)
+        if options_str:
+            self._valid_options = options_str.split(";")
+        else:
+            _LOGGER.error(
+                "Select entity DP %s missing 'options' configuration! "
+                "Entity will not work correctly.", sensorid
+            )
+            self._valid_options = ["unknown"]
 
         # Set Display options
         self._display_options = []
