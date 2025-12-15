@@ -3,8 +3,8 @@ import logging
 from functools import partial
 
 import voluptuous as vol
-from homeassistant.components.number import DOMAIN, NumberEntity
-from homeassistant.const import CONF_DEVICE_CLASS, STATE_UNKNOWN
+from homeassistant.components.number import DOMAIN, NumberEntity, NumberDeviceClass
+from homeassistant.const import CONF_DEVICE_CLASS, CONF_UNIT_OF_MEASUREMENT, STATE_UNKNOWN
 
 from .common import LocalTuyaEntity, async_setup_entry
 from .const import (
@@ -13,6 +13,7 @@ from .const import (
     CONF_MIN_VALUE,
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
+    CONF_SCALING,
     CONF_STEPSIZE_VALUE,
 )
 
@@ -21,6 +22,10 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_MIN = 0
 DEFAULT_MAX = 100000
 DEFAULT_STEP = 1.0
+DEFAULT_PRECISION = 2
+
+# Device classes supported by NumberEntity
+NUMBER_DEVICE_CLASSES = [cls.value for cls in NumberDeviceClass]
 
 
 def flow_schema(dps):
@@ -38,6 +43,11 @@ def flow_schema(dps):
             vol.Coerce(float),
             vol.Range(min=0.0, max=1000000.0),
         ),
+        vol.Optional(CONF_SCALING): vol.All(
+            vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0)
+        ),
+        vol.Optional(CONF_UNIT_OF_MEASUREMENT): str,
+        vol.Optional(CONF_DEVICE_CLASS): vol.In(NUMBER_DEVICE_CLASSES),
         vol.Required(CONF_RESTORE_ON_RECONNECT): bool,
         vol.Required(CONF_PASSIVE_ENTITY): bool,
         vol.Optional(CONF_DEFAULT_VALUE): str,
@@ -100,8 +110,25 @@ class LocaltuyaNumber(LocalTuyaEntity, NumberEntity):
         """Return the class of this device."""
         return self._config.get(CONF_DEVICE_CLASS)
 
+    @property
+    def native_unit_of_measurement(self):
+        """Return the unit of measurement of this entity, if any."""
+        return self._config.get(CONF_UNIT_OF_MEASUREMENT)
+
+    def status_updated(self):
+        """Device status was updated."""
+        state = self.dps(self._dp_id)
+        scale_factor = self._config.get(CONF_SCALING)
+        if scale_factor is not None and isinstance(state, (int, float)):
+            state = round(state * scale_factor, DEFAULT_PRECISION)
+        self._state = state
+
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
+        scale_factor = self._config.get(CONF_SCALING)
+        if scale_factor is not None and scale_factor != 0:
+            # Inverse scaling: convert displayed value back to raw DP value
+            value = round(value / scale_factor)
         await self._device.set_dp(value, self._dp_id)
 
     # Default value is the minimum value
