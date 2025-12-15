@@ -4,3 +4,4 @@ __pycache__
 tuyadebug/
 .pre-commit-config.yamlvenv/
 venv/
+CLAUDE.md
