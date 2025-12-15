@@ -58,6 +58,7 @@ y = PATCH - opravy, bugfixy
 
 ## Aktuální verze
 
+- **v7.6.0** - Number entity scaling, device class, unit of measurement support (GitHub Issue #6)
 - **v7.5.0** - Config flow refactoring - split 1677-line file into 6 modular files (mixins architecture)
 - **v7.4.4** - Pet Feeder DU3L template (GitHub Issue #5)
 - **v7.3.17** - Remove rate limiting (caused delays, not needed with correct DP config)
