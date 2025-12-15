@@ -40,7 +40,8 @@
     {
       "platform": "select",
       "id": 9,
-      "friendly_name": "Work Type"
+      "friendly_name": "Work Type",
+      "options": "boiling_quick"
     },
     {
       "platform": "sensor",
@@ -48,7 +49,7 @@
       "friendly_name": "Fault"
     },
     {
-      "platform": "select",
+      "platform": "sensor",
       "id": 11,
       "friendly_name": "Mode"
     },
