@@ -52,12 +52,32 @@ The original [LocalTuya](https://github.com/rospogrigio/localtuya) was a game-ch
 
 ## ✨ Features
 
+### 🔐 QR Code Authentication (v7.4+)
+**No Tuya developer account needed!** Just scan a QR code:
+- Open Smart Life app → Me → Settings → User Code
+- Enter the code in LocalTuya 2.0
+- Scan QR with app → Done!
+- All your devices and local_keys are fetched automatically
+
 ### 🆕 Protocol 3.5 Support (v7.0+)
 Full support for the latest Tuya protocol:
 - **GCM encryption** for secure communication
 - **6699 packet prefix** handling
 - **Proper heartbeat** with retry logic
 - Works with newest Tuya devices
+
+### 🏷️ Entity Naming Prefix (v7.8+)
+Keep your entities organized in large installations:
+- Set a prefix per device (e.g., "Living Room", "Bedroom #1")
+- All entities get prefixed automatically
+- Example: `Living Room Temperature` instead of just `Temperature`
+- Perfect for multiple devices of the same type
+
+### 📊 Advanced Sensor Features (v7.6+)
+- **Scaling factor** - multiply raw values (e.g., `0.1` for temperature)
+- **Device class** - proper icons and units in HA
+- **Enum support** (v7.8+) - translate raw values to friendly names
+  - Raw: `0`, `1`, `2` → Display: `Off`, `Heating`, `Cooling`
 
 ### 📚 Device Library (v7.0+)
 Pre-configured templates for common devices:
@@ -66,17 +86,21 @@ Pre-configured templates for common devices:
 - **Community templates** - growing library
 
 Currently supported:
-- Smart Mini Bulb RGB+CCT (Protocol 3.5)
-- Smart Star Projector
-- Tesla Air Purifier Mini
-- Tesla Dehumidifier XL
-- Tesla Power Strip PS300
-- BlitzWolf Air Cleaner
-- Nedis Pet Feeder
-- KWS-302WF Energy Meter
-- Circuit Breaker 63A
-- Roleta M313EIRWT
+- 🌡️ **Inkbird ITC-308-WIFI** - Temperature controller (heating/cooling)
+- 💡 Smart Mini Bulb RGB+CCT (Protocol 3.5)
+- ⭐ Smart Star Projector
+- 🌬️ Tesla Air Purifier Mini
+- 💧 Tesla Dehumidifier XL
+- 🔌 Tesla Power Strip PS300
+- 🌬️ BlitzWolf Air Cleaner
+- 🐾 **Nedis Pet Feeder** - Auto feeder with portions
+- 🐾 **Pet Feeder DU3L** - Advanced pet feeder
+- ⚡ KWS-302WF Energy Meter
+- 🔌 Circuit Breaker 63A
+- 🪟 Roleta M313EIRWT
 - *...and more coming!*
+
+> 💡 **Have a device?** [Open an issue](https://github.com/Bildass/localtuya/issues) with your device info and we'll add a template!
 
 ### 🚀 Quick Edit
 Change host, local_key, or protocol **without** reconfiguring entities:
@@ -140,18 +164,20 @@ We're actively developing LocalTuya 2.0. Here's what's coming:
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| **QR Code Authentication** | 🔬 Research done | Login with Tuya app - no developer account needed! |
 | **Water Heater Platform** | 📋 Planned | Support for smart kettles, water heaters |
 | **More Device Templates** | 🔄 Ongoing | Community-contributed device configs |
+| **Entity Customization** | 💭 Idea | More options for entity appearance |
 
 ### ✅ Recently Shipped
 
 | Version | Feature |
 |---------|---------|
+| **v7.8.0** | 🏷️ Entity naming prefix + 📊 Sensor enum support |
+| **v7.7.0** | 🌡️ Inkbird ITC-308-WIFI template |
+| **v7.6.0** | Number entity scaling, device class, units |
+| **v7.5.0** | Config flow refactoring (modular architecture) |
+| **v7.4.0** | 🔐 **QR Code Authentication** - no developer account needed! |
 | v7.3.20 | Fixed template name display in options flow |
-| v7.3.19 | Added Singapore region + friendly region names |
-| v7.3.18 | Heartbeat optimization + optimistic UI updates |
-| v7.3.16 | Smart Mini Bulb template + product_id detection |
 | v7.0.0 | Complete pytuya rewrite + Protocol 3.5 |
 
 ### 💡 Future Ideas
@@ -241,6 +267,21 @@ logger:
 
 ## 📋 Changelog
 
+### v7.8.x - Advanced Features
+- **v7.8.0** - Sensor enum device_class support, Entity naming prefix
+
+### v7.7.x - Device Templates
+- **v7.7.0** - Inkbird ITC-308-WIFI temperature controller template
+
+### v7.6.x - Number Entity Improvements
+- **v7.6.0** - Number entity scaling, device class, unit of measurement support
+
+### v7.5.x - Architecture
+- **v7.5.0** - Config flow refactoring - split into 6 modular files (mixins)
+
+### v7.4.x - QR Authentication
+- **v7.4.0** - 🔐 QR Code Authentication - no developer account needed!
+
 ### v7.3.x - Stability & UX
 - **v7.3.20** - Fix template name display in options flow
 - **v7.3.19** - Add all Tuya regions (SG, EU West, US East) with friendly names
@@ -271,12 +312,14 @@ logger:
 | Feature | Original LocalTuya | LocalTuya 2.0 |
 |---------|:------------------:|:-------------:|
 | Protocol 3.5 | ❌ | ✅ |
+| QR Code Auth | ❌ | ✅ **No dev account!** |
 | Device templates | ❌ | ✅ |
 | Quick Edit | ❌ | ✅ |
 | Cloud Key Sync | ❌ | ✅ |
+| Entity prefix | ❌ | ✅ |
+| Sensor enum | ❌ | ✅ |
 | HA 2024/2025 | ⚠️ Issues | ✅ |
 | Parallel install | ❌ | ✅ |
-| 100+ devices | ⚠️ Limited | ✅ |
 | Active development | ❌ Stalled | ✅ **Active** |
 
 ---
@@ -324,6 +367,7 @@ Built upon the excellent work of:
 - [make-all/tuya-local](https://github.com/make-all/tuya-local) - Inspiration for QR auth research
 
 **Community Contributors:**
+- **@galentx** - Inkbird ITC-308-WIFI template, enum support & entity prefix ideas
 - Everyone who reports bugs, suggests features, and shares device configs!
 
 ---
