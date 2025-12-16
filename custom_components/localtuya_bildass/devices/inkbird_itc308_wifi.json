@@ -1,0 +1,164 @@
+{
+  "product_key": "rt9nqdxeiqo7dnz9",
+  "name": "Inkbird ITC-308-WIFI Temperature Controller",
+  "manufacturer": "Inkbird",
+  "model": "ITC-308-WIFI",
+  "protocol_version": "3.4",
+  "category": "climate",
+  "entities": [
+    {
+      "platform": "select",
+      "id": 101,
+      "friendly_name": "Temperature Unit",
+      "select_options": "C;F",
+      "select_options_friendly": "Celsius;Fahrenheit",
+      "restore_on_reconnect": false,
+      "is_passive_entity": false
+    },
+    {
+      "platform": "number",
+      "id": 102,
+      "friendly_name": "Temperature Calibration",
+      "min_value": -15.0,
+      "max_value": 15.0,
+      "step_size": 0.1,
+      "scaling": 0.1,
+      "unit_of_measurement": "\u00b0",
+      "device_class": "temperature",
+      "restore_on_reconnect": false,
+      "is_passive_entity": false
+    },
+    {
+      "platform": "sensor",
+      "id": 104,
+      "friendly_name": "Current Temperature (C)",
+      "unit_of_measurement": "\u00b0C",
+      "device_class": "temperature",
+      "scaling": 0.1
+    },
+    {
+      "platform": "sensor",
+      "id": 116,
+      "friendly_name": "Current Temperature (F)",
+      "unit_of_measurement": "\u00b0F",
+      "device_class": "temperature",
+      "scaling": 0.1
+    },
+    {
+      "platform": "number",
+      "id": 106,
+      "friendly_name": "Temperature Setpoint",
+      "min_value": -40.0,
+      "max_value": 212.0,
+      "step_size": 0.1,
+      "scaling": 0.1,
+      "unit_of_measurement": "\u00b0",
+      "device_class": "temperature",
+      "restore_on_reconnect": false,
+      "is_passive_entity": false
+    },
+    {
+      "platform": "number",
+      "id": 108,
+      "friendly_name": "Compressor Delay",
+      "min_value": 0,
+      "max_value": 10,
+      "step_size": 1,
+      "unit_of_measurement": "min",
+      "device_class": "duration",
+      "restore_on_reconnect": false,
+      "is_passive_entity": false
+    },
+    {
+      "platform": "number",
+      "id": 109,
+      "friendly_name": "High Temperature Alarm",
+      "min_value": -40.0,
+      "max_value": 212.0,
+      "step_size": 0.1,
+      "scaling": 0.1,
+      "unit_of_measurement": "\u00b0",
+      "device_class": "temperature",
+      "restore_on_reconnect": false,
+      "is_passive_entity": false
+    },
+    {
+      "platform": "number",
+      "id": 110,
+      "friendly_name": "Low Temperature Alarm",
+      "min_value": -40.0,
+      "max_value": 212.0,
+      "step_size": 0.1,
+      "scaling": 0.1,
+      "unit_of_measurement": "\u00b0",
+      "device_class": "temperature",
+      "restore_on_reconnect": false,
+      "is_passive_entity": false
+    },
+    {
+      "platform": "binary_sensor",
+      "id": 111,
+      "friendly_name": "High Temperature Alarm",
+      "device_class": "problem",
+      "state_on": "True",
+      "state_off": "False"
+    },
+    {
+      "platform": "binary_sensor",
+      "id": 112,
+      "friendly_name": "Low Temperature Alarm",
+      "device_class": "problem",
+      "state_on": "True",
+      "state_off": "False"
+    },
+    {
+      "platform": "binary_sensor",
+      "id": 113,
+      "friendly_name": "Temperature Sensor Fault",
+      "device_class": "problem",
+      "state_on": "True",
+      "state_off": "False"
+    },
+    {
+      "platform": "sensor",
+      "id": 115,
+      "friendly_name": "Relay Status",
+      "device_class": "enum"
+    },
+    {
+      "platform": "sensor",
+      "id": 12,
+      "friendly_name": "Faults",
+      "device_class": "enum"
+    },
+    {
+      "platform": "number",
+      "id": 117,
+      "friendly_name": "Heating Hysteresis",
+      "min_value": 0.0,
+      "max_value": 30.0,
+      "step_size": 0.1,
+      "scaling": 0.1,
+      "unit_of_measurement": "\u00b0",
+      "device_class": "temperature",
+      "restore_on_reconnect": false,
+      "is_passive_entity": false
+    },
+    {
+      "platform": "number",
+      "id": 118,
+      "friendly_name": "Cooling Hysteresis",
+      "min_value": 0.0,
+      "max_value": 30.0,
+      "step_size": 0.1,
+      "scaling": 0.1,
+      "unit_of_measurement": "\u00b0",
+      "device_class": "temperature",
+      "restore_on_reconnect": false,
+      "is_passive_entity": false
+    }
+  ],
+  "contributed_by": "galentx (GitHub Issue #7)",
+  "tested": true,
+  "notes": "Temperature controller with heating/cooling relay. Use Temperature Unit (DP101) to switch between Celsius and Fahrenheit. Both temperature sensors are included - use the one matching your unit preference."
+}
