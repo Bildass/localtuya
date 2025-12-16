@@ -30,6 +30,7 @@ from .const import (
     ATTR_UPDATED_AT,
     CONF_DEFAULT_VALUE,
     CONF_ENABLE_DEBUG,
+    CONF_ENTITY_PREFIX,
     CONF_LOCAL_KEY,
     CONF_MODEL,
     CONF_PASSIVE_ENTITY,
@@ -472,7 +473,12 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     @property
     def name(self):
         """Get name of Tuya entity."""
-        return self._config[CONF_FRIENDLY_NAME]
+        entity_name = self._config[CONF_FRIENDLY_NAME]
+        # Apply device-level entity prefix if configured
+        prefix = self._dev_config_entry.get(CONF_ENTITY_PREFIX)
+        if prefix:
+            return f"{prefix} {entity_name}"
+        return entity_name
 
     @property
     def should_poll(self):

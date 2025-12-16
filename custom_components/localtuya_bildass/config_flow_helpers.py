@@ -30,6 +30,7 @@ from .const import (
     CONF_EDIT_DEVICE,
     CONF_EDIT_ENTITIES,
     CONF_ENABLE_DEBUG,
+    CONF_ENTITY_PREFIX,
     CONF_FORCE_ADD,
     CONF_SKIP_CONNECT,
     CONF_FULL_EDIT,
@@ -120,6 +121,7 @@ DEVICE_SCHEMA = vol.Schema(
             ["3.1", "3.2", "3.3", "3.4", "3.5"]
         ),
         vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
+        vol.Optional(CONF_ENTITY_PREFIX): cv.string,  # Prefix for entity names
         vol.Optional(CONF_SCAN_INTERVAL): int,
         vol.Optional(CONF_MANUAL_DPS): cv.string,
         vol.Optional(CONF_RESET_DPIDS): str,
@@ -167,6 +169,7 @@ def options_schema(entities):
                 ["3.1", "3.2", "3.3", "3.4", "3.5"]
             ),
             vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
+            vol.Optional(CONF_ENTITY_PREFIX): cv.string,  # Prefix for entity names
             vol.Optional(CONF_SCAN_INTERVAL): int,
             vol.Optional(CONF_MANUAL_DPS): cv.string,
             vol.Optional(CONF_RESET_DPIDS): cv.string,
