@@ -1,0 +1,54 @@
+{
+  "product_key": "67dxofrjlfati2zj",
+  "name": "Electric Towel Dryer",
+  "manufacturer": "Tuya Generic",
+  "model": "Smart Towel Dryer / Sèche-serviettes",
+  "protocol_version": "3.4",
+  "category": "heater",
+  "entities": [
+    {
+      "platform": "switch",
+      "id": 1,
+      "friendly_name": "Power"
+    },
+    {
+      "platform": "switch",
+      "id": 2,
+      "friendly_name": "Child Lock"
+    },
+    {
+      "platform": "number",
+      "id": 3,
+      "friendly_name": "Target Temperature",
+      "min_value": 7,
+      "max_value": 35,
+      "step_size": 1,
+      "unit_of_measurement": "°C"
+    },
+    {
+      "platform": "sensor",
+      "id": 4,
+      "friendly_name": "Current Temperature",
+      "device_class": "temperature",
+      "unit_of_measurement": "°C"
+    },
+    {
+      "platform": "number",
+      "id": 5,
+      "friendly_name": "Timer",
+      "min_value": 0,
+      "max_value": 1440,
+      "step_size": 60,
+      "unit_of_measurement": "min"
+    },
+    {
+      "platform": "select",
+      "id": 7,
+      "friendly_name": "Mode",
+      "select_options": "Low;High",
+      "select_options_friendly": "Low;High"
+    }
+  ],
+  "contributed_by": "GitHub Issue #11",
+  "tested": true
+}
