@@ -34,6 +34,7 @@ from .const import (
     CONF_LOCAL_KEY,
     CONF_MODEL,
     CONF_PASSIVE_ENTITY,
+    CONF_POLL_DPS,
     CONF_PROTOCOL_VERSION,
     CONF_RESET_DPIDS,
     CONF_RESTORE_ON_RECONNECT,
@@ -188,6 +189,17 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         """Subscribe localtuya entity events."""
         self.info("Trying to connect to %s...", self._dev_config_entry[CONF_HOST])
 
+        # Parse poll_dps from config (comma-separated string -> list of ints)
+        poll_dps = None
+        if CONF_POLL_DPS in self._dev_config_entry:
+            poll_dps_str = self._dev_config_entry[CONF_POLL_DPS]
+            if poll_dps_str:
+                try:
+                    poll_dps = [int(dp.strip()) for dp in poll_dps_str.split(",")]
+                    self.debug("Configured poll_dps: %s", poll_dps)
+                except ValueError:
+                    self.warning("Invalid poll_dps format: %s", poll_dps_str)
+
         try:
             self._interface = await pytuya.connect(
                 self._dev_config_entry[CONF_HOST],
@@ -196,6 +208,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                 float(self._dev_config_entry[CONF_PROTOCOL_VERSION]),
                 self._dev_config_entry.get(CONF_ENABLE_DEBUG, False),
                 self,
+                poll_dps=poll_dps,
             )
             self._interface.add_dps_to_request(self.dps_to_request)
         except Exception as ex:  # pylint: disable=broad-except

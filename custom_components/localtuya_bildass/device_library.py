@@ -135,6 +135,24 @@ def get_protocol_version(product_key: str) -> str | None:
     return None
 
 
+def get_poll_dps(product_key: str) -> str | None:
+    """Get poll_dps configuration for a device.
+
+    Some devices don't report all DPS values by default and need explicit
+    polling. This returns the comma-separated list of DPS indices to poll.
+
+    Args:
+        product_key: The Tuya product key.
+
+    Returns:
+        Comma-separated string of DPS indices to poll, or None.
+    """
+    device = get_device_config(product_key)
+    if device:
+        return device.get("poll_dps")
+    return None
+
+
 def search_devices(query: str) -> list[dict]:
     """Search devices by name, manufacturer, or model.
 

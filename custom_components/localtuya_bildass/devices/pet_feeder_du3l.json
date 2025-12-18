@@ -3,9 +3,10 @@
   "name": "Automatic Pet Feeder DU3L",
   "manufacturer": "Tuya Generic",
   "model": "DU3L-W-02(WBR3)",
-  "protocol_version": "3.3",
+  "protocol_version": "3.4",
   "category": "pet_feeder",
   "description": "Automatic pet feeder with meal planning, manual feed control (1-20 portions), battery monitoring and charging status.",
+  "poll_dps": "2,3,4,11",
   "entities": [
     {
       "platform": "switch",
@@ -68,6 +69,7 @@
     "24": "Factory Reset - Boolean (caution!)",
     "25": "Switch - Main power on/off"
   },
-  "contributed_by": "VISTALL (GitHub Issue #5)",
+  "notes": "This device does not report all DPS locally. The poll_dps field forces polling of DPS 2,3,4,11 which are not returned by default.",
+  "contributed_by": "VISTALL (GitHub Issue #5, #12)",
   "tested": false
 }
