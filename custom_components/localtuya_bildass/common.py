@@ -35,6 +35,7 @@ from .const import (
     CONF_MODEL,
     CONF_PASSIVE_ENTITY,
     CONF_POLL_DPS,
+    CONF_PRODUCT_KEY,
     CONF_PROTOCOL_VERSION,
     CONF_RESET_DPIDS,
     CONF_RESTORE_ON_RECONNECT,
@@ -42,6 +43,7 @@ from .const import (
     DOMAIN,
     TUYA_DEVICES,
 )
+from . import device_library
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -190,15 +192,24 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         self.info("Trying to connect to %s...", self._dev_config_entry[CONF_HOST])
 
         # Parse poll_dps from config (comma-separated string -> list of ints)
+        # Fallback to device library if not in config (for devices configured before v7.9.0)
         poll_dps = None
-        if CONF_POLL_DPS in self._dev_config_entry:
-            poll_dps_str = self._dev_config_entry[CONF_POLL_DPS]
-            if poll_dps_str:
-                try:
-                    poll_dps = [int(dp.strip()) for dp in poll_dps_str.split(",")]
-                    self.debug("Configured poll_dps: %s", poll_dps)
-                except ValueError:
-                    self.warning("Invalid poll_dps format: %s", poll_dps_str)
+        poll_dps_str = self._dev_config_entry.get(CONF_POLL_DPS)
+
+        # If not in config, try to get from device library by product_key
+        if not poll_dps_str:
+            product_key = self._dev_config_entry.get(CONF_PRODUCT_KEY)
+            if product_key:
+                poll_dps_str = device_library.get_poll_dps(product_key)
+                if poll_dps_str:
+                    self.debug("poll_dps from device library (product_key=%s): %s", product_key, poll_dps_str)
+
+        if poll_dps_str:
+            try:
+                poll_dps = [int(dp.strip()) for dp in poll_dps_str.split(",")]
+                self.debug("Using poll_dps: %s", poll_dps)
+            except ValueError:
+                self.warning("Invalid poll_dps format: %s", poll_dps_str)
 
         try:
             self._interface = await pytuya.connect(

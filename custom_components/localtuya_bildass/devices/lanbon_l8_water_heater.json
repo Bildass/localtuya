@@ -1,0 +1,26 @@
+{
+  "product_key": "ljfraekydxbpmam1",
+  "name": "Lanbon L8 Water Heater Switch",
+  "manufacturer": "Lanbon",
+  "model": "L8",
+  "protocol_version": "3.4",
+  "category": "switch",
+  "description": "Smart water heater switch with single control. DP switch_1 is the primary control, switch mirrors its state.",
+  "entities": [
+    {
+      "platform": "switch",
+      "id": 1,
+      "friendly_name": "Water Heater",
+      "icon": "mdi:water-boiler",
+      "device_class": "switch",
+      "restore_on_reconnect": true
+    }
+  ],
+  "dps_info": {
+    "1": "switch_1 - Main power control (boolean)",
+    "2": "switch - Mirror of switch_1, read-only (boolean)"
+  },
+  "notes": "Only switch_1 (DP 1) should be used for control. DP 2 (switch) is a mirror that auto-syncs from switch_1 but cannot be used for control.",
+  "contributed_by": "nepofigist (GitHub Issue #13)",
+  "tested": false
+}
