@@ -34,6 +34,7 @@ from .const import (
     CONF_LOCAL_KEY,
     CONF_MANUAL_DPS,
     CONF_MODEL,
+    CONF_POLL_DPS,
     CONF_PRODUCT_NAME,
     CONF_PROTOCOL_VERSION,
     CONF_QUICK_EDIT,
@@ -478,6 +479,12 @@ class DeviceOperationsMixin:
                     CONF_DPS_STRINGS: self.dps_strings,
                     CONF_ENTITIES: self.entities,
                 }
+
+                # Apply poll_dps from template if defined (for devices that don't report all DPS)
+                poll_dps = template.get("poll_dps")
+                if poll_dps:
+                    config[CONF_POLL_DPS] = poll_dps
+                    _LOGGER.debug("Applied poll_dps from template: %s", poll_dps)
 
                 new_data = self._get_config_entry().data.copy()
                 new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))

@@ -375,7 +375,8 @@ class TuyaProtocol(asyncio.Protocol):
         protocol_version: float,
         enable_debug: bool,
         on_connected: asyncio.Future,
-        listener: TuyaListener
+        listener: TuyaListener,
+        poll_dps: Optional[list] = None
     ):
         """Initialize protocol.
 
@@ -386,12 +387,14 @@ class TuyaProtocol(asyncio.Protocol):
             enable_debug: Enable debug logging
             on_connected: Future to set when connected
             listener: Status listener
+            poll_dps: List of DPS indices to force poll (for devices that don't report all DPS)
         """
         self.device_id = device_id
         self.device_key = local_key.encode("latin1")
         self.session_key: Optional[bytes] = None
         self.protocol_version = protocol_version
         self.enable_debug = enable_debug
+        self._poll_dps = poll_dps  # Custom DPS to poll (from device template)
 
         self._logger = TuyaLoggingAdapter(_LOGGER, {"device_id": device_id})
         self.transport: Optional[asyncio.Transport] = None
@@ -575,15 +578,25 @@ class TuyaProtocol(asyncio.Protocol):
         return await self.exchange(CMD_CONTROL, dps)
 
     async def update_dps(self, dps: Optional[list] = None) -> bool:
-        """Request device to update specific DPS values (Protocol 3.2+)."""
+        """Request device to update specific DPS values (Protocol 3.2+).
+
+        Args:
+            dps: List of DPS indices to request. If None, uses poll_dps from config
+                 or falls back to UPDATE_DPS_WHITELIST.
+        """
         if self.protocol_version < 3.2:
             return True
 
         if dps is None:
-            if not self.dps_cache:
-                await self.detect_available_dps()
-            if self.dps_cache:
-                dps = [int(dp) for dp in self.dps_cache if int(dp) in UPDATE_DPS_WHITELIST]
+            # Priority: 1) Custom poll_dps from device template, 2) Whitelist from dps_cache
+            if self._poll_dps:
+                dps = self._poll_dps
+                self.debug("Using custom poll_dps: %s", dps)
+            else:
+                if not self.dps_cache:
+                    await self.detect_available_dps()
+                if self.dps_cache:
+                    dps = [int(dp) for dp in self.dps_cache if int(dp) in UPDATE_DPS_WHITELIST]
 
         if dps:
             payload = self._generate_payload(CMD_UPDATE_DPS, dps)
@@ -1111,7 +1124,8 @@ async def connect(
     enable_debug: bool = False,
     listener: Optional[TuyaListener] = None,
     port: int = 6668,
-    timeout: float = DEFAULT_TIMEOUT
+    timeout: float = DEFAULT_TIMEOUT,
+    poll_dps: Optional[list] = None
 ) -> TuyaProtocol:
     """Connect to a Tuya device.
 
@@ -1124,6 +1138,7 @@ async def connect(
         listener: Status listener (optional)
         port: Device port (default 6668)
         timeout: Connection timeout in seconds
+        poll_dps: List of DPS indices to force poll (for devices that don't report all DPS)
 
     Returns:
         Connected TuyaProtocol instance
@@ -1138,7 +1153,8 @@ async def connect(
             protocol_version=protocol_version,
             enable_debug=enable_debug,
             on_connected=on_connected,
-            listener=listener or EmptyListener()
+            listener=listener or EmptyListener(),
+            poll_dps=poll_dps
         ),
         host=address,
         port=port
