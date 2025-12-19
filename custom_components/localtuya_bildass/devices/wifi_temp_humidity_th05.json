@@ -1,0 +1,148 @@
+{
+  "product_key": "g7cjmefuoucmcb2s",
+  "name": "WiFi Temperature & Humidity Sensor",
+  "manufacturer": "Tuya Generic",
+  "model": "TH05",
+  "protocol_version": "3.3",
+  "category": "sensor",
+  "entities": [
+    {
+      "platform": "sensor",
+      "id": 1,
+      "friendly_name": "Temperature",
+      "unit_of_measurement": "°C",
+      "device_class": "temperature",
+      "scaling": 0.1
+    },
+    {
+      "platform": "sensor",
+      "id": 2,
+      "friendly_name": "Humidity",
+      "unit_of_measurement": "%",
+      "device_class": "humidity"
+    },
+    {
+      "platform": "sensor",
+      "id": 3,
+      "friendly_name": "Battery State",
+      "device_class": "enum",
+      "icon": "mdi:battery"
+    },
+    {
+      "platform": "sensor",
+      "id": 4,
+      "friendly_name": "Battery",
+      "unit_of_measurement": "%",
+      "device_class": "battery"
+    },
+    {
+      "platform": "select",
+      "id": 9,
+      "friendly_name": "Temperature Unit",
+      "select_options": "c;f",
+      "select_options_friendly": "Celsius;Fahrenheit"
+    },
+    {
+      "platform": "number",
+      "id": 10,
+      "friendly_name": "Max Temperature Alert",
+      "min_value": -20.0,
+      "max_value": 60.0,
+      "step_size": 0.1,
+      "scaling": 0.1,
+      "unit_of_measurement": "°C",
+      "device_class": "temperature"
+    },
+    {
+      "platform": "number",
+      "id": 11,
+      "friendly_name": "Min Temperature Alert",
+      "min_value": -20.0,
+      "max_value": 60.0,
+      "step_size": 0.1,
+      "scaling": 0.1,
+      "unit_of_measurement": "°C",
+      "device_class": "temperature"
+    },
+    {
+      "platform": "number",
+      "id": 12,
+      "friendly_name": "Max Humidity Alert",
+      "min_value": 0,
+      "max_value": 100,
+      "step_size": 1,
+      "unit_of_measurement": "%",
+      "device_class": "humidity"
+    },
+    {
+      "platform": "number",
+      "id": 13,
+      "friendly_name": "Min Humidity Alert",
+      "min_value": 0,
+      "max_value": 100,
+      "step_size": 1,
+      "unit_of_measurement": "%",
+      "device_class": "humidity"
+    },
+    {
+      "platform": "sensor",
+      "id": 14,
+      "friendly_name": "Temperature Alarm",
+      "device_class": "enum",
+      "icon": "mdi:thermometer-alert"
+    },
+    {
+      "platform": "sensor",
+      "id": 15,
+      "friendly_name": "Humidity Alarm",
+      "device_class": "enum",
+      "icon": "mdi:water-percent-alert"
+    },
+    {
+      "platform": "number",
+      "id": 17,
+      "friendly_name": "Temperature Report Interval",
+      "min_value": 1,
+      "max_value": 1440,
+      "step_size": 1,
+      "unit_of_measurement": "min",
+      "device_class": "duration",
+      "icon": "mdi:timer"
+    },
+    {
+      "platform": "number",
+      "id": 18,
+      "friendly_name": "Humidity Report Interval",
+      "min_value": 1,
+      "max_value": 1440,
+      "step_size": 1,
+      "unit_of_measurement": "min",
+      "device_class": "duration",
+      "icon": "mdi:timer"
+    },
+    {
+      "platform": "number",
+      "id": 19,
+      "friendly_name": "Temperature Sensitivity",
+      "min_value": 1,
+      "max_value": 50,
+      "step_size": 1,
+      "scaling": 0.1,
+      "unit_of_measurement": "°C",
+      "device_class": "temperature"
+    },
+    {
+      "platform": "number",
+      "id": 20,
+      "friendly_name": "Humidity Sensitivity",
+      "min_value": 1,
+      "max_value": 50,
+      "step_size": 1,
+      "unit_of_measurement": "%",
+      "device_class": "humidity"
+    }
+  ],
+  "contributed_by": "VISTALL (GitHub Issue #14)",
+  "tested": false,
+  "notes": "WiFi battery-powered temperature and humidity sensor. Supports configurable alert thresholds and reporting intervals."
+}
