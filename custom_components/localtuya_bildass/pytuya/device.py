@@ -587,10 +587,12 @@ class TuyaProtocol(asyncio.Protocol):
         if self.protocol_version < 3.2:
             return True
 
+        using_poll_dps = False
         if dps is None:
             # Priority: 1) Custom poll_dps from device template, 2) Whitelist from dps_cache
             if self._poll_dps:
                 dps = self._poll_dps
+                using_poll_dps = True
                 self.debug("Using custom poll_dps: %s", dps)
             else:
                 if not self.dps_cache:
@@ -603,6 +605,12 @@ class TuyaProtocol(asyncio.Protocol):
             data = self._encode_message(payload)
             if self.transport:
                 self.transport.write(data)
+
+            # Some devices don't send status update after CMD_UPDATE_DPS
+            # For devices with poll_dps configured, explicitly query status to get values
+            if using_poll_dps:
+                await asyncio.sleep(0.1)  # Give device time to process
+                await self.status()
 
         return True
 
