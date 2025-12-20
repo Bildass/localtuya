@@ -378,8 +378,17 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         self._dispatch_status()
 
     def _dispatch_status(self):
+        """Dispatch status update to all entities (thread-safe)."""
         signal = f"localtuya_{self._dev_config_entry[CONF_DEVICE_ID]}"
-        async_dispatcher_send(self._hass, signal, self._status)
+        status_copy = dict(self._status)  # Copy to avoid race conditions
+        try:
+            # Use call_soon_threadsafe for HA 2024.12+ thread safety
+            self._hass.loop.call_soon_threadsafe(
+                async_dispatcher_send, self._hass, signal, status_copy
+            )
+        except RuntimeError:
+            # Event loop might be closed during shutdown
+            pass
 
     @callback
     def disconnected(self):
@@ -393,9 +402,14 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             self._connect_task.cancel()
             self._connect_task = None
 
-        # Mark as unavailable and start reconnect
+        # Mark as unavailable and start reconnect (thread-safe)
         signal = f"localtuya_{self._dev_config_entry[CONF_DEVICE_ID]}"
-        async_dispatcher_send(self._hass, signal, None)
+        try:
+            self._hass.loop.call_soon_threadsafe(
+                async_dispatcher_send, self._hass, signal, None
+            )
+        except RuntimeError:
+            pass
 
         if not self._is_closing:
             self.warning("Disconnected - starting reconnect")
