@@ -1,0 +1,33 @@
+{
+  "product_key": "b6vaagegaswu6sk2",
+  "name": "Sleek Floorlamp RGBW",
+  "manufacturer": "Airam SmartHome",
+  "model": "Sleek RGBW",
+  "protocol_version": "3.5",
+  "category": "dj",
+  "entities": [
+    {
+      "platform": "light",
+      "id": 20,
+      "friendly_name": "Light",
+      "brightness": 22,
+      "brightness_lower": 10,
+      "brightness_upper": 1000,
+      "color_mode": 21,
+      "color": 24,
+      "music_mode": false
+    }
+  ],
+  "poll_dps": [20, 21, 22, 24, 26],
+  "dps_description": {
+    "20": "switch_led - ON/OFF (bool)",
+    "21": "work_mode - Mode: 'white', 'colour', 'scene', 'music' (enum)",
+    "22": "bright_value - Brightness 10-1000 (int)",
+    "24": "colour_data - HSV Color as JSON {h:0-360, s:0-1000, v:0-1000}",
+    "26": "countdown - Timer in seconds 0-86400 (int)",
+    "27": "music_data - Music sync data (json, not exposed)"
+  },
+  "notes": "Protocol 3.5 RGBW floor lamp. Color mode white uses brightness only, colour mode uses HSV from DP 24. Scene and music modes available but not fully supported.",
+  "contributed_by": "s1shed (GitHub Issue #15)",
+  "tested": false
+}
