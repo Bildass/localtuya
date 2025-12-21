@@ -1,0 +1,19 @@
+{
+  "product_key": "zk2ktip9pzorzleb",
+  "name": "WBP-1G Smart Switch with Energy Monitoring",
+  "manufacturer": "Tuya Generic",
+  "model": "WBP-1G",
+  "protocol_version": "3.4",
+  "category": "switch",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "Power", "restore_on_reconnect": true},
+    {"platform": "sensor", "id": 20, "friendly_name": "Energy", "device_class": "energy", "unit_of_measurement": "kWh", "scaling": 0.01},
+    {"platform": "sensor", "id": 21, "friendly_name": "Current", "device_class": "current", "unit_of_measurement": "mA"},
+    {"platform": "sensor", "id": 22, "friendly_name": "Power", "device_class": "power", "unit_of_measurement": "W", "scaling": 0.1},
+    {"platform": "sensor", "id": 23, "friendly_name": "Voltage", "device_class": "voltage", "unit_of_measurement": "V", "scaling": 0.1},
+    {"platform": "select", "id": 38, "friendly_name": "Power-on Behavior", "select_options": "off;on;memory", "select_options_friendly": "Off;On;Memory"},
+    {"platform": "select", "id": 47, "friendly_name": "Switch Type", "select_options": "flip;follow;momentary", "select_options_friendly": "Toggle;Follow;Momentary"}
+  ],
+  "contributed_by": "GraczykSzymon (GitHub Issue #22)",
+  "tested": false
+}

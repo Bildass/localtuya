@@ -1,0 +1,16 @@
+{
+  "product_key": "mqvl8x8ndfah4hfb",
+  "name": "WiFi 2 Gang Switch",
+  "manufacturer": "Tuya Generic",
+  "model": "WB-2G",
+  "protocol_version": "3.4",
+  "category": "switch",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "Switch 1", "restore_on_reconnect": true},
+    {"platform": "switch", "id": 2, "friendly_name": "Switch 2", "restore_on_reconnect": true},
+    {"platform": "select", "id": 38, "friendly_name": "Power-on Behavior", "select_options": "off;on;memory", "select_options_friendly": "Off;On;Memory"},
+    {"platform": "select", "id": 47, "friendly_name": "Switch Type", "select_options": "flip;follow;momentary", "select_options_friendly": "Toggle;Follow;Momentary"}
+  ],
+  "contributed_by": "GraczykSzymon (GitHub Issue #19)",
+  "tested": false
+}

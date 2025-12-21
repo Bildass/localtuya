@@ -1,0 +1,13 @@
+{
+  "product_key": "CHLZe9HQ6QIXujVN",
+  "name": "Smart Plug Simple",
+  "manufacturer": "Tuya Generic",
+  "model": "Smart Plug",
+  "protocol_version": "3.1",
+  "category": "switch",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "Power", "restore_on_reconnect": true}
+  ],
+  "contributed_by": "GraczykSzymon (GitHub Issue #20)",
+  "tested": false
+}
