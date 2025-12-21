@@ -1,0 +1,20 @@
+{
+  "product_key": "9y0qx7npuny0pnwt",
+  "name": "Smart Plug with Energy Monitoring",
+  "manufacturer": "Tuya Generic",
+  "model": "LN Smart Plug",
+  "protocol_version": "3.5",
+  "category": "switch",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "Power", "restore_on_reconnect": true},
+    {"platform": "sensor", "id": 17, "friendly_name": "Energy", "device_class": "energy", "unit_of_measurement": "kWh", "scaling": 0.01},
+    {"platform": "sensor", "id": 18, "friendly_name": "Current", "device_class": "current", "unit_of_measurement": "mA"},
+    {"platform": "sensor", "id": 19, "friendly_name": "Power", "device_class": "power", "unit_of_measurement": "W", "scaling": 0.1},
+    {"platform": "sensor", "id": 20, "friendly_name": "Voltage", "device_class": "voltage", "unit_of_measurement": "V", "scaling": 0.1},
+    {"platform": "select", "id": 38, "friendly_name": "Power-on Behavior", "select_options": "off;on;memory", "select_options_friendly": "Off;On;Memory"},
+    {"platform": "select", "id": 39, "friendly_name": "LED Mode", "select_options": "none;relay;pos", "select_options_friendly": "Off;Follow Relay;Always On"},
+    {"platform": "switch", "id": 40, "friendly_name": "Child Lock"}
+  ],
+  "contributed_by": "GraczykSzymon (GitHub Issue #16)",
+  "tested": false
+}

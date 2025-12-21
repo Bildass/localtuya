@@ -1,0 +1,16 @@
+{
+  "product_key": "k5qpaxosbltqhifo",
+  "name": "WiFi Garage Door Controller",
+  "manufacturer": "Tuya Generic",
+  "model": "Garage Door Module",
+  "protocol_version": "3.3",
+  "category": "cover",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "Trigger", "restore_on_reconnect": false},
+    {"platform": "binary_sensor", "id": 3, "friendly_name": "Door Contact", "device_class": "door"},
+    {"platform": "switch", "id": 11, "friendly_name": "Voice Control"},
+    {"platform": "select", "id": 12, "friendly_name": "Door State", "select_options": "closed;open;opening;closing;unclosed_time", "select_options_friendly": "Closed;Open;Opening;Closing;Unclosed Timeout"}
+  ],
+  "contributed_by": "GraczykSzymon (GitHub Issue #21)",
+  "tested": false
+}
