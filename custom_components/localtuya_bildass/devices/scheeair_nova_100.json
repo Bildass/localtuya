@@ -1,0 +1,90 @@
+{
+  "product_key": "v5yzxit33hd1btwx",
+  "name": "Scheeair Nova 100",
+  "manufacturer": "Scheeair",
+  "model": "Nova 100",
+  "protocol_version": "3.3",
+  "category": "exhaust_fan",
+  "entities": [
+    {
+      "platform": "switch",
+      "id": 1,
+      "friendly_name": "Power",
+      "restore_on_reconnect": true
+    },
+    {
+      "platform": "select",
+      "id": 3,
+      "friendly_name": "Fan Speed",
+      "select_options": "0;1;2",
+      "select_options_friendly": "Off;Low;High",
+      "restore_on_reconnect": true
+    },
+    {
+      "platform": "switch",
+      "id": 10,
+      "friendly_name": "Humidifier Mode",
+      "restore_on_reconnect": false
+    },
+    {
+      "platform": "sensor",
+      "id": 21,
+      "friendly_name": "Temperature",
+      "device_class": "temperature",
+      "unit_of_measurement": "°C"
+    },
+    {
+      "platform": "sensor",
+      "id": 101,
+      "friendly_name": "Humidity",
+      "device_class": "humidity",
+      "unit_of_measurement": "%"
+    },
+    {
+      "platform": "sensor",
+      "id": 102,
+      "friendly_name": "Wind Speed State",
+      "device_class": "enum"
+    },
+    {
+      "platform": "select",
+      "id": 103,
+      "friendly_name": "Wind Mode",
+      "select_options": "high;low;stop",
+      "select_options_friendly": "High;Low;Stop",
+      "restore_on_reconnect": true
+    },
+    {
+      "platform": "number",
+      "id": 104,
+      "friendly_name": "Fan Power Level",
+      "unit_of_measurement": "%",
+      "min_value": 40,
+      "max_value": 100,
+      "step_size": 10
+    },
+    {
+      "platform": "binary_sensor",
+      "id": 106,
+      "friendly_name": "Motion Detected",
+      "device_class": "motion"
+    },
+    {
+      "platform": "switch",
+      "id": 107,
+      "friendly_name": "PIR Sensor",
+      "restore_on_reconnect": true
+    },
+    {
+      "platform": "number",
+      "id": 109,
+      "friendly_name": "Delay Timer",
+      "unit_of_measurement": "min",
+      "min_value": 1,
+      "max_value": 60,
+      "step_size": 1
+    }
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": false
+}
