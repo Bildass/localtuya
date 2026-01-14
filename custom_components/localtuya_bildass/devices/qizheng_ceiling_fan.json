@@ -1,0 +1,69 @@
+{
+  "product_key": "pwn8rplbjtokxaec",
+  "name": "Qizheng Ceiling Fan with Dual Light",
+  "manufacturer": "Qizheng",
+  "model": "Smart Ceiling Fan",
+  "protocol_version": "3.3",
+  "category": "fsd",
+  "entities": [
+    {
+      "platform": "fan",
+      "id": 1,
+      "friendly_name": "Fan",
+      "speed_dp": 3,
+      "direction_dp": 103
+    },
+    {
+      "platform": "light",
+      "id": 9,
+      "friendly_name": "Yellow Light",
+      "brightness": 10,
+      "brightness_lower": 0,
+      "brightness_upper": 1000
+    },
+    {
+      "platform": "light",
+      "id": 101,
+      "friendly_name": "White Light",
+      "brightness": 102,
+      "brightness_lower": 0,
+      "brightness_upper": 1000
+    },
+    {
+      "platform": "select",
+      "id": 2,
+      "friendly_name": "Fan Mode",
+      "entity_category": "config"
+    },
+    {
+      "platform": "select",
+      "id": 6,
+      "friendly_name": "Timer",
+      "entity_category": "config"
+    },
+    {
+      "platform": "sensor",
+      "id": 7,
+      "friendly_name": "Timer Remaining",
+      "device_class": "duration",
+      "unit_of_measurement": "min",
+      "entity_category": "diagnostic"
+    }
+  ],
+  "poll_dps": "1,3,9,10,101,102,103",
+  "dps_description": {
+    "1": "switch - Fan ON/OFF (bool)",
+    "2": "mode - Fan operating mode (enum)",
+    "3": "fan_speed - Fan speed level (enum)",
+    "6": "countdown - Timer setting (enum)",
+    "7": "countdown_left - Remaining timer (int)",
+    "9": "light - Yellow light ON/OFF (bool)",
+    "10": "bright_value - Yellow light brightness 0-1000 (int)",
+    "101": "whitelight_switch - White light ON/OFF (bool)",
+    "102": "whitebright_value - White light brightness 0-1000 (int)",
+    "103": "fan_direction - Forward/Reverse (enum)"
+  },
+  "notes": "Dual-light ceiling fan with separate yellow and white light controls, each with independent brightness. Reversible fan with timer functionality.",
+  "contributed_by": "randerson-dev (GitHub Issue #10)",
+  "tested": false
+}

@@ -1,0 +1,76 @@
+{
+  "product_key": "bf9d36meubtfqwjz",
+  "name": "RGB Ceiling Fan with Light",
+  "manufacturer": "Generic Tuya",
+  "model": "JST RGB Ceiling Fan",
+  "protocol_version": "3.3",
+  "category": "fsd",
+  "entities": [
+    {
+      "platform": "fan",
+      "id": 107,
+      "friendly_name": "Fan",
+      "speed_dp": 105,
+      "direction_dp": 104
+    },
+    {
+      "platform": "light",
+      "id": 20,
+      "friendly_name": "Light",
+      "color_mode": 21,
+      "brightness": 22,
+      "brightness_lower": 10,
+      "brightness_upper": 1000,
+      "color_temp": 23,
+      "color_temp_min_kelvin": 2700,
+      "color_temp_max_kelvin": 6500,
+      "color": 24,
+      "music_mode": false
+    },
+    {
+      "platform": "switch",
+      "id": 116,
+      "friendly_name": "Night Light",
+      "device_class": "switch",
+      "entity_category": "config"
+    },
+    {
+      "platform": "switch",
+      "id": 34,
+      "friendly_name": "Do Not Disturb",
+      "device_class": "switch",
+      "entity_category": "config"
+    },
+    {
+      "platform": "switch",
+      "id": 102,
+      "friendly_name": "Fan Beep",
+      "device_class": "switch",
+      "entity_category": "config"
+    },
+    {
+      "platform": "select",
+      "id": 106,
+      "friendly_name": "Fan Mode",
+      "entity_category": "config"
+    }
+  ],
+  "poll_dps": "20,21,22,23,24,105,107",
+  "dps_description": {
+    "20": "switch_led - Light ON/OFF (bool)",
+    "21": "work_mode - Mode: white/colour/scene/music (enum)",
+    "22": "bright_value - Brightness 10-1000 (int)",
+    "23": "temp_value - Color temperature 0-1000 (int)",
+    "24": "colour_data - HSV color JSON",
+    "34": "do_not_disturb - DND mode (bool)",
+    "102": "fan_beep - Fan beep sound (bool)",
+    "104": "fan_direction - Forward/Reverse (enum)",
+    "105": "fan_speed - Fan speed (int)",
+    "106": "fan_mode - Fan mode (enum)",
+    "107": "fan_switch - Fan ON/OFF (bool)",
+    "116": "switch_night_light - Night light (bool)"
+  },
+  "notes": "RGB Ceiling fan with dimmable light, color temperature, RGB mode, and multiple fan controls. Light supports white/colour/scene/music modes.",
+  "contributed_by": "RoyMeinen (GitHub Issue #26)",
+  "tested": false
+}
