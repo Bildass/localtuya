@@ -105,7 +105,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
     async def _handle_get_library(call):
         """Return all devices in the library."""
-        stats = device_library.get_library_stats()
+        stats = await device_library.async_get_library_stats()
         devices = device_library.get_all_devices()
         _LOGGER.info("Device library: %d devices from %s", stats["total_devices"], stats["manufacturers"])
         return {"devices": devices, "stats": stats}
@@ -126,8 +126,8 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
     async def _handle_reload_library(call):
         """Reload device library from disk."""
-        device_library.reload_library()
-        stats = device_library.get_library_stats()
+        await device_library.async_reload_library()
+        stats = await device_library.async_get_library_stats()
         _LOGGER.info("Device library reloaded: %d devices", stats["total_devices"])
         return stats
 
@@ -221,8 +221,8 @@ async def async_setup(hass: HomeAssistant, config: dict):
         DOMAIN, SERVICE_RELOAD_LIBRARY, _handle_reload_library
     )
 
-    # Initialize device library on startup
-    lib_stats = device_library.get_library_stats()
+    # Initialize device library on startup (async to avoid blocking event loop)
+    lib_stats = await device_library.async_get_library_stats()
     _LOGGER.info("BildaSystem Device Library loaded: %d devices", lib_stats["total_devices"])
 
     discovery = TuyaDiscovery(_device_discovered)

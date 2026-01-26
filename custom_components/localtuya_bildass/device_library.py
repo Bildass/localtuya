@@ -5,11 +5,13 @@ based on pre-defined device profiles in the devices/ folder.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
 from pathlib import Path
 from typing import Any
+from functools import partial
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -208,3 +210,28 @@ def reload_library() -> None:
     _device_library = {}
     _library_loaded = False
     load_device_library()
+
+
+# Async wrappers to avoid blocking the event loop
+async def async_load_device_library() -> dict[str, dict]:
+    """Async version of load_device_library.
+
+    Runs the blocking file I/O in an executor to avoid blocking the event loop.
+    """
+    return await asyncio.get_event_loop().run_in_executor(None, load_device_library)
+
+
+async def async_get_library_stats() -> dict:
+    """Async version of get_library_stats.
+
+    Runs the blocking file I/O in an executor to avoid blocking the event loop.
+    """
+    return await asyncio.get_event_loop().run_in_executor(None, get_library_stats)
+
+
+async def async_reload_library() -> None:
+    """Async version of reload_library.
+
+    Runs the blocking file I/O in an executor to avoid blocking the event loop.
+    """
+    await asyncio.get_event_loop().run_in_executor(None, reload_library)
