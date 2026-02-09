@@ -240,12 +240,14 @@ class CloudOperationsMixin:
                     devices_synced = 0
 
                     for device_id, device in manager.device_map.items():
+                        # Tuya API may return local_key or localKey depending on endpoint
+                        local_key = getattr(device, 'local_key', None) or getattr(device, 'localKey', '')
                         cloud_api.device_list[device_id] = {
                             CONF_NAME: device.name,
-                            CONF_LOCAL_KEY: device.local_key,
-                            "product_id": device.product_id,
-                            "category": device.category,
-                            "online": device.online,
+                            CONF_LOCAL_KEY: local_key,
+                            "product_id": getattr(device, 'product_id', '') or getattr(device, 'productId', ''),
+                            "category": getattr(device, 'category', ''),
+                            "online": getattr(device, 'online', False),
                         }
                         devices_synced += 1
 
