@@ -699,12 +699,29 @@ class TuyaProtocol(asyncio.Protocol):
         """Send command without acquiring lock (caller must hold lock)."""
         # Negotiate session key for 3.4+ if needed
         if self.protocol_version >= 3.4 and self.session_key is None:
-            self.debug("Negotiating session key for v%.1f", self.protocol_version)
-            success = await self._negotiate_session_key()
-            if not success:
-                self._logger.warning("Session key negotiation failed, trying without session key")
-                # Pokračovat bez session key - některá zařízení to nepodporují
-                pass
+            # Backoff: skip negotiation if we failed recently (avoid retry storm)
+            now = asyncio.get_event_loop().time()
+            last_fail = getattr(self, '_sess_key_last_fail', 0)
+            fail_count = getattr(self, '_sess_key_fail_count', 0)
+            backoff = min(30 * (2 ** min(fail_count, 5)), 600)  # 30s, 60s, 120s... max 600s
+            if fail_count > 0 and (now - last_fail) < backoff:
+                self.debug("Skipping session key negotiation (backoff %ds, fails=%d)", backoff, fail_count)
+            else:
+                self.debug("Negotiating session key for v%.1f", self.protocol_version)
+                try:
+                    success = await self._negotiate_session_key()
+                    if success:
+                        self._sess_key_fail_count = 0
+                    else:
+                        self._sess_key_fail_count = fail_count + 1
+                        self._sess_key_last_fail = now
+                        self._logger.warning("Session key negotiation failed, trying without session key (attempt %d)", fail_count + 1)
+                except Exception as e:
+                    self._sess_key_fail_count = fail_count + 1
+                    self._sess_key_last_fail = now
+                    # Clean up any orphaned listener
+                    self.dispatcher.listeners.pop(MessageDispatcher.SESS_KEY_SEQNO, None)
+                    self._logger.warning("Session key negotiation error: %s (attempt %d)", e, fail_count + 1)
 
         self.debug("Sending command %d (device_type=%s)", command, self.device_type)
 
@@ -791,8 +808,13 @@ class TuyaProtocol(asyncio.Protocol):
                     return msg
             except asyncio.TimeoutError:
                 pass
+            except RuntimeError:
+                # Listener already exists - clean it up before retry
+                self.dispatcher.listeners.pop(MessageDispatcher.SESS_KEY_SEQNO, None)
             recv_retries -= 1
 
+        # Ensure no orphaned listener remains
+        self.dispatcher.listeners.pop(MessageDispatcher.SESS_KEY_SEQNO, None)
         return None
 
     # =========================================================================
