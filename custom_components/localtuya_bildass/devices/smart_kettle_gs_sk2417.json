@@ -1,0 +1,172 @@
+{
+  "product_key": "cpbmbxjjkwmqx3cq",
+  "name": "Smart Kettle GS-SK2417",
+  "manufacturer": "Unknown",
+  "model": "SMART KETTLE GS-SK2417",
+  "category": "kettle",
+  "description": "Smart electric kettle with heating/boiling modes, temperature control, countdown timer, and Celsius/Fahrenheit support.",
+  "entities": [
+    {
+      "platform": "switch",
+      "id": 1,
+      "friendly_name": "Start",
+      "icon": "mdi:kettle-steam"
+    },
+    {
+      "platform": "sensor",
+      "id": 2,
+      "friendly_name": "Current Temperature (C)",
+      "device_class": "temperature",
+      "unit_of_measurement": "°C"
+    },
+    {
+      "platform": "sensor",
+      "id": 3,
+      "friendly_name": "Current Temperature (F)",
+      "device_class": "temperature",
+      "unit_of_measurement": "°F"
+    },
+    {
+      "platform": "select",
+      "id": 4,
+      "friendly_name": "Heating Mode (C)",
+      "select_options": "40;50;60;70;80;90;OFF",
+      "select_options_friendly": "Milk;Honey;Flower Tea;Green Tea;Oolong Tea;Black Tea;Off"
+    },
+    {
+      "platform": "select",
+      "id": 5,
+      "friendly_name": "Heating Mode (F)",
+      "select_options": "104;122;140;158;176;194;OFF",
+      "select_options_friendly": "Milk;Honey;Flower Tea;Green Tea;Oolong Tea;Black Tea;Off"
+    },
+    {
+      "platform": "select",
+      "id": 6,
+      "friendly_name": "Boiling Mode (C)",
+      "select_options": "40;50;60;70;80;90;OFF",
+      "select_options_friendly": "Milk;Honey;Flower Tea;Green Tea;Oolong Tea;Black Tea;Off"
+    },
+    {
+      "platform": "select",
+      "id": 7,
+      "friendly_name": "Boiling Mode (F)",
+      "select_options": "104;122;140;158;176;194;OFF",
+      "select_options_friendly": "Milk;Honey;Flower Tea;Green Tea;Oolong Tea;Black Tea;Off"
+    },
+    {
+      "platform": "number",
+      "id": 8,
+      "friendly_name": "Heating Temperature (C)",
+      "min_value": 40,
+      "max_value": 95,
+      "unit_of_measurement": "°C",
+      "device_class": "temperature"
+    },
+    {
+      "platform": "number",
+      "id": 9,
+      "friendly_name": "Heating Temperature (F)",
+      "min_value": 104,
+      "max_value": 212,
+      "unit_of_measurement": "°F",
+      "device_class": "temperature"
+    },
+    {
+      "platform": "select",
+      "id": 12,
+      "friendly_name": "Temperature Unit",
+      "select_options": "c;f",
+      "select_options_friendly": "Celsius;Fahrenheit"
+    },
+    {
+      "platform": "sensor",
+      "id": 15,
+      "friendly_name": "Status",
+      "device_class": "enum",
+      "enum_options": "standby;heating;cooling;warm;heating_temp;boiling_temp;reserve_1;reserve_2;reserve_3",
+      "enum_options_friendly": "Stand By;Heating;Cooling;Warm;Heating Temp;Boiling Temp;Reserve 1;Reserve 2;Reserve 3"
+    },
+    {
+      "platform": "select",
+      "id": 17,
+      "friendly_name": "Countdown",
+      "select_options": "cancel;1h;2h;3h;4h;5h;6h;7h;8h;9h;10h;11h;12h",
+      "select_options_friendly": "Cancel;1h;2h;3h;4h;5h;6h;7h;8h;9h;10h;11h;12h"
+    },
+    {
+      "platform": "sensor",
+      "id": 18,
+      "friendly_name": "Countdown Remaining",
+      "unit_of_measurement": "h",
+      "icon": "mdi:timer-outline"
+    },
+    {
+      "platform": "sensor",
+      "id": 19,
+      "friendly_name": "Fault",
+      "device_class": "enum",
+      "enum_options": "kettle_leave;lack_water",
+      "enum_options_friendly": "Kettle Not On Stand;Lack Of Water"
+    },
+    {
+      "platform": "number",
+      "id": 101,
+      "friendly_name": "Boiling Temperature (F)",
+      "min_value": 104,
+      "max_value": 203,
+      "unit_of_measurement": "°F",
+      "device_class": "temperature"
+    },
+    {
+      "platform": "number",
+      "id": 103,
+      "friendly_name": "Boiling Temperature (C)",
+      "min_value": 40,
+      "max_value": 95,
+      "unit_of_measurement": "°C",
+      "device_class": "temperature"
+    },
+    {
+      "platform": "number",
+      "id": 104,
+      "friendly_name": "Set Temperature (C)",
+      "min_value": 40,
+      "max_value": 95,
+      "unit_of_measurement": "°C",
+      "device_class": "temperature"
+    },
+    {
+      "platform": "number",
+      "id": 105,
+      "friendly_name": "Set Temperature (F)",
+      "min_value": 104,
+      "max_value": 203,
+      "unit_of_measurement": "°F",
+      "device_class": "temperature"
+    }
+  ],
+  "dps_info": {
+    "1": "Start/stop kettle (boolean)",
+    "2": "Current temperature in Celsius",
+    "3": "Current temperature in Fahrenheit",
+    "4": "Heating mode preset (Celsius)",
+    "5": "Heating mode preset (Fahrenheit)",
+    "6": "Boiling mode preset (Celsius)",
+    "7": "Boiling mode preset (Fahrenheit)",
+    "8": "Custom heating temperature (Celsius, 40-95)",
+    "9": "Custom heating temperature (Fahrenheit, 104-212)",
+    "12": "Temperature unit selection (c/f)",
+    "15": "Current status (standby/heating/cooling/warm/...)",
+    "17": "Countdown timer set",
+    "18": "Countdown remaining (hours)",
+    "19": "Fault detection (kettle_leave/lack_water)",
+    "101": "Custom boiling temperature (Fahrenheit)",
+    "103": "Custom boiling temperature (Celsius)",
+    "104": "Set temperature (Celsius)",
+    "105": "Set temperature (Fahrenheit)"
+  },
+  "notes": "Use Celsius or Fahrenheit entities based on DP 12 unit selection. Not all DPs may need to be configured - choose based on your preferred unit system.",
+  "contributed_by": "spuch-apuch (GitHub Issue #31)",
+  "tested": false
+}
