@@ -396,6 +396,11 @@ class TuyaProtocol(asyncio.Protocol):
         self.enable_debug = enable_debug
         self._poll_dps = poll_dps  # Custom DPS to poll (from device template)
 
+        # Session key negotiation state — persists across TCP reconnects (#30)
+        self._sess_key_fail_count: int = 0
+        self._sess_key_last_fail: float = 0
+        self._sess_key_disabled: bool = False  # Permanently fall back to device_key after MAX_SESS_KEY_FAILS
+
         self._logger = TuyaLoggingAdapter(_LOGGER, {"device_id": device_id})
         self.transport: Optional[asyncio.Transport] = None
         self.on_connected = on_connected
@@ -697,12 +702,12 @@ class TuyaProtocol(asyncio.Protocol):
 
     async def _exchange_unlocked(self, command: int, dps: Optional[Dict] = None) -> Optional[Dict]:
         """Send command without acquiring lock (caller must hold lock)."""
-        # Negotiate session key for 3.4+ if needed
-        if self.protocol_version >= 3.4 and self.session_key is None:
+        # Negotiate session key for 3.4+ if needed (skip if permanently disabled — #30)
+        if self.protocol_version >= 3.4 and self.session_key is None and not self._sess_key_disabled:
             # Backoff: skip negotiation if we failed recently (avoid retry storm)
             now = asyncio.get_event_loop().time()
-            last_fail = getattr(self, '_sess_key_last_fail', 0)
-            fail_count = getattr(self, '_sess_key_fail_count', 0)
+            last_fail = self._sess_key_last_fail
+            fail_count = self._sess_key_fail_count
             backoff = min(30 * (2 ** min(fail_count, 5)), 600)  # 30s, 60s, 120s... max 600s
             if fail_count > 0 and (now - last_fail) < backoff:
                 self.debug("Skipping session key negotiation (backoff %ds, fails=%d)", backoff, fail_count)
@@ -715,13 +720,13 @@ class TuyaProtocol(asyncio.Protocol):
                     else:
                         self._sess_key_fail_count = fail_count + 1
                         self._sess_key_last_fail = now
-                        self._logger.warning("Session key negotiation failed, trying without session key (attempt %d)", fail_count + 1)
+                        self._handle_sess_key_failure(fail_count + 1)
                 except Exception as e:
                     self._sess_key_fail_count = fail_count + 1
                     self._sess_key_last_fail = now
                     # Clean up any orphaned listener
                     self.dispatcher.listeners.pop(MessageDispatcher.SESS_KEY_SEQNO, None)
-                    self._logger.warning("Session key negotiation error: %s (attempt %d)", e, fail_count + 1)
+                    self._handle_sess_key_failure(fail_count + 1, error=e)
 
         self.debug("Sending command %d (device_type=%s)", command, self.device_type)
 
@@ -820,6 +825,32 @@ class TuyaProtocol(asyncio.Protocol):
     # =========================================================================
     # SESSION KEY NEGOTIATION (Protocol 3.4+)
     # =========================================================================
+
+    # Permanently disable session key after this many failures, fall back to device_key (#30)
+    MAX_SESS_KEY_FAILS = 5
+
+    def _handle_sess_key_failure(self, attempt: int, error: Optional[Exception] = None) -> None:
+        """Log session key failure with reduced spam, permanently disable after MAX_SESS_KEY_FAILS."""
+        if attempt >= self.MAX_SESS_KEY_FAILS:
+            if not self._sess_key_disabled:
+                self._sess_key_disabled = True
+                self._logger.warning(
+                    "Session key negotiation permanently disabled after %d failures — falling back to device key. "
+                    "Device works in compatibility mode. To re-enable, reload the integration.",
+                    attempt,
+                )
+        elif attempt == 1:
+            # Log first failure as warning so user notices
+            if error is not None:
+                self._logger.warning("Session key negotiation error: %s (attempt %d)", error, attempt)
+            else:
+                self._logger.warning("Session key negotiation failed, trying without session key (attempt %d)", attempt)
+        else:
+            # Subsequent retries: debug only (avoid log spam)
+            if error is not None:
+                self.debug("Session key negotiation error: %s (attempt %d)", error, attempt)
+            else:
+                self.debug("Session key negotiation failed (attempt %d)", attempt)
 
     async def _negotiate_session_key(self) -> bool:
         """Negotiate session key with device.
