@@ -3,7 +3,7 @@ import logging
 from functools import partial
 
 import voluptuous as vol
-from homeassistant.components.sensor import DEVICE_CLASSES, DOMAIN, SensorDeviceClass
+from homeassistant.components.sensor import DEVICE_CLASSES, DOMAIN, SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
     CONF_DEVICE_CLASS,
     CONF_UNIT_OF_MEASUREMENT,
@@ -11,7 +11,14 @@ from homeassistant.const import (
 )
 
 from .common import LocalTuyaEntity, async_setup_entry
-from .const import CONF_SCALING, CONF_ENUM_OPTIONS, CONF_ENUM_OPTIONS_FRIENDLY
+from .const import CONF_SCALING, CONF_ENUM_OPTIONS, CONF_ENUM_OPTIONS_FRIENDLY, CONF_STATE_CLASS
+
+# State classes for long-term statistics / Energy Dashboard (#25)
+STATE_CLASSES = [
+    SensorStateClass.MEASUREMENT,
+    SensorStateClass.TOTAL,
+    SensorStateClass.TOTAL_INCREASING,
+]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +30,7 @@ def flow_schema(dps):
     return {
         vol.Optional(CONF_UNIT_OF_MEASUREMENT): str,
         vol.Optional(CONF_DEVICE_CLASS): vol.In(DEVICE_CLASSES),
+        vol.Optional(CONF_STATE_CLASS): vol.In(STATE_CLASSES),
         vol.Optional(CONF_SCALING): vol.All(
             vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0)
         ),
@@ -86,6 +94,11 @@ class LocaltuyaSensor(LocalTuyaEntity):
     def device_class(self):
         """Return the class of this device."""
         return self._config.get(CONF_DEVICE_CLASS)
+
+    @property
+    def state_class(self):
+        """Return the state class — enables long-term statistics / Energy Dashboard."""
+        return self._config.get(CONF_STATE_CLASS)
 
     @property
     def unit_of_measurement(self):

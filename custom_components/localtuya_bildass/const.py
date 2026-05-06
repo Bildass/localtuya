@@ -3,7 +3,7 @@
 DOMAIN = "localtuya_bildass"
 
 # BildaSystem branding
-VERSION = "7.10.2"
+VERSION = "7.11.0"
 BILDASYSTEM_URL = "https://bildassystem.cz"
 BILDASYSTEM_NAME = "LocalTuya 2.0"
 
@@ -142,6 +142,7 @@ CONF_FAN_DPS_TYPE = "fan_dps_type"
 CONF_SCALING = "scaling"
 CONF_ENUM_OPTIONS = "enum_options"
 CONF_ENUM_OPTIONS_FRIENDLY = "enum_options_friendly"
+CONF_STATE_CLASS = "state_class"  # SensorStateClass: measurement / total / total_increasing (#25)
 
 # device
 CONF_ENTITY_PREFIX = "entity_prefix"
