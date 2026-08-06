@@ -458,7 +458,6 @@ class TuyaProtocol(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport) -> None:
         """Called when connection is established."""
         self.transport = transport
-        print(f"*** CONNECTION_MADE for {self.device_id} ***")
         self._logger.info("TCP connection established to device")
         self.debug("Connection established")
         self.on_connected.set_result(True)
@@ -476,6 +475,15 @@ class TuyaProtocol(asyncio.Protocol):
         self.debug("Connection lost: %s", exc)
         self.session_key = None
         self.dispatcher.session_key = None
+
+        # Issue #36: orphaned heartbeat loop kept writing to the dead transport
+        # forever (asyncio floods "socket.send() raised exception."), because
+        # nothing cancelled it on connection loss. Clean up here, not just in close().
+        self.transport = None
+        if self.heartbeater:
+            self.heartbeater.cancel()
+            self.heartbeater = None
+        self.dispatcher.abort()
 
         listener = self.listener()
         if listener:
@@ -525,6 +533,9 @@ class TuyaProtocol(asyncio.Protocol):
 
             try:
                 while True:
+                    if not self.transport or self.transport.is_closing():
+                        self.debug("Heartbeat loop stopping - transport gone")
+                        return
                     try:
                         await self.heartbeat()
                         consecutive_failures = 0  # Reset on success
@@ -608,7 +619,7 @@ class TuyaProtocol(asyncio.Protocol):
         if dps:
             payload = self._generate_payload(CMD_UPDATE_DPS, dps)
             data = self._encode_message(payload)
-            if self.transport:
+            if self.transport and not self.transport.is_closing():
                 self.transport.write(data)
 
             # Some devices don't send status update after CMD_UPDATE_DPS
@@ -734,7 +745,7 @@ class TuyaProtocol(asyncio.Protocol):
         payload = self._generate_payload(command, dps)
         data = self._encode_message(payload)
 
-        if not self.transport:
+        if not self.transport or self.transport.is_closing():
             self._logger.error("No transport available")
             return None
 
@@ -784,7 +795,7 @@ class TuyaProtocol(asyncio.Protocol):
 
         Used for session key negotiation.
         """
-        if not self.transport:
+        if not self.transport or self.transport.is_closing():
             return None
 
         # Encode message

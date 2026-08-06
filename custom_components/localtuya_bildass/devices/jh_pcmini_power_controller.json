@@ -1,0 +1,14 @@
+{
+  "product_key": "na90jncjlvw5t0ba",
+  "name": "JH-PcMini PC Power Controller",
+  "manufacturer": "JH",
+  "model": "PcMini",
+  "protocol_version": "3.3",
+  "category": "switch",
+  "entities": [
+    {"platform": "switch", "id": 1, "friendly_name": "PC Power", "restore_on_reconnect": false},
+    {"platform": "select", "id": 101, "friendly_name": "Reboot Mode", "select_options": "Reset;forceReset;0", "select_options_friendly": "Reset;Force Reset;Idle"}
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": false
+}

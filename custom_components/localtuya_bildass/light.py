@@ -8,6 +8,7 @@ import homeassistant.util.color as color_util
 import voluptuous as vol
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_COLOR_TEMP_KELVIN,
     ATTR_EFFECT,
     ATTR_HS_COLOR,
     DOMAIN,
@@ -252,6 +253,24 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
         return self._max_mired
 
     @property
+    def color_temp_kelvin(self):
+        """Return the color temperature in Kelvin (HA 2026.3+ reads only this)."""
+        mired = self.color_temp
+        if mired is None:
+            return None
+        return color_util.color_temperature_mired_to_kelvin(mired)
+
+    @property
+    def min_color_temp_kelvin(self):
+        """Return the warmest color temperature in Kelvin this light supports."""
+        return color_util.color_temperature_mired_to_kelvin(self._max_mired)
+
+    @property
+    def max_color_temp_kelvin(self):
+        """Return the coldest color temperature in Kelvin this light supports."""
+        return color_util.color_temperature_mired_to_kelvin(self._min_mired)
+
+    @property
     def effect(self):
         """Return the current effect for this light."""
         if self.is_scene_mode or self.is_music_mode:
@@ -429,10 +448,14 @@ class LocaltuyaLight(LocalTuyaEntity, LightEntity):
                 states[self._config.get(CONF_COLOR)] = color
                 states[self._config.get(CONF_COLOR_MODE)] = MODE_COLOR
 
-        if ColorMode.COLOR_TEMP in kwargs and ColorMode.COLOR_TEMP in self.supported_color_modes:
+        if ATTR_COLOR_TEMP_KELVIN in kwargs and ColorMode.COLOR_TEMP in self.supported_color_modes:
             if brightness is None:
                 brightness = self._brightness
-            mired = int(kwargs[ColorMode.COLOR_TEMP])
+            mired = int(
+                color_util.color_temperature_kelvin_to_mired(
+                    kwargs[ATTR_COLOR_TEMP_KELVIN]
+                )
+            )
             if self._color_temp_reverse:
                 mired = self._max_mired - (mired - self._min_mired)
             if mired < self._min_mired:

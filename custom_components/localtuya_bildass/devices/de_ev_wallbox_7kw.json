@@ -1,0 +1,24 @@
+{
+  "product_key": "bf636897070c5ead866lrk",
+  "name": "dé EV Wallbox 7kW (gd version)",
+  "manufacturer": "dé (Depow)",
+  "model": "EV Wallbox 7kW",
+  "protocol_version": "3.5",
+  "category": "ev_charger",
+  "entities": [
+    {"platform": "switch", "id": 140, "friendly_name": "Charge", "restore_on_reconnect": false},
+    {"platform": "number", "id": 150, "friendly_name": "Charge Current", "min_value": 6, "max_value": 32, "step_size": 1, "unit_of_measurement": "A"},
+    {"platform": "number", "id": 152, "friendly_name": "Max Current Limit", "min_value": 6, "max_value": 32, "step_size": 1, "unit_of_measurement": "A"},
+    {"platform": "sensor", "id": 101, "friendly_name": "Work State"},
+    {"platform": "sensor", "id": 109, "friendly_name": "Work State Detail", "device_class": "enum"},
+    {"platform": "sensor", "id": 102, "friendly_name": "Metrics (raw)"},
+    {"platform": "sensor", "id": 104, "friendly_name": "Alarm"},
+    {"platform": "sensor", "id": 108, "friendly_name": "Countdown", "unit_of_measurement": "s"},
+    {"platform": "switch", "id": 155, "friendly_name": "NFC", "restore_on_reconnect": false},
+    {"platform": "switch", "id": 190, "friendly_name": "Plug & Charge", "restore_on_reconnect": false},
+    {"platform": "switch", "id": 141, "friendly_name": "Reset", "restore_on_reconnect": false},
+    {"platform": "switch", "id": 142, "friendly_name": "Reboot", "restore_on_reconnect": false}
+  ],
+  "contributed_by": "BildaSystem.cz",
+  "tested": false
+}
