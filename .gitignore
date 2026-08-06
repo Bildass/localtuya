@@ -5,3 +5,8 @@ tuyadebug/
 .pre-commit-config.yamlvenv/
 venv/
 CLAUDE.md
+
+# Private debug notes with device credentials — never commit
+ISSUE_TRACKING.md
+DEPLOYMENT.md
+diagnose_*.py
