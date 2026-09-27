@@ -3,29 +3,9 @@
   "name": "Scheeair Nova 100",
   "manufacturer": "Scheeair",
   "model": "Nova 100",
-  "protocol_version": "3.3",
+  "protocol_version": "3.5",
   "category": "exhaust_fan",
   "entities": [
-    {
-      "platform": "switch",
-      "id": 1,
-      "friendly_name": "Power",
-      "restore_on_reconnect": true
-    },
-    {
-      "platform": "select",
-      "id": 3,
-      "friendly_name": "Fan Speed",
-      "select_options": "0;1;2",
-      "select_options_friendly": "Off;Low;High",
-      "restore_on_reconnect": true
-    },
-    {
-      "platform": "switch",
-      "id": 10,
-      "friendly_name": "Humidifier Mode",
-      "restore_on_reconnect": false
-    },
     {
       "platform": "sensor",
       "id": 21,
@@ -41,39 +21,17 @@
       "unit_of_measurement": "%"
     },
     {
-      "platform": "sensor",
-      "id": 102,
-      "friendly_name": "Wind Speed State",
-      "device_class": "enum"
+      "platform": "switch",
+      "id": 1,
+      "friendly_name": "Power",
+      "restore_on_reconnect": false
     },
     {
       "platform": "select",
       "id": 103,
-      "friendly_name": "Wind Mode",
-      "select_options": "high;low;stop",
-      "select_options_friendly": "High;Low;Stop",
-      "restore_on_reconnect": true
-    },
-    {
-      "platform": "number",
-      "id": 104,
-      "friendly_name": "Fan Power Level",
-      "unit_of_measurement": "%",
-      "min_value": 40,
-      "max_value": 100,
-      "step_size": 10
-    },
-    {
-      "platform": "binary_sensor",
-      "id": 106,
-      "friendly_name": "Motion Detected",
-      "device_class": "motion"
-    },
-    {
-      "platform": "switch",
-      "id": 107,
-      "friendly_name": "PIR Sensor",
-      "restore_on_reconnect": true
+      "friendly_name": "Fan Speed",
+      "select_options": "stop;low;high",
+      "select_options_friendly": "Off;Low;High"
     },
     {
       "platform": "number",
@@ -83,8 +41,37 @@
       "min_value": 1,
       "max_value": 60,
       "step_size": 1
+    },
+    {
+      "platform": "switch",
+      "id": 10,
+      "friendly_name": "Humidity Control",
+      "restore_on_reconnect": false
+    },
+    {
+      "platform": "number",
+      "id": 104,
+      "friendly_name": "Humidity Target",
+      "device_class": "humidity",
+      "unit_of_measurement": "%",
+      "min_value": 30,
+      "max_value": 100,
+      "step_size": 5
+    },
+    {
+      "platform": "switch",
+      "id": 107,
+      "friendly_name": "Presence Sensor",
+      "restore_on_reconnect": false
+    },
+    {
+      "platform": "binary_sensor",
+      "id": 106,
+      "friendly_name": "Motion Detected",
+      "device_class": "motion"
     }
   ],
-  "contributed_by": "BildaSystem.cz",
-  "tested": false
+  "notes": "Field-tested revision (#37). DP 3 removed (duplicate of DP 103). DP 102 removed (holds the PREVIOUS fan speed - internal restore point for humidity/PIR boost, not live state). restore_on_reconnect disabled on DP 1/103/107 (device beeped and powered on at every integration reload). DP 104 is a humidity target, range 30-100 step 5. Confirmed working on protocol 3.5.",
+  "contributed_by": "SeeDborg",
+  "tested": true
 }

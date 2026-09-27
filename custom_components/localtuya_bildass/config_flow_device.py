@@ -307,9 +307,12 @@ class DeviceOperationsMixin:
                         )
 
                 if self.editing_device:
+                    # Re-detect DPS and merge Manual DPS to Add (#42)
+                    user_input[CONF_DEVICE_ID] = dev_id
+                    self.dps_strings = await self._refresh_dps_strings(user_input)
+
                     if user_input[CONF_ENABLE_ADD_ENTITIES]:
                         self.editing_device = False
-                        user_input[CONF_DEVICE_ID] = dev_id
                         self.device_data.update({
                             CONF_DEVICE_ID: dev_id,
                             CONF_DPS_STRINGS: self.dps_strings,
@@ -396,6 +399,13 @@ class DeviceOperationsMixin:
                     defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY, "")
                     defaults[CONF_FRIENDLY_NAME] = cloud_devs[dev_id].get(CONF_NAME, "")
 
+                # Not discovered via UDP (which reports the real version) ->
+                # use protocol_version from the device library template (#38)
+                if dev_id not in self.discovered_devices:
+                    library_version = self._library_protocol_version(dev_id)
+                    if library_version:
+                        defaults[CONF_PROTOCOL_VERSION] = library_version
+
             schema = schema_defaults(DEVICE_SCHEMA, **defaults)
             placeholders = {"for_device": ""}
 
@@ -404,6 +414,51 @@ class DeviceOperationsMixin:
             data_schema=schema,
             errors=errors,
             description_placeholders=placeholders,
+        )
+
+    def _library_protocol_version(self, dev_id):
+        """Return protocol_version from the device library for a cloud device."""
+        try:
+            dev_data = self.hass.data[DOMAIN][DATA_CLOUD].device_list.get(dev_id) or {}
+        except Exception:  # pylint: disable=broad-except
+            return None
+        product_key = (
+            dev_data.get("product_id") or
+            dev_data.get("productKey") or
+            dev_data.get("product_key")
+        )
+        if not product_key:
+            return None
+        version = device_library.get_protocol_version(product_key)
+        if version and str(version) in ("3.1", "3.2", "3.3", "3.4", "3.5"):
+            return str(version)
+        return None
+
+    async def _refresh_dps_strings(self, user_input):
+        """Re-detect DPS during Full Edit and merge them into the saved list.
+
+        Manual DPS to Add are merged by validate_input(). If the device can't be
+        reached, keep the saved list and just add the manual DPS.
+        """
+        try:
+            fresh = await validate_input(self.hass, user_input)
+        except Exception as ex:  # pylint: disable=broad-except
+            _LOGGER.warning(
+                "Full Edit: DPS detection failed (%s), keeping saved DPS list", ex
+            )
+            manual = user_input.get(CONF_MANUAL_DPS) or ""
+            fresh = [
+                f"{dp.strip()} (value: -1)" for dp in manual.split(",") if dp.strip()
+            ]
+
+        def dp_id(dps_string):
+            return str(dps_string).split(" ", 1)[0]
+
+        merged = {dp_id(s): s for s in self.dps_strings}
+        merged.update({dp_id(s): s for s in fresh})
+        return sorted(
+            merged.values(),
+            key=lambda s: (0, int(dp_id(s))) if dp_id(s).isdigit() else (1, dp_id(s)),
         )
 
     async def async_step_check_library_template(self, user_input=None):

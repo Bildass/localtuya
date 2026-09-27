@@ -17,6 +17,7 @@ from homeassistant.const import (
     STATE_UNKNOWN,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
@@ -184,8 +185,22 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
     def async_connect(self):
         """Connect to device if not already connected."""
         # self.info("async_connect: %d %r %r", self._is_closing, self._connect_task, self._interface)
+        if self._is_disabled_in_registry():
+            # Device disabled in HA - don't connect/poll it (#41)
+            return
         if not self._is_closing and self._connect_task is None and not self._interface:
             self._connect_task = asyncio.create_task(self._make_connection())
+
+    def _is_disabled_in_registry(self):
+        """Return True if the device has been disabled in the HA device registry."""
+        try:
+            dev_reg = dr.async_get(self._hass)
+            device = dev_reg.async_get_device(
+                identifiers={(DOMAIN, f"local_{self._dev_config_entry[CONF_DEVICE_ID]}")}
+            )
+        except Exception:  # pylint: disable=broad-except
+            return False
+        return device is not None and device.disabled
 
     async def _make_connection(self):
         """Subscribe localtuya entity events."""

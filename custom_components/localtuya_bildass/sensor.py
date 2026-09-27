@@ -3,7 +3,13 @@ import logging
 from functools import partial
 
 import voluptuous as vol
-from homeassistant.components.sensor import DEVICE_CLASSES, DOMAIN, SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import (
+    DEVICE_CLASSES,
+    DOMAIN,
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.const import (
     CONF_DEVICE_CLASS,
     CONF_UNIT_OF_MEASUREMENT,
@@ -40,8 +46,10 @@ def flow_schema(dps):
     }
 
 
-class LocaltuyaSensor(LocalTuyaEntity):
+class LocaltuyaSensor(LocalTuyaEntity, SensorEntity):
     """Representation of a Tuya sensor."""
+
+    # SensorEntity is required so HA exposes state_class (long-term statistics, #43)
 
     def __init__(
         self,
