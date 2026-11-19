@@ -32,7 +32,7 @@ from .constants import (
     PAYLOAD_DICT, DEVICE_TYPE_0A, DEVICE_TYPE_0D, DEVICE_TYPE_V34, DEVICE_TYPE_V35,
     # Timing
     HEARTBEAT_INTERVAL, DEFAULT_TIMEOUT, HEARTBEAT_LOCK_TIMEOUT,
-    UPDATE_DPS_WHITELIST,
+    CONTROL_CONFIRM_DELAY, UPDATE_DPS_WHITELIST,
     # Errors
     ERR_JSON, ERR_PAYLOAD, ERROR_MESSAGES,
 )
@@ -174,6 +174,7 @@ class MessageDispatcher:
         """
         self.buffer = b""
         self.listeners: Dict[int, Any] = {}
+        self.expected_cmds: Dict[int, int] = {}
         self.protocol_version = protocol_version
         self.device_key = device_key
         self.session_key: Optional[bytes] = None
@@ -201,6 +202,7 @@ class MessageDispatcher:
             if isinstance(item, asyncio.Semaphore):
                 self.listeners[seqno] = None
                 item.release()
+        self.expected_cmds.clear()
 
     async def wait_for(self, seqno: int, cmd: int, timeout: float = DEFAULT_TIMEOUT) -> Optional[TuyaMessage]:
         """Wait for response with given sequence number.
@@ -221,16 +223,43 @@ class MessageDispatcher:
 
         self.debug("Waiting for seqno %d (cmd %d)", seqno, cmd)
         self.listeners[seqno] = asyncio.Semaphore(0)
+        self.expected_cmds[seqno] = cmd
 
         try:
             await asyncio.wait_for(self.listeners[seqno].acquire(), timeout=timeout)
         except asyncio.TimeoutError:
             self.debug("Timeout waiting for seqno %d", seqno)
             del self.listeners[seqno]
+            self.expected_cmds.pop(seqno, None)
             raise
 
         result = self.listeners.pop(seqno)
+        self.expected_cmds.pop(seqno, None)
         return result if isinstance(result, TuyaMessage) else None
+
+    # Reply commands accepted for each request command, besides the command itself.
+    # Protocol 3.4+ answers with the *_NEW variants, and some firmwares answer
+    # control/query requests with a STATUS report.
+    _REPLY_CMDS = {
+        CMD_CONTROL: (CMD_CONTROL_NEW, CMD_STATUS),
+        CMD_CONTROL_NEW: (CMD_CONTROL, CMD_STATUS),
+        CMD_DP_QUERY: (CMD_DP_QUERY_NEW, CMD_STATUS),
+        CMD_DP_QUERY_NEW: (CMD_DP_QUERY, CMD_STATUS),
+    }
+
+    def _is_reply(self, seqno: int, cmd: int) -> bool:
+        """Return True if a message with this cmd can answer the request waiting on seqno."""
+        expected = self.expected_cmds.get(seqno)
+        if expected is None or cmd == expected:
+            return True
+        return cmd in self._REPLY_CMDS.get(expected, ())
+
+    def _notify_status(self, msg: TuyaMessage) -> None:
+        """Pass a STATUS report to the status callback without letting it break dispatch."""
+        try:
+            self.status_callback(msg)
+        except Exception as e:
+            self.warning("Exception in status_callback: %s", e)
 
     def add_data(self, data: bytes) -> None:
         """Add received data to buffer and process messages."""
@@ -299,8 +328,14 @@ class MessageDispatcher:
         self.debug("Dispatching msg: cmd=%d seqno=%d retcode=%d payload_len=%d",
                    msg.cmd, msg.seqno, msg.retcode, len(msg.payload))
 
+        # Device-initiated messages carry the device's own counter, so a STATUS report
+        # can share its seqno with an unrelated pending request. It always carries DP
+        # values, so it must reach the status callback even when it also answers a request.
+        if msg.cmd == CMD_STATUS:
+            self._notify_status(msg)
+
         # Check if someone is waiting for this seqno
-        if msg.seqno in self.listeners:
+        if msg.seqno in self.listeners and self._is_reply(msg.seqno, msg.cmd):
             sem = self.listeners[msg.seqno]
             if isinstance(sem, asyncio.Semaphore):
                 self.listeners[msg.seqno] = msg
@@ -338,15 +373,8 @@ class MessageDispatcher:
         elif msg.cmd == CMD_SESS_KEY_NEG_RESP:
             self._dispatch_special(self.SESS_KEY_SEQNO, msg)
         elif msg.cmd in (CMD_UPDATE_DPS, CMD_STATUS):
-            # Check for reset listener first
             if self.RESET_SEQNO in self.listeners:
                 self._dispatch_special(self.RESET_SEQNO, msg)
-            elif msg.cmd == CMD_STATUS:
-                # Unsolicited status update - wrap in try-catch to prevent connection drop
-                try:
-                    self.status_callback(msg)
-                except Exception as e:
-                    self.warning("Exception in status_callback: %s", e)
         elif msg.cmd == CMD_CONTROL_NEW:
             self.debug("ACK for cmd %d", msg.cmd)
         else:
@@ -415,6 +443,8 @@ class TuyaProtocol(asyncio.Protocol):
         # DPS tracking
         self.dps_cache: Dict[str, Any] = {}
         self.dps_to_request: Dict[str, None] = {}
+        self._status_reports = 0
+        self._confirm_task: Optional[asyncio.Task] = None
 
         # Heartbeat task
         self.heartbeater: Optional[asyncio.Task] = None
@@ -483,6 +513,9 @@ class TuyaProtocol(asyncio.Protocol):
         if self.heartbeater:
             self.heartbeater.cancel()
             self.heartbeater = None
+        if self._confirm_task:
+            self._confirm_task.cancel()
+            self._confirm_task = None
         self.dispatcher.abort()
 
         listener = self.listener()
@@ -508,6 +541,10 @@ class TuyaProtocol(asyncio.Protocol):
             except asyncio.CancelledError:
                 pass
             self.heartbeater = None
+
+        if self._confirm_task:
+            self._confirm_task.cancel()
+            self._confirm_task = None
 
         # Abort pending listeners
         self.dispatcher.abort()
@@ -587,11 +624,11 @@ class TuyaProtocol(asyncio.Protocol):
 
     async def set_dp(self, value: Any, dp_index: int) -> Optional[Dict]:
         """Set single data point value."""
-        return await self.exchange(CMD_CONTROL, {str(dp_index): value})
+        return await self._send_control({str(dp_index): value})
 
     async def set_dps(self, dps: Dict[str, Any]) -> Optional[Dict]:
         """Set multiple data point values."""
-        return await self.exchange(CMD_CONTROL, dps)
+        return await self._send_control(dps)
 
     async def update_dps(self, dps: Optional[list] = None) -> bool:
         """Request device to update specific DPS values (Protocol 3.2+).
@@ -781,6 +818,7 @@ class TuyaProtocol(asyncio.Protocol):
         # CONTROL responses: treat retcode=0 as success, don't parse payload as JSON
         # Protocol 3.5 devices may return encrypted payload that fails JSON decode
         if payload.cmd in (CMD_CONTROL, CMD_CONTROL_NEW):
+            self._apply_control_reply(msg)
             if msg.retcode == 0 or len(msg.payload) == 0:
                 self.debug("Control ACK received (retcode=%d, payload_len=%d)", msg.retcode, len(msg.payload))
                 return None
@@ -1159,21 +1197,12 @@ class TuyaProtocol(asyncio.Protocol):
     def _handle_status_update(self, msg: TuyaMessage) -> None:
         """Handle unsolicited status update from device."""
         try:
-            # Update seqno first (inside try block for safety)
-            if msg.seqno > 0:
-                self.seqno = msg.seqno + 1
-
-            # Decode payload
             decoded = self._decode_payload(msg.payload)
 
             # Check for valid status with dps
             if decoded and isinstance(decoded, dict) and "dps" in decoded:
-                self.dps_cache.update(decoded["dps"])
                 self.debug("Status update: dps=%s", decoded["dps"])
-
-                listener = self.listener()
-                if listener:
-                    listener.status_updated(self.dps_cache)
+                self._apply_dps(decoded["dps"])
             elif decoded and isinstance(decoded, dict) and "error" in decoded:
                 # Decode error (e.g., JSON decode failed) - log but don't fail
                 self.debug("Status update decode error: %s", decoded.get("message", decoded.get("error")))
@@ -1182,6 +1211,57 @@ class TuyaProtocol(asyncio.Protocol):
         except Exception as e:
             # Catch all exceptions to prevent connection drop
             self._logger.warning("Failed to handle status update: %s", e)
+
+    def _apply_dps(self, dps: Dict[str, Any]) -> None:
+        """Merge reported DP values into the cache and notify the listener."""
+        self.dps_cache.update(dps)
+        self._status_reports += 1
+        listener = self.listener()
+        if listener:
+            listener.status_updated(self.dps_cache)
+
+    def _apply_control_reply(self, msg: TuyaMessage) -> None:
+        """Apply DP values that some firmwares include in the CONTROL acknowledgement."""
+        if msg.cmd == CMD_STATUS or msg.retcode != 0 or not msg.payload:
+            return
+        try:
+            decoded = self._decode_payload(msg.payload)
+        except Exception as e:
+            self.debug("Ignoring undecodable control reply: %s", e)
+            return
+        if isinstance(decoded, dict) and isinstance(decoded.get("dps"), dict):
+            self.debug("Control reply carried dps=%s", decoded["dps"])
+            self._apply_dps(decoded["dps"])
+
+    async def _send_control(self, dps: Dict[str, Any]) -> Optional[Dict]:
+        """Send CONTROL and make sure the resulting state reaches the listener."""
+        reports_before = self._status_reports
+        result = await self.exchange(CMD_CONTROL, dps)
+        if self._status_reports == reports_before:
+            if self._confirm_task and not self._confirm_task.done():
+                self._confirm_task.cancel()
+            self._confirm_task = asyncio.get_running_loop().create_task(
+                self._confirm_control(reports_before)
+            )
+        return result
+
+    async def _confirm_control(self, reports_before: int) -> None:
+        """Query status if the device has not reported its new state after a CONTROL."""
+        await asyncio.sleep(CONTROL_CONFIRM_DELAY)
+        if self._status_reports != reports_before:
+            return
+        if not self.transport or self.transport.is_closing():
+            return
+        self.debug("No status report after control, querying status")
+        try:
+            status = await self.status()
+        except Exception as e:
+            self.debug("Status query after control failed: %s", e)
+            return
+        if self._status_reports == reports_before and isinstance(status, dict):
+            dps = status.get("dps")
+            if isinstance(dps, dict) and dps:
+                self._apply_dps(dps)
 
 
 # =============================================================================
