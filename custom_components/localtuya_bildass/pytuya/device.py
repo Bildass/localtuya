@@ -342,30 +342,21 @@ class MessageDispatcher:
                 sem.release()
             return
 
-        # Fallback for protocol 3.4+: device may respond with seqno=0 or different seqno
-        # Only for control/query responses, NOT for STATUS (which should go to status_callback)
+        # Protocol 3.4+ devices may number replies with their own counter (or 0) instead
+        # of echoing ours, and that counter drifts away from ours with every command.
+        # Requests are serialized by the command lock, so at most one is pending: hand
+        # the reply to it when the command type fits.
         if msg.cmd in (CMD_DP_QUERY_NEW, CMD_CONTROL_NEW):
-            # First try seqno+1 fallback
-            if (msg.seqno + 1) in self.listeners:
-                alt_seqno = msg.seqno + 1
-                self.debug("Seqno mismatch for cmd=%d, using fallback seqno %d -> %d", msg.cmd, msg.seqno, alt_seqno)
-                sem = self.listeners[alt_seqno]
-                if isinstance(sem, asyncio.Semaphore):
-                    self.listeners[alt_seqno] = msg
+            for listener_seqno, sem in list(self.listeners.items()):
+                if (
+                    listener_seqno >= 0
+                    and isinstance(sem, asyncio.Semaphore)
+                    and self._is_reply(listener_seqno, msg.cmd)
+                ):
+                    self.debug("Routing cmd=%d seqno=%d to listener seqno=%d", msg.cmd, msg.seqno, listener_seqno)
+                    self.listeners[listener_seqno] = msg
                     sem.release()
-                return
-            # For seqno=0 responses or near-match seqnos, try to find first available listener
-            if self.listeners:
-                for listener_seqno in list(self.listeners.keys()):
-                    if listener_seqno >= 0:  # Skip special negative seqnos
-                        # Accept if seqno matches, is 0, or is close (within 2)
-                        if msg.seqno == 0 or abs(msg.seqno - listener_seqno) <= 2:
-                            self.debug("Routing cmd=%d seqno=%d to listener seqno=%d", msg.cmd, msg.seqno, listener_seqno)
-                            sem = self.listeners[listener_seqno]
-                            if isinstance(sem, asyncio.Semaphore):
-                                self.listeners[listener_seqno] = msg
-                                sem.release()
-                            return
+                    return
 
         # Handle special message types
         if msg.cmd == CMD_HEART_BEAT:
@@ -1232,7 +1223,8 @@ class TuyaProtocol(asyncio.Protocol):
 
     def _apply_control_reply(self, msg: TuyaMessage) -> None:
         """Apply DP values that some firmwares include in the CONTROL acknowledgement."""
-        if msg.cmd == CMD_STATUS or msg.retcode != 0 or not msg.payload:
+        # Plain ACKs carry at most a 4-byte return code, never DP values.
+        if msg.cmd == CMD_STATUS or msg.retcode != 0 or len(msg.payload) <= 4:
             return
         try:
             decoded = self._decode_payload(msg.payload)

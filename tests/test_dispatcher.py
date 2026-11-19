@@ -10,6 +10,7 @@ from pytuya import device
 from pytuya.cipher import AESCipher
 from pytuya.constants import (
     CMD_CONTROL,
+    CMD_CONTROL_NEW,
     CMD_DP_QUERY,
     CMD_HEART_BEAT,
     CMD_STATUS,
@@ -183,6 +184,40 @@ async def test_no_status_query_when_device_reports_after_control(proto, monkeypa
 
     await asyncio.sleep(0.05)
     assert len(proto.transport.sent) == 1
+
+
+@pytest.mark.asyncio
+async def test_v35_replies_numbered_by_device_counter_match_every_command():
+    """A 3.5 plug numbers its STATUS and ACK with its own counter, which gains one
+    on ours per command; every ACK must still complete its command promptly."""
+    loop = asyncio.get_running_loop()
+    listener = RecordingListener()
+    key = LOCAL_KEY.encode()
+    proto = device.TuyaProtocol(DEVICE_ID, LOCAL_KEY, 3.5, False, loop.create_future(), listener)
+    proto.transport = FakeTransport()
+    proto.session_key = key
+    proto.dispatcher.set_session_key(key)
+
+    def v35_frame(seqno, cmd, payload):
+        return pack_message(seqno, cmd, payload, key, 3.5, encrypt=True)
+
+    device_seqno = proto.seqno
+    try:
+        for i in range(6):
+            value = i % 2 == 0
+            task = asyncio.create_task(proto.set_dp(value, 1))
+            request = await next_request(proto, i + 1)
+            body = json.dumps({"protocol": 4, "t": 1, "data": {"dps": {"1": value}}}).encode()
+            proto.data_received(v35_frame(device_seqno, CMD_STATUS, body))
+            proto.data_received(v35_frame(device_seqno + 1, CMD_CONTROL_NEW, b"\x00\x00\x00\x00"))
+            device_seqno += 2
+
+            await asyncio.wait_for(task, 0.5)
+            assert request.cmd == CMD_CONTROL_NEW
+            assert listener.updates[-1] == {"1": value}
+    finally:
+        if proto._confirm_task:
+            proto._confirm_task.cancel()
 
 
 @pytest.mark.asyncio
