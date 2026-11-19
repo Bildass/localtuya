@@ -580,7 +580,9 @@ class TuyaProtocol(asyncio.Protocol):
                         consecutive_failures += 1
                         self.debug("Heartbeat timeout (%d/%d)", consecutive_failures, max_failures)
                         if consecutive_failures >= max_failures:
-                            self.debug("Max heartbeat failures reached, disconnecting")
+                            self._logger.warning(
+                                "No heartbeat reply %d times in a row, disconnecting", consecutive_failures
+                            )
                             break
                     except Exception as e:
                         consecutive_failures += 1
@@ -611,7 +613,7 @@ class TuyaProtocol(asyncio.Protocol):
             return None
 
         try:
-            return await self._exchange_unlocked(CMD_HEART_BEAT)
+            return await self._exchange_unlocked(CMD_HEART_BEAT, raise_on_timeout=True)
         finally:
             self._command_lock.release()
 
@@ -748,8 +750,14 @@ class TuyaProtocol(asyncio.Protocol):
         async with self._command_lock:
             return await self._exchange_unlocked(command, dps)
 
-    async def _exchange_unlocked(self, command: int, dps: Optional[Dict] = None) -> Optional[Dict]:
-        """Send command without acquiring lock (caller must hold lock)."""
+    async def _exchange_unlocked(
+        self, command: int, dps: Optional[Dict] = None, raise_on_timeout: bool = False
+    ) -> Optional[Dict]:
+        """Send command without acquiring lock (caller must hold lock).
+
+        With raise_on_timeout, a missing reply raises asyncio.TimeoutError instead of
+        returning None, so callers that probe liveness can tell silence from success.
+        """
         # Negotiate session key for 3.4+ if needed (skip if permanently disabled — #30)
         if self.protocol_version >= 3.4 and self.session_key is None and not self._sess_key_disabled:
             # Backoff: skip negotiation if we failed recently (avoid retry storm)
@@ -800,6 +808,8 @@ class TuyaProtocol(asyncio.Protocol):
             msg = await self.dispatcher.wait_for(wait_seqno, payload.cmd)
         except asyncio.TimeoutError:
             self.debug("Timeout waiting for response to cmd %d (seqno=%d)", payload.cmd, wait_seqno)
+            if raise_on_timeout:
+                raise
             return None
 
         if msg is None:
@@ -1298,18 +1308,21 @@ async def connect(
     loop = asyncio.get_running_loop()
     on_connected = loop.create_future()
 
-    _, protocol = await loop.create_connection(
-        lambda: TuyaProtocol(
-            device_id=device_id,
-            local_key=local_key,
-            protocol_version=protocol_version,
-            enable_debug=enable_debug,
-            on_connected=on_connected,
-            listener=listener or EmptyListener(),
-            poll_dps=poll_dps
+    _, protocol = await asyncio.wait_for(
+        loop.create_connection(
+            lambda: TuyaProtocol(
+                device_id=device_id,
+                local_key=local_key,
+                protocol_version=protocol_version,
+                enable_debug=enable_debug,
+                on_connected=on_connected,
+                listener=listener or EmptyListener(),
+                poll_dps=poll_dps
+            ),
+            host=address,
+            port=port
         ),
-        host=address,
-        port=port
+        timeout=timeout,
     )
 
     await asyncio.wait_for(on_connected, timeout=timeout)
