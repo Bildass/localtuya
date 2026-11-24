@@ -22,7 +22,7 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
 )
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import pytuya
@@ -47,6 +47,12 @@ from .const import (
 from . import device_library
 
 _LOGGER = logging.getLogger(__name__)
+
+# Delays (seconds) between reconnect attempts after a connection is lost. Devices
+# often refuse a new connection until they release the old socket, so the first
+# retry is not immediate. Once exhausted, the periodic reconnect in __init__.py
+# takes over.
+RECONNECT_BACKOFF = (2, 5, 10, 20, 30)
 
 
 def prepare_setup_entities(hass, config_entry, platform):
@@ -152,6 +158,8 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         self._connect_task = None
         self._disconnect_task = None
         self._unsub_interval = None
+        self._reconnect_attempt = 0
+        self._reconnect_unsub = None
         self._entities = []
         self._local_key = self._dev_config_entry[CONF_LOCAL_KEY]
         self._default_reset_dpids = None
@@ -203,6 +211,25 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         return device is not None and device.disabled
 
     async def _make_connection(self):
+        """Connect, then make sure a failed or lost connection gets retried."""
+        host = self._dev_config_entry[CONF_HOST]
+        try:
+            await self._async_connect_and_init()
+        except Exception as ex:  # pylint: disable=broad-except
+            self.warning("Failed to set up connection to %s: %r", host, ex)
+            if self._interface is not None:
+                await self._interface.close()
+                self._interface = None
+        finally:
+            self._connect_task = None
+
+        if self._interface is not None and self._interface.transport is None:
+            self.warning("Connection to %s was lost while connecting", host)
+            self._mark_disconnected()
+        if self._interface is None:
+            self._schedule_reconnect()
+
+    async def _async_connect_and_init(self):
         """Subscribe localtuya entity events."""
         self.info("Trying to connect to %s...", self._dev_config_entry[CONF_HOST])
 
@@ -239,7 +266,7 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
             self._interface.add_dps_to_request(self.dps_to_request)
         except Exception as ex:  # pylint: disable=broad-except
             self.warning(
-                f"Failed to connect to {self._dev_config_entry[CONF_HOST]}: %s", ex
+                "Failed to connect to %s: %r", self._dev_config_entry[CONF_HOST], ex
             )
             if self._interface is not None:
                 await self._interface.close()
@@ -317,9 +344,8 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
                     timedelta(seconds=int(self._dev_config_entry[CONF_SCAN_INTERVAL])),
                 )
 
+            self._reconnect_attempt = 0
             self.info(f"Successfully connected to {self._dev_config_entry[CONF_HOST]}")
-
-        self._connect_task = None
 
     async def update_local_key(self):
         """Retrieve updated local_key from Cloud API and update the config_entry."""
@@ -344,6 +370,9 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
     async def close(self):
         """Close connection and stop re-connect loop."""
         self._is_closing = True
+        if self._reconnect_unsub is not None:
+            self._reconnect_unsub()
+            self._reconnect_unsub = None
         if self._connect_task is not None:
             self._connect_task.cancel()
             try:
@@ -408,16 +437,28 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
     @callback
     def disconnected(self):
         """Device disconnected."""
+        if self._connect_task is not None:
+            # _make_connection sees the dead transport and schedules the retry itself.
+            self.debug("Disconnected while connecting")
+            return
+        if self._interface is None:
+            return
+
+        self._mark_disconnected()
+
+        if not self._is_closing:
+            self.warning("Disconnected - reconnecting")
+            self._schedule_reconnect()
+        else:
+            self.warning("Disconnected during close")
+
+    def _mark_disconnected(self):
+        """Drop the interface and mark entities unavailable (thread-safe)."""
         if self._unsub_interval is not None:
             self._unsub_interval()
             self._unsub_interval = None
         self._interface = None
 
-        if self._connect_task is not None:
-            self._connect_task.cancel()
-            self._connect_task = None
-
-        # Mark as unavailable and start reconnect (thread-safe)
         signal = f"localtuya_{self._dev_config_entry[CONF_DEVICE_ID]}"
         try:
             self._hass.loop.call_soon_threadsafe(
@@ -426,12 +467,22 @@ class TuyaDevice(pytuya.TuyaListener, pytuya.ContextualLogger):
         except RuntimeError:
             pass
 
-        if not self._is_closing:
-            self.warning("Disconnected - starting reconnect")
-            # Start reconnect immediately (non-blocking)
-            self.async_connect()
-        else:
-            self.warning("Disconnected during close")
+    def _schedule_reconnect(self):
+        """Schedule the next reconnect attempt from RECONNECT_BACKOFF."""
+        if self._is_closing or self._reconnect_unsub is not None:
+            return
+        if self._reconnect_attempt >= len(RECONNECT_BACKOFF):
+            self.debug("Reconnect backoff exhausted, waiting for periodic reconnect")
+            return
+        delay = RECONNECT_BACKOFF[self._reconnect_attempt]
+        self._reconnect_attempt += 1
+        self.debug("Reconnecting in %ds (attempt %d)", delay, self._reconnect_attempt)
+        self._reconnect_unsub = async_call_later(self._hass, delay, self._async_reconnect)
+
+    @callback
+    def _async_reconnect(self, _now):
+        self._reconnect_unsub = None
+        self.async_connect()
 
 
 class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):

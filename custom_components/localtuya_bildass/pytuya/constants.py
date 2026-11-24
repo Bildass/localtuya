@@ -133,6 +133,7 @@ FOOTER_SIZE_6699 = 20
 HEARTBEAT_INTERVAL = 15  # seconds (faster failure detection)
 DEFAULT_TIMEOUT = 8  # seconds (tolerance for slow responses)
 HEARTBEAT_LOCK_TIMEOUT = 2.0  # seconds (heartbeat lock timeout)
+CONTROL_CONFIRM_DELAY = 1.5  # seconds to wait for a status report before querying after CONTROL
 MAX_PAYLOAD_SIZE = 2000  # bytes - sanity check
 
 # DPS indices known to be safe for UPDATE_DPS command
