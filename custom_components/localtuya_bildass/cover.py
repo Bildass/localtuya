@@ -32,6 +32,9 @@ COVER_MODE_POSITION = "position"
 COVER_MODE_TIMED = "timed"
 COVER_TIMEOUT_TOLERANCE = 3.0
 
+COVER_MOVEMENT_TIMEOUT = 120.0
+COVER_STALL_TIMEOUT = 15.0
+
 DEFAULT_COMMANDS_SET = COVER_ONOFF_CMDS
 DEFAULT_POSITIONING_MODE = COVER_MODE_NONE
 DEFAULT_SPAN_TIME = 25.0
@@ -67,11 +70,28 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
         self._open_cmd = commands_set.split("_")[0]
         self._close_cmd = commands_set.split("_")[1]
         self._stop_cmd = commands_set.split("_")[2]
-        self._timer_start = time.time()
-        self._state = self._stop_cmd
-        self._previous_state = self._state
+        self._timer_start = time.monotonic()
+        self._timed_direction = 0
+        self._stop_task = None
+        self._pending_timed_write = None
+        self._state = None
         self._current_cover_position = 0
+        self._movement_target = None
+        self._movement_deadline = 0.0
+        self._last_position_change = 0.0
         _LOGGER.debug("Initialized cover [%s]", self.name)
+
+    @property
+    def available(self):
+        """Return if cover is available.
+
+        Covers may use a write-only command DP (e.g. DP 1 "control") which the
+        device never reports back, so fall back to the position DP when set.
+        """
+        return super().available or (
+            self.has_config(CONF_CURRENT_POSITION_DP)
+            and str(self._config[CONF_CURRENT_POSITION_DP]) in self._status
+        )
 
     @property
     def supported_features(self) -> CoverEntityFeature:
@@ -86,19 +106,64 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
         """Return current cover position in percent."""
         if self._config[CONF_POSITIONING_MODE] == COVER_MODE_NONE:
             return None
+        if self._timed_direction and self._reported_position() is None:
+            elapsed = time.monotonic() - self._timer_start
+            distance = round(elapsed / self._config[CONF_SPAN_TIME] * 100)
+            position = self._current_cover_position + self._timed_direction * distance
+            return min(100, max(0, position))
         return self._current_cover_position
+
+    def _reported_position(self):
+        if self.has_config(CONF_CURRENT_POSITION_DP):
+            return self._status.get(str(self._config[CONF_CURRENT_POSITION_DP]))
+        return None
+
+    def _start_movement(self, target):
+        self._movement_target = target
+        self._last_position_change = time.monotonic()
+        self._movement_deadline = self._last_position_change + COVER_MOVEMENT_TIMEOUT
+
+    def _command_direction(self):
+        if self._state == self._open_cmd:
+            return 1
+        if self._state == self._close_cmd:
+            return -1
+        return 0
+
+    def _movement_direction(self):
+        """Return 1 while opening, -1 while closing and 0 when idle.
+
+        With position feedback the command DP (e.g. DP 1 "control") only echoes
+        the last command, so it says "open" long after the cover stopped.
+        """
+        mode = self._config[CONF_POSITIONING_MODE]
+        if mode == COVER_MODE_TIMED:
+            return self._timed_direction
+        if mode == COVER_MODE_NONE or not self.has_config(CONF_CURRENT_POSITION_DP):
+            return self._command_direction()
+
+        target = self._movement_target
+        position = self._current_cover_position
+        if (
+            target is None
+            or position is None
+            or abs(position - target) <= 1
+            or time.monotonic() >= self._movement_deadline
+            or time.monotonic() - self._last_position_change > COVER_STALL_TIMEOUT
+        ):
+            return 0
+
+        return 1 if target > position else -1
 
     @property
     def is_opening(self):
         """Return if cover is opening."""
-        state = self._state
-        return state == self._open_cmd
+        return self._movement_direction() > 0
 
     @property
     def is_closing(self):
         """Return if cover is closing."""
-        state = self._state
-        return state == self._close_cmd
+        return self._movement_direction() < 0
 
     @property
     def is_closed(self):
@@ -106,11 +171,7 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
         if self._config[CONF_POSITIONING_MODE] == COVER_MODE_NONE:
             return False
 
-        if self._current_cover_position == 0:
-            return True
-        if self._current_cover_position == 100:
-            return False
-        return False
+        return self.current_cover_position == 0
 
     async def async_set_cover_position(self, **kwargs):
         """Move the cover to a specific position."""
@@ -121,60 +182,95 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
             currpos = self.current_cover_position
             posdiff = abs(newpos - currpos)
             mydelay = posdiff / 100.0 * self._config[CONF_SPAN_TIME]
-            if newpos > currpos:
-                self.debug("Opening to %f: delay %f", newpos, mydelay)
-                await self.async_open_cover()
-            else:
-                self.debug("Closing to %f: delay %f", newpos, mydelay)
-                await self.async_close_cover()
-            self.hass.async_create_task(self.async_stop_after_timeout(mydelay))
-            self.debug("Done")
+            if newpos == currpos:
+                if self._timed_direction:
+                    await self.async_stop_cover()
+                return
+            await self._async_move(newpos > currpos, delay=mydelay)
 
         elif self._config[CONF_POSITIONING_MODE] == COVER_MODE_POSITION:
-            converted_position = int(kwargs[ATTR_POSITION])
-            if self._config[CONF_POSITION_INVERTED]:
-                converted_position = 100 - converted_position
-
-            if 0 <= converted_position <= 100 and self.has_config(CONF_SET_POSITION_DP):
+            target = int(kwargs[ATTR_POSITION])
+            if 0 <= target <= 100 and self.has_config(CONF_SET_POSITION_DP):
+                self._start_movement(target)
+                converted_position = (
+                    100 - target if self._config[CONF_POSITION_INVERTED] else target
+                )
                 await self._device.set_dp(
                     converted_position, self._config[CONF_SET_POSITION_DP]
                 )
 
-    async def async_stop_after_timeout(self, delay_sec):
+    def _cancel_timed_stop(self):
+        self._pending_timed_write = None
+        if self._stop_task is not None:
+            self._stop_task.cancel()
+            self._stop_task = None
+
+    def _set_timed_direction(self, direction):
+        if self._timed_direction:
+            # Without position feedback, elapsed travel is the only baseline for a reversal.
+            self._current_cover_position = self.current_cover_position
+        self._timed_direction = direction
+        # Wall-clock corrections must not count as motor travel.
+        self._timer_start = time.monotonic()
+
+    async def _async_stop_at(self, deadline):
         """Stop the cover if timeout (max movement span) occurred."""
-        await asyncio.sleep(delay_sec)
+        await asyncio.sleep(max(0, deadline - time.monotonic()))
+        self._stop_task = None
         await self.async_stop_cover()
 
     async def async_open_cover(self, **kwargs):
         """Open the cover."""
-        self.debug("Launching command %s to cover ", self._open_cmd)
-        await self._device.set_dp(self._open_cmd, self._dp_id)
-        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_TIMED:
-            # for timed positioning, stop the cover after a full opening timespan
-            # instead of waiting the internal timeout
-            self.hass.async_create_task(
-                self.async_stop_after_timeout(
-                    self._config[CONF_SPAN_TIME] + COVER_TIMEOUT_TOLERANCE
-                )
-            )
+        await self._async_move(True)
 
     async def async_close_cover(self, **kwargs):
         """Close cover."""
-        self.debug("Launching command %s to cover ", self._close_cmd)
-        await self._device.set_dp(self._close_cmd, self._dp_id)
-        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_TIMED:
-            # for timed positioning, stop the cover after a full opening timespan
-            # instead of waiting the internal timeout
-            self.hass.async_create_task(
-                self.async_stop_after_timeout(
-                    self._config[CONF_SPAN_TIME] + COVER_TIMEOUT_TOLERANCE
-                )
-            )
+        await self._async_move(False)
+
+    async def _async_move(self, opening, *, delay=None):
+        command = self._open_cmd if opening else self._close_cmd
+        self.debug("Launching command %s to cover", command)
+        mode = self._config[CONF_POSITIONING_MODE]
+        if mode != COVER_MODE_TIMED:
+            if mode == COVER_MODE_POSITION:
+                self._start_movement(100 if opening else 0)
+            await self._device.set_dp(command, self._dp_id)
+            return
+
+        self._cancel_timed_stop()
+        self._set_timed_direction(1 if opening else -1)
+        if delay is None:
+            # A Tuya control ACK confirms the write, not arrival at the mechanical limit.
+            # The configured span is an estimate, so allow for a slower end-to-end run.
+            delay = self._config[CONF_SPAN_TIME] + COVER_TIMEOUT_TOLERANCE
+        self._stop_task = self.hass.async_create_background_task(
+            self._async_stop_at(self._timer_start + delay), f"Timed stop for {self.entity_id}"
+        )
+        await self._async_write_timed_command(command)
+
+    async def _async_write_timed_command(self, command):
+        write = self._pending_timed_write = object()
+        try:
+            await self._device.set_dp(command, self._dp_id)
+        finally:
+            if self._pending_timed_write is write:
+                self._pending_timed_write = None
+                self.async_write_ha_state()
 
     async def async_stop_cover(self, **kwargs):
         """Stop the cover."""
         self.debug("Launching command %s to cover ", self._stop_cmd)
-        await self._device.set_dp(self._stop_cmd, self._dp_id)
+        self._movement_target = None
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_TIMED:
+            self._cancel_timed_stop()
+            self._set_timed_direction(0)
+            await self._async_write_timed_command(self._stop_cmd)
+        else:
+            await self._device.set_dp(self._stop_cmd, self._dp_id)
+
+    async def async_will_remove_from_hass(self):
+        self._cancel_timed_stop()
+        await super().async_will_remove_from_hass()
 
     def status_restored(self, stored_state):
         """Restore the last stored cover status."""
@@ -186,43 +282,48 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
 
     def status_updated(self):
         """Device status was updated."""
-        self._previous_state = self._state
-        self._state = self.dps(self._dp_id)
-        if self._state.isupper():
+        previous_state = self._state
+        self._state = self._status.get(str(self._dp_id))
+        # The command DP may be write-only (never reported), so state can be
+        # None and is not necessarily a string (position DPs are integers).
+        if isinstance(self._state, str) and self._state.isupper():
             self._open_cmd = self._open_cmd.upper()
             self._close_cmd = self._close_cmd.upper()
             self._stop_cmd = self._stop_cmd.upper()
 
-        if self.has_config(CONF_CURRENT_POSITION_DP):
-            curr_pos = self.dps_conf(CONF_CURRENT_POSITION_DP)
-            if self._config[CONF_POSITION_INVERTED]:
-                self._current_cover_position = 100 - curr_pos
-            else:
-                self._current_cover_position = curr_pos
+        mode = self._config[CONF_POSITIONING_MODE]
+        commands = (self._open_cmd, self._close_cmd, self._stop_cmd)
         if (
-            self._config[CONF_POSITIONING_MODE] == COVER_MODE_TIMED
-            and self._state != self._previous_state
+            previous_state is not None
+            and self._state != previous_state
+            and self._state in commands
         ):
-            if self._previous_state != self._stop_cmd:
-                # the state has changed, and the cover was moving
-                time_diff = time.time() - self._timer_start
-                pos_diff = round(time_diff / self._config[CONF_SPAN_TIME] * 100.0)
-                if self._previous_state == self._close_cmd:
-                    pos_diff = -pos_diff
-                self._current_cover_position = min(
-                    100, max(0, self._current_cover_position + pos_diff)
-                )
+            direction = self._command_direction()
+            if mode == COVER_MODE_TIMED:
+                if direction == self._timed_direction:
+                    self._pending_timed_write = None
+                elif self._pending_timed_write is None:
+                    self._cancel_timed_stop()
+                    self._set_timed_direction(direction)
+            elif mode == COVER_MODE_POSITION:
+                if not direction:
+                    self._movement_target = None
+                elif direction != self._movement_direction():
+                    self._start_movement(100 if direction > 0 else 0)
 
-                change = "stopped" if self._state == self._stop_cmd else "inverted"
-                self.debug(
-                    "Movement %s after %s sec., position difference %s",
-                    change,
-                    time_diff,
-                    pos_diff,
-                )
-
-            # store the time of the last movement change
-            self._timer_start = time.time()
+        curr_pos = self._reported_position()
+        if curr_pos is not None:
+            if self._config[CONF_POSITION_INVERTED]:
+                curr_pos = 100 - curr_pos
+            if curr_pos != self._current_cover_position:
+                self._last_position_change = time.monotonic()
+            target = self._movement_target
+            if target is not None and (
+                abs(curr_pos - target) <= 1
+                or (self._current_cover_position - target) * (curr_pos - target) < 0
+            ):
+                self._movement_target = None
+            self._current_cover_position = curr_pos
 
         # Keep record in last_state as long as not during connection/re-connection,
         # as last state will be used to restore the previous state

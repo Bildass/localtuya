@@ -471,6 +471,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         if state:
             self.status_restored(state)
 
+        @callback
         def _update_handler(status):
             """Update entity state when status was updated."""
             if status is None:
@@ -481,7 +482,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
                     self.status_updated()
 
                 # Update HA
-                self.schedule_update_ha_state()
+                self.async_write_ha_state()
 
         signal = f"localtuya_{self._dev_config_entry[CONF_DEVICE_ID]}"
 
